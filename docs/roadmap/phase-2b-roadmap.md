@@ -4,6 +4,8 @@
 
 Build the provider-sync foundation that will later connect real U.S. market data vendors to AQuantLens US.
 
+Completion audit: `docs/roadmap/phase-2b-completion-audit.md`.
+
 ## Completed in First Slice
 
 - Added `provider_sync_runs` ORM support.
@@ -343,4 +345,4 @@ Browser smoke:
 
 ## Next Slice
 
-- Run a real Polygon live smoke only after user-provided runtime env vars are available, without reading or printing secrets.
+- Run the final Polygon live smoke gate after user-provided runtime env vars are available, following `docs/roadmap/phase-2b-completion-audit.md`.
