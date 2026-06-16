@@ -95,3 +95,55 @@ class ProviderSyncRunModel(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     rows_written: Mapped[int] = mapped_column(default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class OptionContractModel(Base):
+    __tablename__ = "option_contracts"
+    __table_args__ = (
+        UniqueConstraint("option_symbol", "source", name="uq_option_contracts_symbol_source"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    option_symbol: Mapped[str] = mapped_column(String(128), index=True)
+    underlying_symbol: Mapped[str] = mapped_column(String(64), index=True)
+    expiry: Mapped[date] = mapped_column(Date, index=True)
+    strike: Mapped[float] = mapped_column(Float, index=True)
+    option_type: Mapped[str] = mapped_column(String(8), index=True)
+    exercise_style: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    expiration_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    source: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    snapshots: Mapped[list["OptionSnapshotModel"]] = relationship(back_populates="contract")
+
+
+class OptionSnapshotModel(Base):
+    __tablename__ = "option_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "option_contract_id",
+            "timestamp",
+            "source",
+            name="uq_option_snapshots_contract_time_source",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    option_contract_id: Mapped[UUID] = mapped_column(ForeignKey("option_contracts.id"), index=True)
+    underlying_symbol: Mapped[str] = mapped_column(String(64), index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    bid: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ask: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last: Mapped[float | None] = mapped_column(Float, nullable=True)
+    volume: Mapped[int] = mapped_column(BigInteger, default=0)
+    open_interest: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    implied_volatility: Mapped[float | None] = mapped_column(Float, nullable=True)
+    delta: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gamma: Mapped[float | None] = mapped_column(Float, nullable=True)
+    theta: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vega: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(64), index=True)
+    inserted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    contract: Mapped[OptionContractModel] = relationship(back_populates="snapshots")
