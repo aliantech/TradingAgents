@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
 from app.market_data.repository import MarketDataRepository
-from app.market_data.schemas import MarketBar, MarketBarsResponse
+from app.market_data.schemas import MarketBar, MarketBarsResponse, ProviderSyncRunItem, ProviderSyncRunsResponse
+from app.market_data.sync_repository import ProviderSyncRepository
 
 router = APIRouter(prefix="/api/market-data", tags=["market-data"])
 
@@ -45,4 +46,27 @@ def get_market_bars(
         symbol=normalized_symbol,
         timeframe=timeframe,
         bars=persisted_bars or _sample_bars(normalized_symbol, timeframe),
+    )
+
+
+@router.get("/sync-runs", response_model=ProviderSyncRunsResponse)
+def list_sync_runs(
+    limit: int = Query(default=100, ge=1, le=500),
+    session: Session = Depends(get_db_session),
+) -> ProviderSyncRunsResponse:
+    repository = ProviderSyncRepository(session)
+    return ProviderSyncRunsResponse(
+        runs=[
+            ProviderSyncRunItem(
+                id=str(run.id),
+                provider=run.provider,
+                sync_type=run.sync_type,
+                status=run.status,
+                started_at=run.started_at,
+                finished_at=run.finished_at,
+                rows_written=run.rows_written,
+                error_message=run.error_message,
+            )
+            for run in repository.list_runs(limit=limit)
+        ]
     )
