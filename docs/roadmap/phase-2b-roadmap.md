@@ -282,6 +282,26 @@ scripts/phase2b_final_live_smoke.sh polygon SPY 1d 2026-06-17 2026-06-17
 - The script does not read `.env`, does not print environment variables, and delegates to `final-live-smoke-gate`.
 - Updated the live smoke SOP and completion audit to use the script as the default final gate entrypoint.
 
+## Completed in Twenty-First Slice
+
+- Added a repeatable Phase 2B preflight script:
+
+```bash
+scripts/phase2b_preflight.sh
+```
+
+- Default preflight runs:
+  - backend full test suite;
+  - frontend production build.
+- Live provider smoke is opt-in:
+
+```bash
+RUN_LIVE_SMOKE=1 scripts/phase2b_preflight.sh
+```
+
+- The script does not read `.env` or print runtime env vars.
+- Updated live smoke SOP and completion audit to use preflight as the default final verification entrypoint.
+
 ## Verification
 
 Ubuntu backend:
@@ -296,7 +316,36 @@ pytest -q
 Latest result:
 
 ```text
-71 passed
+73 passed
+```
+
+Phase 2B preflight targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_phase2b_preflight_script.py -q
+```
+
+Latest result:
+
+```text
+2 passed
+```
+
+Phase 2B preflight:
+
+```bash
+cd /home/yasin/workspace/TradingAgents
+scripts/phase2b_preflight.sh
+```
+
+Latest result:
+
+```text
+backend: 73 passed
+frontend: 51 modules transformed, built in 179ms
+live smoke: skipped by default
 ```
 
 Final live smoke script targeted:

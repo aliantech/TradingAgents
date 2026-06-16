@@ -30,6 +30,7 @@ The code, scheduler, health, audit, cache-publisher, API, frontend visibility, a
 | CLI can inspect provider sync audit rows after live smoke. | `list-sync-runs` CLI filters by provider and sync type, returning sanitized audit fields with secret-like error text redacted. | Complete |
 | Final live smoke gate can run readiness, smoke, and audit-row verification together. | `final-live-smoke-gate` CLI returns one sanitized gate result and exits nonzero unless all checks pass. | Complete |
 | Final live smoke gate has a safe script entrypoint. | `scripts/phase2b_final_live_smoke.sh` runs the guarded final gate without reading `.env` or printing runtime env. | Complete |
+| Phase 2B has a repeatable non-live preflight script. | `scripts/phase2b_preflight.sh` runs backend tests and frontend build, with live smoke opt-in through `RUN_LIVE_SMOKE=1`. | Complete |
 | Real Polygon live smoke succeeds with user-provided runtime env vars. | Pending command below must return `status=succeeded` and nonzero `rows_written` or a provider-valid empty result for the selected market date. | Pending |
 
 ## Current Runtime Gate Evidence
@@ -42,6 +43,7 @@ cd /home/yasin/workspace/TradingAgents/backend
 python -m app.market_data.cli provider-readiness --provider polygon
 python -m app.market_data.cli final-live-smoke-gate --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
 scripts/phase2b_final_live_smoke.sh
+scripts/phase2b_preflight.sh
 ```
 
 Latest result:
@@ -58,10 +60,8 @@ This proves the final gate refuses to run live provider sync until runtime confi
 After the user provides runtime env vars in the shell/session, run:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents/backend
-. .venv/bin/activate
-cd ..
-scripts/phase2b_final_live_smoke.sh
+cd /home/yasin/workspace/TradingAgents
+RUN_LIVE_SMOKE=1 scripts/phase2b_preflight.sh
 ```
 
 Acceptance:

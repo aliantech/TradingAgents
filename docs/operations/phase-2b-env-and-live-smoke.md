@@ -59,6 +59,24 @@ The same gate is available through:
 GET /api/market-data/provider-readiness?provider=polygon
 ```
 
+## Phase 2B Preflight
+
+Run non-live backend and frontend checks:
+
+```bash
+scripts/phase2b_preflight.sh
+```
+
+This runs backend tests and the frontend build, then skips live provider smoke by default.
+
+After runtime provider env vars are available, run the same preflight with live smoke enabled:
+
+```bash
+RUN_LIVE_SMOKE=1 scripts/phase2b_preflight.sh
+```
+
+The preflight script does not read `.env` or print runtime env vars.
+
 ## Sample Provider Smoke
 
 ```bash
