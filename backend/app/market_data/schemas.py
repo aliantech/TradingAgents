@@ -69,6 +69,13 @@ class ProviderSyncHealthResponse(BaseModel):
     message: str
 
 
+class ProviderReadinessResponse(BaseModel):
+    provider: str
+    ready: bool
+    missing: list[str]
+    message: str
+
+
 class DailyBarSyncRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=32)
     start: date

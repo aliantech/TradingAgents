@@ -12,6 +12,7 @@ from app.market_data.schemas import (
     DailyBarSyncResponse,
     MarketBar,
     MarketBarsResponse,
+    ProviderReadinessResponse,
     ProviderSyncRunItem,
     ProviderSyncRunsResponse,
     ProviderSyncHealthResponse,
@@ -19,6 +20,7 @@ from app.market_data.schemas import (
     ProviderSyncSummaryGroupsResponse,
     ProviderSyncSummaryResponse,
 )
+from app.market_data.provider_readiness import check_market_data_provider_readiness
 from app.market_data.sync_repository import ProviderSyncRepository
 
 router = APIRouter(prefix="/api/market-data", tags=["market-data"])
@@ -180,6 +182,19 @@ def get_sync_health(
         minutes_since_latest=health.minutes_since_latest,
         stale_after_minutes=health.stale_after_minutes,
         message=health.message,
+    )
+
+
+@router.get("/provider-readiness", response_model=ProviderReadinessResponse)
+def get_provider_readiness(
+    provider: str | None = Query(default=None, min_length=1, max_length=64),
+) -> ProviderReadinessResponse:
+    readiness = check_market_data_provider_readiness(settings, provider=provider)
+    return ProviderReadinessResponse(
+        provider=readiness.provider,
+        ready=readiness.ready,
+        missing=readiness.missing,
+        message=readiness.message,
     )
 
 

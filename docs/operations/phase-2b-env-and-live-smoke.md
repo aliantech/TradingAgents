@@ -31,6 +31,34 @@ export AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS="1.0"
 
 Never print the API key. Never commit `.env`.
 
+## Provider Readiness Gate
+
+Before any live-provider smoke, run:
+
+```bash
+python -m app.market_data.cli provider-readiness --provider polygon
+```
+
+Expected when configuration is missing:
+
+```json
+{"provider": "polygon", "ready": false, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "message": "Polygon provider is missing required runtime configuration."}
+```
+
+Expected when runtime configuration is present:
+
+```json
+{"provider": "polygon", "ready": true, "missing": [], "message": "Polygon provider is ready for a live smoke run."}
+```
+
+The readiness command must never print secret values.
+
+The same gate is available through:
+
+```text
+GET /api/market-data/provider-readiness?provider=polygon
+```
+
 ## Sample Provider Smoke
 
 ```bash
@@ -52,7 +80,7 @@ Expected result:
 
 ## Polygon Live Smoke
 
-Run only after the API key is available in the shell environment.
+Run only after `provider-readiness --provider polygon` returns `ready=true`.
 
 Daily bars:
 

@@ -181,6 +181,25 @@ python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SP
 - Updated scheduler runner SOP with install, smoke, enable, disable, and journal inspection commands.
 - Kept the checked-in service on the `sample` provider by default; live provider settings remain runtime env configuration only.
 
+## Completed in Fifteenth Slice
+
+- Added safe live-provider readiness gates before Polygon smoke runs.
+- Added `check_market_data_provider_readiness()` so runtime config can be checked without constructing the provider or printing secret values.
+- Added CLI command:
+
+```bash
+python -m app.market_data.cli provider-readiness --provider polygon
+```
+
+- Added API endpoint:
+
+```text
+GET /api/market-data/provider-readiness?provider=polygon
+```
+
+- Readiness output includes only `provider`, `ready`, `missing`, and `message`.
+- Updated live smoke SOP so Polygon smoke must pass readiness first.
+
 ## Verification
 
 Ubuntu backend:
@@ -195,7 +214,21 @@ pytest -q
 Latest result:
 
 ```text
-58 passed
+62 passed
+```
+
+Provider readiness targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_market_data_provider_readiness.py -q
+```
+
+Latest result:
+
+```text
+4 passed
 ```
 
 Scheduler runner targeted:
@@ -283,4 +316,3 @@ Browser smoke:
 ## Next Slice
 
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add safe live-provider smoke gates around runtime env availability and provider health.

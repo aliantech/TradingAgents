@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import SessionLocal, initialize_database
 from app.market_data.ingestion import MarketDataIngestionService
+from app.market_data.provider_readiness import check_market_data_provider_readiness
 from app.market_data.provider_registry import get_market_data_provider
 from app.market_data.repository import MarketDataRepository
 from app.market_data.scheduler import run_configured_sync_targets_once, run_scheduler_loop
@@ -82,6 +83,8 @@ def main(argv: list[str] | None = None) -> int:
     scheduler_loop_parser.add_argument("--provider", default=settings.market_data_provider)
     scheduler_loop_parser.add_argument("--interval-seconds", default=settings.scheduler_interval_seconds, type=int)
     scheduler_loop_parser.add_argument("--max-iterations", default=None, type=int)
+    readiness_parser = subparsers.add_parser("provider-readiness")
+    readiness_parser.add_argument("--provider", default=settings.market_data_provider)
     args = parser.parse_args(argv)
 
     if args.command == "sync-daily-bars":
@@ -133,6 +136,10 @@ def main(argv: list[str] | None = None) -> int:
         ]
         print(json.dumps(payload, ensure_ascii=False))
         return 0 if all(result.status == "succeeded" for iteration in iterations for result in iteration.results) else 1
+    if args.command == "provider-readiness":
+        readiness = check_market_data_provider_readiness(settings, provider=args.provider)
+        print(json.dumps(readiness.__dict__, ensure_ascii=False))
+        return 0 if readiness.ready else 1
     return 1
 
 
