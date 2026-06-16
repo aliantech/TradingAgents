@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import type { OptionSnapshot } from "../../lib/api";
 import {
@@ -23,6 +23,8 @@ type OptionChainTableProps = {
   onSync: () => void;
 };
 
+type SelectedAction = "inspect" | "buy" | "sell";
+
 const DEFAULT_UNDERLYING_PRICE: Record<string, number> = {
   SPY: 550,
   QQQ: 480,
@@ -43,6 +45,7 @@ export function OptionChainTable({
 }: OptionChainTableProps) {
   const [moneyness, setMoneyness] = useState<MoneynessFilter>("near");
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
+  const [selectedAction, setSelectedAction] = useState<SelectedAction>("inspect");
   const underlyingPrice = DEFAULT_UNDERLYING_PRICE[underlying.toUpperCase()] ?? null;
   const rows = useMemo(() => groupOptionSnapshots(snapshots, underlyingPrice), [snapshots, underlyingPrice]);
   const visibleRows = useMemo(
@@ -53,6 +56,13 @@ export function OptionChainTable({
   const totalVolume = snapshots.reduce((sum, snapshot) => sum + snapshot.volume, 0);
   const totalOpenInterest = snapshots.reduce((sum, snapshot) => sum + (snapshot.open_interest ?? 0), 0);
   const latestTimestamp = snapshots[0]?.timestamp;
+  const averageIv = average(snapshots.map((snapshot) => snapshot.implied_volatility));
+  const activeExpiry = buildExpiryMeta(expiry);
+
+  function handleSelectContract(symbol: string, action: SelectedAction) {
+    setSelectedSymbol(symbol);
+    setSelectedAction(action);
+  }
 
   return (
     <section className="panel option-panel">
@@ -70,6 +80,25 @@ export function OptionChainTable({
           <button type="button" onClick={onSync} disabled={loading || syncing}>
             {syncing ? "同步中" : "同步期权链"}
           </button>
+        </div>
+      </div>
+
+      <div className="underlying-strip">
+        <div>
+          <span>Underlying</span>
+          <strong>{underlying}</strong>
+        </div>
+        <div>
+          <span>参考价</span>
+          <strong>{underlyingPrice ? formatOptionNumber(underlyingPrice) : "-"}</strong>
+        </div>
+        <div>
+          <span>IV</span>
+          <strong>{formatOptionPercent(averageIv)}</strong>
+        </div>
+        <div>
+          <span>模式</span>
+          <strong>Single · Research Only</strong>
         </div>
       </div>
 
@@ -103,6 +132,14 @@ export function OptionChainTable({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="expiry-strip" aria-label="到期日">
+        <button type="button" className="active">
+          <strong>{activeExpiry.label}</strong>
+          <span>{activeExpiry.daysLabel}</span>
+          <em>{activeExpiry.kind}</em>
+        </button>
       </div>
 
       <div className="option-summary">
@@ -151,7 +188,19 @@ export function OptionChainTable({
               </thead>
               <tbody>
                 {visibleRows.map((row) => (
-                  <OptionRow key={row.strike} row={row} selectedSymbol={selectedSymbol} onSelect={setSelectedSymbol} />
+                  <Fragment key={row.strike}>
+                    {row.isAtTheMoney && underlyingPrice !== null ? (
+                      <tr className="current-price-marker">
+                        <td colSpan={15}>Current price near {formatOptionNumber(underlyingPrice)}</td>
+                      </tr>
+                    ) : null}
+                    <OptionRow
+                      row={row}
+                      selectedSymbol={selectedSymbol}
+                      underlyingPrice={underlyingPrice}
+                      onSelect={handleSelectContract}
+                    />
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -161,26 +210,38 @@ export function OptionChainTable({
         </div>
 
         <aside className="selected-contract-panel">
-          <h3>合约详情</h3>
+          <div className="preview-heading">
+            <div>
+              <h3>策略预览</h3>
+              <p>Research Only · 不创建真实订单</p>
+            </div>
+            <span>{actionLabel(selectedAction)}</span>
+          </div>
           {selectedContract ? (
-            <dl>
-              <Detail label="合约" value={selectedContract.option_symbol} />
-              <Detail
-                label="Bid / Ask"
-                value={`${formatOptionNumber(selectedContract.bid)} / ${formatOptionNumber(selectedContract.ask)}`}
-              />
-              <Detail label="Last" value={formatOptionNumber(selectedContract.last)} />
-              <Detail label="IV" value={formatOptionPercent(selectedContract.implied_volatility)} />
-              <Detail label="Delta" value={formatOptionNumber(selectedContract.delta, 4)} />
-              <Detail label="Gamma" value={formatOptionNumber(selectedContract.gamma, 4)} />
-              <Detail label="Theta" value={formatOptionNumber(selectedContract.theta, 4)} />
-              <Detail label="Vega" value={formatOptionNumber(selectedContract.vega, 4)} />
-              <Detail label="Volume" value={selectedContract.volume.toLocaleString()} />
-              <Detail label="OI" value={selectedContract.open_interest?.toLocaleString() ?? "-"} />
-              <Detail label="Source" value={selectedContract.source} />
-            </dl>
+            <>
+              <dl>
+                <Detail label="合约" value={selectedContract.option_symbol} />
+                <Detail
+                  label="Bid / Ask"
+                  value={`${formatOptionNumber(selectedContract.bid)} / ${formatOptionNumber(selectedContract.ask)}`}
+                />
+                <Detail label="Last" value={formatOptionNumber(selectedContract.last)} />
+                <Detail label="IV" value={formatOptionPercent(selectedContract.implied_volatility)} />
+                <Detail label="Delta" value={formatOptionNumber(selectedContract.delta, 4)} />
+                <Detail label="Gamma" value={formatOptionNumber(selectedContract.gamma, 4)} />
+                <Detail label="Theta" value={formatOptionNumber(selectedContract.theta, 4)} />
+                <Detail label="Vega" value={formatOptionNumber(selectedContract.vega, 4)} />
+                <Detail label="Volume" value={selectedContract.volume.toLocaleString()} />
+                <Detail label="OI" value={selectedContract.open_interest?.toLocaleString() ?? "-"} />
+                <Detail label="Source" value={selectedContract.source} />
+              </dl>
+              <div className="premium-preview">
+                <span>Estimated Premium</span>
+                <strong>{estimatePremium(selectedContract, selectedAction)}</strong>
+              </div>
+            </>
           ) : (
-            <p>选择一个 Bid、Ask 或 Last 单元格查看合约详情。</p>
+            <p>点击 Bid 形成 Sell 预览，点击 Ask 形成 Buy 预览，点击 Last 只查看合约。</p>
           )}
         </aside>
       </div>
@@ -191,50 +252,69 @@ export function OptionChainTable({
 function OptionRow({
   row,
   selectedSymbol,
+  underlyingPrice,
   onSelect,
 }: {
   row: OptionChainRow;
   selectedSymbol: string;
-  onSelect: (symbol: string) => void;
+  underlyingPrice: number | null;
+  onSelect: (symbol: string, action: SelectedAction) => void;
 }) {
+  const callMoneyness = getMoneynessClass("call", row.strike, underlyingPrice);
+  const putMoneyness = getMoneynessClass("put", row.strike, underlyingPrice);
+
   return (
     <tr className={row.isAtTheMoney ? "atm-row" : ""}>
-      <OptionValue value={row.call?.delta} digits={4} selected={row.call?.option_symbol === selectedSymbol} />
-      <td>{formatOptionPercent(row.call?.implied_volatility)}</td>
-      <td>{row.call?.open_interest?.toLocaleString() ?? "-"}</td>
-      <td>{row.call?.volume.toLocaleString() ?? "-"}</td>
-      <ActionCell snapshot={row.call} value={row.call?.last} onSelect={onSelect} />
-      <ActionCell snapshot={row.call} value={row.call?.bid} onSelect={onSelect} />
-      <ActionCell snapshot={row.call} value={row.call?.ask} onSelect={onSelect} />
+      <OptionValue value={row.call?.delta} digits={4} selected={row.call?.option_symbol === selectedSymbol} tone={callMoneyness} />
+      <td className={callMoneyness}>{formatOptionPercent(row.call?.implied_volatility)}</td>
+      <td className={callMoneyness}>{row.call?.open_interest?.toLocaleString() ?? "-"}</td>
+      <td className={callMoneyness}>{row.call?.volume.toLocaleString() ?? "-"}</td>
+      <ActionCell snapshot={row.call} value={row.call?.last} action="inspect" tone={callMoneyness} onSelect={onSelect} />
+      <ActionCell snapshot={row.call} value={row.call?.bid} action="sell" tone={callMoneyness} onSelect={onSelect} />
+      <ActionCell snapshot={row.call} value={row.call?.ask} action="buy" tone={callMoneyness} onSelect={onSelect} />
       <td className="strike-col">{formatOptionNumber(row.strike)}</td>
-      <ActionCell snapshot={row.put} value={row.put?.bid} onSelect={onSelect} />
-      <ActionCell snapshot={row.put} value={row.put?.ask} onSelect={onSelect} />
-      <ActionCell snapshot={row.put} value={row.put?.last} onSelect={onSelect} />
-      <td>{row.put?.volume.toLocaleString() ?? "-"}</td>
-      <td>{row.put?.open_interest?.toLocaleString() ?? "-"}</td>
-      <td>{formatOptionPercent(row.put?.implied_volatility)}</td>
-      <OptionValue value={row.put?.delta} digits={4} selected={row.put?.option_symbol === selectedSymbol} />
+      <ActionCell snapshot={row.put} value={row.put?.bid} action="sell" tone={putMoneyness} onSelect={onSelect} />
+      <ActionCell snapshot={row.put} value={row.put?.ask} action="buy" tone={putMoneyness} onSelect={onSelect} />
+      <ActionCell snapshot={row.put} value={row.put?.last} action="inspect" tone={putMoneyness} onSelect={onSelect} />
+      <td className={putMoneyness}>{row.put?.volume.toLocaleString() ?? "-"}</td>
+      <td className={putMoneyness}>{row.put?.open_interest?.toLocaleString() ?? "-"}</td>
+      <td className={putMoneyness}>{formatOptionPercent(row.put?.implied_volatility)}</td>
+      <OptionValue value={row.put?.delta} digits={4} selected={row.put?.option_symbol === selectedSymbol} tone={putMoneyness} />
     </tr>
   );
 }
 
-function OptionValue({ value, digits, selected }: { value: number | null | undefined; digits: number; selected: boolean }) {
-  return <td className={selected ? "selected-cell" : ""}>{formatOptionNumber(value, digits)}</td>;
+function OptionValue({
+  value,
+  digits,
+  selected,
+  tone,
+}: {
+  value: number | null | undefined;
+  digits: number;
+  selected: boolean;
+  tone: string;
+}) {
+  return <td className={`${tone} ${selected ? "selected-cell" : ""}`}>{formatOptionNumber(value, digits)}</td>;
 }
 
 function ActionCell({
   snapshot,
   value,
+  action,
+  tone,
   onSelect,
 }: {
   snapshot?: OptionSnapshot;
   value: number | null | undefined;
-  onSelect: (symbol: string) => void;
+  action: SelectedAction;
+  tone: string;
+  onSelect: (symbol: string, action: SelectedAction) => void;
 }) {
-  if (!snapshot) return <td>-</td>;
+  if (!snapshot) return <td className={tone}>-</td>;
   return (
-    <td className="action-cell">
-      <button type="button" onClick={() => onSelect(snapshot.option_symbol)}>
+    <td className={`action-cell ${tone}`}>
+      <button type="button" onClick={() => onSelect(snapshot.option_symbol, action)} title={actionLabel(action)}>
         {formatOptionNumber(value)}
       </button>
     </td>
@@ -257,4 +337,44 @@ function Detail({ label, value }: { label: string; value: string }) {
       <dd>{value}</dd>
     </>
   );
+}
+
+function average(values: Array<number | null | undefined>) {
+  const numbers = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (numbers.length === 0) return null;
+  return numbers.reduce((sum, value) => sum + value, 0) / numbers.length;
+}
+
+function buildExpiryMeta(expiry: string) {
+  const expiryDate = new Date(`${expiry}T00:00:00`);
+  const today = new Date();
+  const days = Number.isFinite(expiryDate.getTime())
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - today.getTime()) / 86_400_000))
+    : null;
+  return {
+    label: expiry || "-",
+    daysLabel: days === null ? "-" : `${days}d`,
+    kind: days !== null && days <= 10 ? "W" : "M",
+  };
+}
+
+function getMoneynessClass(side: "call" | "put", strike: number, underlyingPrice: number | null) {
+  if (underlyingPrice === null) return "";
+  const isItm = side === "call" ? strike < underlyingPrice : strike > underlyingPrice;
+  return isItm ? "itm-cell" : "otm-cell";
+}
+
+function actionLabel(action: SelectedAction) {
+  const labels: Record<SelectedAction, string> = {
+    buy: "Buy Preview",
+    sell: "Sell Preview",
+    inspect: "Inspect",
+  };
+  return labels[action];
+}
+
+function estimatePremium(snapshot: OptionSnapshot, action: SelectedAction) {
+  const price = action === "buy" ? snapshot.ask : action === "sell" ? snapshot.bid : snapshot.last;
+  if (typeof price !== "number" || !Number.isFinite(price)) return "-";
+  return `$${formatOptionNumber(price * 100)}`;
 }
