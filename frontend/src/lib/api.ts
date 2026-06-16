@@ -74,6 +74,8 @@ export type ProviderSyncRunsResponse = {
 export type ProviderSyncFilters = {
   provider?: string;
   syncType?: string;
+  startedAfter?: string;
+  startedBefore?: string;
 };
 
 export type ProviderSyncSummary = {
@@ -172,6 +174,12 @@ function providerSyncQuery(filters: ProviderSyncFilters = {}, includeLimit = fal
   }
   if (filters.syncType) {
     params.set("sync_type", filters.syncType);
+  }
+  if (filters.startedAfter) {
+    params.set("started_after", filters.startedAfter);
+  }
+  if (filters.startedBefore) {
+    params.set("started_before", filters.startedBefore);
   }
   const query = params.toString();
   return query ? `?${query}` : "";

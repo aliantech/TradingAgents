@@ -40,6 +40,8 @@ export function App() {
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
   const [syncProviderFilter, setSyncProviderFilter] = useState("");
   const [syncTypeFilter, setSyncTypeFilter] = useState("");
+  const [syncStartedAfterFilter, setSyncStartedAfterFilter] = useState("");
+  const [syncStartedBeforeFilter, setSyncStartedBeforeFilter] = useState("");
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -85,6 +87,8 @@ export function App() {
     return {
       provider: syncProviderFilter.trim() || undefined,
       syncType: syncTypeFilter || undefined,
+      startedAfter: toIsoDateTime(syncStartedAfterFilter),
+      startedBefore: toIsoDateTime(syncStartedBeforeFilter),
     };
   }
 
@@ -220,8 +224,12 @@ export function App() {
               error={syncError}
               providerFilter={syncProviderFilter}
               syncTypeFilter={syncTypeFilter}
+              startedAfterFilter={syncStartedAfterFilter}
+              startedBeforeFilter={syncStartedBeforeFilter}
               onProviderFilterChange={setSyncProviderFilter}
               onSyncTypeFilterChange={setSyncTypeFilter}
+              onStartedAfterFilterChange={setSyncStartedAfterFilter}
+              onStartedBeforeFilterChange={setSyncStartedBeforeFilter}
               onRefresh={() => void handleRefreshSyncRuns()}
               onSyncSample={() => void handleSyncSampleBars()}
             />
@@ -230,4 +238,8 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function toIsoDateTime(value: string) {
+  return value ? new Date(value).toISOString() : undefined;
 }

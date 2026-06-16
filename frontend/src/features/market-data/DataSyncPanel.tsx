@@ -8,8 +8,12 @@ type DataSyncPanelProps = {
   error: string | null;
   providerFilter: string;
   syncTypeFilter: string;
+  startedAfterFilter: string;
+  startedBeforeFilter: string;
   onProviderFilterChange: (provider: string) => void;
   onSyncTypeFilterChange: (syncType: string) => void;
+  onStartedAfterFilterChange: (startedAfter: string) => void;
+  onStartedBeforeFilterChange: (startedBefore: string) => void;
   onRefresh: () => void;
   onSyncSample: () => void;
 };
@@ -22,8 +26,12 @@ export function DataSyncPanel({
   error,
   providerFilter,
   syncTypeFilter,
+  startedAfterFilter,
+  startedBeforeFilter,
   onProviderFilterChange,
   onSyncTypeFilterChange,
+  onStartedAfterFilterChange,
+  onStartedBeforeFilterChange,
   onRefresh,
   onSyncSample,
 }: DataSyncPanelProps) {
@@ -63,6 +71,22 @@ export function DataSyncPanel({
             <option value="bars_1m">bars_1m</option>
             <option value="bars_5m">bars_5m</option>
           </select>
+        </label>
+        <label>
+          <span>开始</span>
+          <input
+            type="datetime-local"
+            value={startedAfterFilter}
+            onChange={(event) => onStartedAfterFilterChange(event.target.value)}
+          />
+        </label>
+        <label>
+          <span>结束</span>
+          <input
+            type="datetime-local"
+            value={startedBeforeFilter}
+            onChange={(event) => onStartedBeforeFilterChange(event.target.value)}
+          />
         </label>
       </div>
 
