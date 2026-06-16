@@ -18,3 +18,9 @@ class OptionSnapshot(BaseModel):
     theta: float | None = None
     vega: float | None = None
     source: str
+
+
+class OptionChainResponse(BaseModel):
+    underlying_symbol: str
+    expiry: str
+    snapshots: list[OptionSnapshot]

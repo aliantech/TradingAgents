@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class ResearchReport(BaseModel):
     analysis_id: UUID
+    report_id: UUID | None = None
     symbol: str
     language: str = "zh"
     summary: str
@@ -20,3 +21,13 @@ class ResearchReport(BaseModel):
     position_sizing: str
     take_profit_stop_loss: str
     confidence: float = Field(ge=0.0, le=1.0)
+    markdown: str | None = None
+
+
+class ReportListItem(BaseModel):
+    report_id: UUID
+    analysis_id: UUID
+    symbol: str
+    language: str
+    summary: str
+    confidence: float

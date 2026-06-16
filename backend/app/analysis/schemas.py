@@ -38,3 +38,19 @@ class AnalysisQueuedResponse(BaseModel):
     symbol: str
     status: str
     language: ReportLanguage
+
+
+class AnalysisProgressEvent(BaseModel):
+    step: str
+    status: str
+    message: str
+
+
+class AnalysisStatusResponse(BaseModel):
+    analysis_id: UUID
+    symbol: str
+    asset_type: AssetType
+    status: str
+    language: ReportLanguage
+    progress: list[AnalysisProgressEvent]
+    report_id: UUID | None = None

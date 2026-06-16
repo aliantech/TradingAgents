@@ -13,3 +13,9 @@ class MarketBar(BaseModel):
     close: float
     volume: int = Field(ge=0)
     source: str
+
+
+class MarketBarsResponse(BaseModel):
+    symbol: str
+    timeframe: str
+    bars: list[MarketBar]
