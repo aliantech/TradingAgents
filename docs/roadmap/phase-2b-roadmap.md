@@ -302,6 +302,26 @@ RUN_LIVE_SMOKE=1 scripts/phase2b_preflight.sh
 - The script does not read `.env` or print runtime env vars.
 - Updated live smoke SOP and completion audit to use preflight as the default final verification entrypoint.
 
+## Completed in Final Verification
+
+- Ran real Polygon/Massive live smoke with user-provided runtime env vars.
+- Initial date `2026-06-17` returned `HTTP Error 403: Forbidden`, which indicated provider entitlement/date access rather than local readiness failure.
+- Retried with an available historical date:
+
+```bash
+scripts/phase2b_final_live_smoke.sh polygon SPY 1d 2024-06-17 2024-06-17
+```
+
+- Latest successful result:
+
+```json
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2024-06-17", "end": "2024-06-17", "status": "succeeded", "readiness_ready": true, "smoke_status": "succeeded", "rows_written": 1, "audit_rows_found": 5, "missing": [], "error_message": null}
+```
+
+- Read-only follow-up verified:
+  - `provider_sync_runs` contains a `polygon` + `daily_bars` succeeded row with `rows_written=1`;
+  - market bars contain `SPY` `1d` `source=polygon` for `2024-06-17T04:00:00+00:00`.
+
 ## Verification
 
 Ubuntu backend:
@@ -346,6 +366,23 @@ Latest result:
 backend: 73 passed
 frontend: 51 modules transformed, built in 179ms
 live smoke: skipped by default
+```
+
+Final Polygon live smoke:
+
+```bash
+cd /home/yasin/workspace/TradingAgents
+scripts/phase2b_final_live_smoke.sh polygon SPY 1d 2024-06-17 2024-06-17
+```
+
+Latest result:
+
+```text
+status=succeeded
+readiness_ready=true
+smoke_status=succeeded
+rows_written=1
+audit_rows_found=5
 ```
 
 Final live smoke script targeted:

@@ -6,10 +6,10 @@ Phase 2B builds the provider-sync foundation that will later connect real U.S. m
 
 ## Current Status
 
-Status: Ready for user-provided live-provider credentials.
+Status: Complete.
 Last audited: 2026-06-17.
 
-The code, scheduler, health, audit, cache-publisher, API, frontend visibility, and guarded smoke-runner foundations are in place and verified. The remaining completion evidence is a real Polygon live smoke run after runtime environment variables are provided by the user.
+The code, scheduler, health, audit, cache-publisher, API, frontend visibility, guarded smoke-runner, and real Polygon live smoke foundations are in place and verified.
 
 ## Completion Requirements
 
@@ -31,33 +31,35 @@ The code, scheduler, health, audit, cache-publisher, API, frontend visibility, a
 | Final live smoke gate can run readiness, smoke, and audit-row verification together. | `final-live-smoke-gate` CLI returns one sanitized gate result and exits nonzero unless all checks pass. | Complete |
 | Final live smoke gate has a safe script entrypoint. | `scripts/phase2b_final_live_smoke.sh` runs the guarded final gate without reading `.env` or printing runtime env. | Complete |
 | Phase 2B has a repeatable non-live preflight script. | `scripts/phase2b_preflight.sh` runs backend tests and frontend build, with live smoke opt-in through `RUN_LIVE_SMOKE=1`. | Complete |
-| Real Polygon live smoke succeeds with user-provided runtime env vars. | Pending command below must return `status=succeeded` and nonzero `rows_written` or a provider-valid empty result for the selected market date. | Pending |
+| Real Polygon live smoke succeeds with user-provided runtime env vars. | `scripts/phase2b_final_live_smoke.sh polygon SPY 1d 2024-06-17 2024-06-17` returned `status=succeeded`, `rows_written=1`, and `audit_rows_found=5`. | Complete |
 
-## Current Runtime Gate Evidence
+## Final Runtime Gate Evidence
 
-Latest Ubuntu check without reading `.env`:
+Latest successful Ubuntu live smoke, run after user-provided runtime env vars were available:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents/backend
-. .venv/bin/activate
-python -m app.market_data.cli provider-readiness --provider polygon
-python -m app.market_data.cli final-live-smoke-gate --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
-scripts/phase2b_final_live_smoke.sh
-scripts/phase2b_preflight.sh
+cd /home/yasin/workspace/TradingAgents
+scripts/phase2b_final_live_smoke.sh polygon SPY 1d 2024-06-17 2024-06-17
 ```
 
 Latest result:
 
 ```json
-{"provider": "polygon", "ready": false, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "message": "Polygon provider is missing required runtime configuration."}
-{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "not_ready", "readiness_ready": false, "smoke_status": null, "rows_written": 0, "audit_rows_found": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2024-06-17", "end": "2024-06-17", "status": "succeeded", "readiness_ready": true, "smoke_status": "succeeded", "rows_written": 1, "audit_rows_found": 5, "missing": [], "error_message": null}
 ```
 
-This proves the final gate refuses to run live provider sync until runtime configuration is present. It does not prove real Polygon connectivity.
+Follow-up read-only verification:
+
+```text
+provider_sync_runs contains a polygon daily_bars succeeded row with rows_written=1.
+market bars contain SPY 1d source=polygon timestamp=2024-06-17T04:00:00+00:00 close=547.1.
+```
+
+Note: the first live smoke against `2026-06-17` returned `HTTP Error 403: Forbidden`, while the same key succeeded against `2024-06-17`. This indicates the key and integration work, while future or restricted date access can still depend on vendor entitlements.
 
 ## Final Live Smoke Gate
 
-After the user provides runtime env vars in the shell/session, run:
+Final recurring verification command:
 
 ```bash
 cd /home/yasin/workspace/TradingAgents
