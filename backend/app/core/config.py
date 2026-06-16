@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     service_name: str = "AQuantLens API"
     database_url: str = "sqlite:///./aquantlens_us.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
+    market_data_provider: str = "sample"
 
     model_config = SettingsConfigDict(env_prefix="AQUANTLENS_")
 
