@@ -38,6 +38,18 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
 - The shell script does not read `.env`, print environment variables, or expose the API key.
 - Added tests for the smoke module and shell-script safety boundary.
 
+## Completed in Third Slice
+
+- Confirmed live Options Advanced entitlement for index options with SPX:
+  - contracts endpoint succeeded;
+  - option-chain snapshot endpoint succeeded;
+  - no missing runtime config;
+  - no HTTP 403 entitlement failure.
+- Phase 2C market scope is now confirmed for:
+  - ETF options: `SPY`, `QQQ`;
+  - index options: `SPX`, `SPXW` direction;
+  - selected liquid U.S. single-name options.
+
 ## Verification
 
 Ubuntu backend verification:
@@ -88,6 +100,21 @@ Observed first live run:
 
 - `SPY` contracts and chain snapshot succeeded.
 - `SPX` did not return 403 or empty; the request timed out, so index-options entitlement remains inconclusive until a longer SPX-only check completes.
+
+Confirmed SPX-only live run:
+
+```bash
+scripts/phase2c_options_live_smoke.sh SPX 90 1
+```
+
+Result:
+
+- `status=succeeded`
+- `readiness_ready=true`
+- `contracts_status=succeeded`
+- `chain_snapshot_status=succeeded`
+- `missing=[]`
+- `error_message=null`
 
 ## WebSocket Note
 
