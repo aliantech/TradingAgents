@@ -14,6 +14,8 @@ def test_phase2c_options_sync_live_smoke_script_uses_options_cli():
     assert "--underlying" in content
     assert "--expiry" in content
     assert "--limit" in content
+    assert "2026-06-19" in content
+    assert "2024-06-21" not in content
 
 
 def test_phase2c_options_sync_live_smoke_script_does_not_read_or_print_secrets():

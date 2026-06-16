@@ -46,7 +46,7 @@ class OptionChainSyncService:
                 self.option_repository.upsert_contract(record.contract)
                 self.option_repository.upsert_snapshot(record.snapshot)
             rows_written = len(records)
-            status = "succeeded"
+            status = "succeeded" if rows_written > 0 else "empty"
             error_message = None
         except Exception as exc:  # noqa: BLE001 - sync audit must capture provider/runtime failures.
             status = "failed"

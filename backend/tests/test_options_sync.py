@@ -50,6 +50,17 @@ class FakeOptionChainProvider:
         ]
 
 
+class EmptyOptionChainProvider:
+    def fetch_chain_snapshot(
+        self,
+        underlying_symbol: str,
+        *,
+        expiry: date,
+        limit: int,
+    ) -> list[OptionChainProviderRecord]:
+        return []
+
+
 def _session():
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -79,3 +90,22 @@ def test_option_chain_sync_service_persists_contracts_snapshots_and_audit_run():
     assert len(runs) == 1
     assert runs[0].status == "succeeded"
     assert runs[0].rows_written == 1
+
+
+def test_option_chain_sync_service_marks_empty_chain_as_empty_audit_run():
+    session = _session()
+    service = OptionChainSyncService(
+        provider=EmptyOptionChainProvider(),
+        provider_name="polygon",
+        option_repository=OptionRepository(session),
+        sync_repository=ProviderSyncRepository(session),
+    )
+
+    result = service.sync_chain(underlying_symbol="SPX", expiry=date(2024, 6, 21), limit=25)
+
+    assert result.status == "empty"
+    assert result.rows_written == 0
+    runs = ProviderSyncRepository(session).list_runs(provider="polygon", sync_type="options_chain")
+    assert len(runs) == 1
+    assert runs[0].status == "empty"
+    assert runs[0].rows_written == 0

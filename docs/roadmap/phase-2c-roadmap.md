@@ -108,6 +108,8 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
   - calls `OptionChainSyncService`;
   - emits JSON for CI, scheduler, and shell smoke usage.
 - Added `scripts/phase2c_options_sync_live_smoke.sh`.
+- Default live sync smoke expiry is `2026-06-19` to avoid expired-chain empty results.
+- Empty provider responses now record `status=empty` instead of `succeeded`.
 - The script does not read `.env`, print environment variables, or expose the API key.
 - Added tests for:
   - CLI service delegation;
@@ -148,10 +150,11 @@ Results:
 - Targeted options CLI/smoke tests: `4 passed`.
 - Targeted options live smoke tests: `4 passed`.
 - Timeout/retry options live smoke tests: `5 passed`.
-- Full backend suite: `90 passed`.
+- Full backend suite: `91 passed`.
 - Frontend production build: `npm run build` succeeded.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 - Guarded no-key option-chain sync smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
+- Live sync with expired `2024-06-21` returned `rows_written=0`; this now maps to `status=empty`.
 
 ## Live Entitlement Check
 
