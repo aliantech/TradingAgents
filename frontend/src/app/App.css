@@ -352,6 +352,53 @@ th {
   font-size: 16px;
 }
 
+.sync-health {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #cbd5e1;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: #ffffff;
+}
+
+.sync-health.ok {
+  border-left-color: #0f766e;
+}
+
+.sync-health.stale,
+.sync-health.missing {
+  border-left-color: #b45309;
+}
+
+.sync-health.failing {
+  border-left-color: #b91c1c;
+}
+
+.sync-health div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sync-health span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.sync-health strong {
+  color: #172026;
+  font-size: 16px;
+}
+
+.sync-health p {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+}
+
 .sync-groups {
   display: grid;
   gap: 8px;

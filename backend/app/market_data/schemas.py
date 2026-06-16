@@ -55,6 +55,20 @@ class ProviderSyncSummaryGroupsResponse(BaseModel):
     groups: list[ProviderSyncSummaryGroupItem]
 
 
+class ProviderSyncHealthResponse(BaseModel):
+    provider: str
+    sync_type: str
+    status: str
+    total_runs: int
+    failed_runs: int
+    failure_rate: float
+    latest_status: str | None
+    latest_finished_at: datetime | None
+    minutes_since_latest: int | None
+    stale_after_minutes: int
+    message: str
+
+
 class DailyBarSyncRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=32)
     start: date

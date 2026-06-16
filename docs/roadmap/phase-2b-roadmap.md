@@ -130,6 +130,21 @@ POST /api/market-data/sync-daily-bars
   - average duration in milliseconds.
 - Kept grouped metrics on the same provider, sync type, and time-window filters as the summary cards and history list.
 
+## Completed in Eleventh Slice
+
+- Added provider sync health evaluation for scheduled sync targets.
+- Added configurable alert thresholds:
+  - `AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES`;
+  - `AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD`.
+- Added `GET /api/market-data/sync-health`.
+- Health states now cover:
+  - `missing` when no run exists for the target;
+  - `failing` when the latest run failed or the failure rate crosses the configured threshold;
+  - `stale` when the latest successful run is older than the configured threshold;
+  - `ok` when the target is current and below failure thresholds.
+- Added timezone normalization in health evaluation so SQLite-backed local tests and aware API timestamps compare consistently.
+- Added frontend schedule health visibility in the data-source sync panel.
+
 ## Verification
 
 Ubuntu backend:
@@ -144,7 +159,7 @@ pytest -q
 Latest result:
 
 ```text
-47 passed
+50 passed
 ```
 
 Ubuntu frontend:
@@ -158,18 +173,20 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 141ms
+built in 145ms
 ```
 
 Browser smoke:
 
-- Opened `http://192.168.100.123:5184/`.
+- Opened `http://192.168.100.123:5185/`.
 - Confirmed the page title is `AQuantLens`.
+- Confirmed the initial sync health panel shows `调度状态=无记录`, `sample`, `daily_bars`, and `阈值 1440 分钟`.
 - Clicked `同步 SPY`.
 - Confirmed sync history API returned `sample`, `daily_bars`, `succeeded`, `2 rows`.
 - Confirmed sync summary API returned `total_runs=1`, `succeeded=1`, `failed=0`, `rows_written=2`.
 - Confirmed sync grouped summary API returned one group with `provider=sample`, `sync_type=daily_bars`, `total_runs=1`, `succeeded=1`, `failed=0`, and `rows_written=2`.
-- Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `sample`, `daily_bars`, `1/1 成功`, `0 失败`, and `2 rows`.
+- Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `调度状态=正常`, `sample`, `daily_bars`, `1/1 成功`, `0 失败`, and `2 rows`.
+- Confirmed sync health API can return `stale` when called with a deterministic `now` and a 60-minute threshold.
 - Confirmed filtered API query `provider=sample&sync_type=daily_bars` returned one successful run.
 - Confirmed filtered API query `provider=polygon` returned zero runs in the sample smoke database.
 - Confirmed browser snapshot includes `Provider`, `类型`, `开始`, and `结束` controls.
@@ -177,4 +194,4 @@ Browser smoke:
 ## Next Slice
 
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add periodic schedule state visibility and alert thresholds for stale or failing provider syncs.
+- Add a first persistent scheduler runner or worker boundary that periodically invokes configured sync targets.

@@ -1,9 +1,10 @@
-import type { ProviderSyncRunItem, ProviderSyncSummary, ProviderSyncSummaryGroup } from "../../lib/api";
+import type { ProviderSyncHealth, ProviderSyncRunItem, ProviderSyncSummary, ProviderSyncSummaryGroup } from "../../lib/api";
 
 type DataSyncPanelProps = {
   runs: ProviderSyncRunItem[];
   summary: ProviderSyncSummary | null;
   groups: ProviderSyncSummaryGroup[];
+  health: ProviderSyncHealth | null;
   loading: boolean;
   syncing: boolean;
   error: string | null;
@@ -23,6 +24,7 @@ export function DataSyncPanel({
   runs,
   summary,
   groups,
+  health,
   loading,
   syncing,
   error,
@@ -102,6 +104,22 @@ export function DataSyncPanel({
         </div>
       ) : null}
 
+      {health ? (
+        <div className={`sync-health ${health.status}`}>
+          <div>
+            <span>调度状态</span>
+            <strong>{healthStatusLabel(health.status)}</strong>
+          </div>
+          <div>
+            <span>{health.provider}</span>
+            <span>{health.sync_type}</span>
+            <span>阈值 {health.stale_after_minutes} 分钟</span>
+            {health.minutes_since_latest !== null ? <span>{health.minutes_since_latest} 分钟前</span> : null}
+          </div>
+          <p>{health.message}</p>
+        </div>
+      ) : null}
+
       {groups.length > 0 ? (
         <div className="sync-groups">
           {groups.map((group) => (
@@ -161,4 +179,14 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function healthStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    ok: "正常",
+    stale: "过期",
+    failing: "失败告警",
+    missing: "无记录",
+  };
+  return labels[status] ?? status;
 }

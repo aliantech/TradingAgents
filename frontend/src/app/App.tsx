@@ -10,6 +10,7 @@ import { ReportPanel } from "../features/reports/ReportPanel";
 import {
   getMarketBars,
   getOptionChain,
+  getProviderSyncHealth,
   getProviderSyncSummary,
   getReport,
   listProviderSyncSummaryGroups,
@@ -21,6 +22,7 @@ import {
   type MarketBar,
   type OptionSnapshot,
   type ProviderSyncRunItem,
+  type ProviderSyncHealth,
   type ProviderSyncSummary,
   type ProviderSyncSummaryGroup,
   type ReportListItem,
@@ -41,6 +43,7 @@ export function App() {
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
   const [syncGroups, setSyncGroups] = useState<ProviderSyncSummaryGroup[]>([]);
+  const [syncHealth, setSyncHealth] = useState<ProviderSyncHealth | null>(null);
   const [syncProviderFilter, setSyncProviderFilter] = useState("");
   const [syncTypeFilter, setSyncTypeFilter] = useState("");
   const [syncStartedAfterFilter, setSyncStartedAfterFilter] = useState("");
@@ -119,14 +122,16 @@ export function App() {
     setSyncError(null);
     try {
       const filters = currentSyncFilters();
-      const [response, summary, groups] = await Promise.all([
+      const [response, summary, groups, health] = await Promise.all([
         listProviderSyncRuns(filters),
         getProviderSyncSummary(filters),
         listProviderSyncSummaryGroups(filters),
+        getProviderSyncHealth(filters),
       ]);
       setSyncRuns(response.runs);
       setSyncSummary(summary);
       setSyncGroups(groups.groups);
+      setSyncHealth(health);
     } catch (caught) {
       setSyncError(caught instanceof Error ? caught.message : "同步历史加载失败。");
     } finally {
@@ -228,6 +233,7 @@ export function App() {
               runs={syncRuns}
               summary={syncSummary}
               groups={syncGroups}
+              health={syncHealth}
               loading={syncLoading}
               syncing={syncing}
               error={syncError}

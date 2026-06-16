@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     provider_max_retries: int = 2
     provider_retry_backoff_seconds: float = 1.0
     manual_market_sync_enabled: bool = True
+    provider_sync_stale_after_minutes: int = 1440
+    provider_sync_failure_rate_threshold: float = 0.5
     realtime_market_publish_enabled: bool = False
     realtime_market_ttl_seconds: int = 300
 

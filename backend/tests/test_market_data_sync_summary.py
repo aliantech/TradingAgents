@@ -177,3 +177,96 @@ def test_sync_summary_groups_api_returns_grouped_metrics():
     assert response.status_code == 200
     groups = response.json()["groups"]
     assert any(group["provider"] == "sample" and group["sync_type"] == "daily_bars" for group in groups)
+
+
+def test_provider_sync_repository_marks_stale_health_target():
+    repository = ProviderSyncRepository(_session())
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+    repository.record_run(
+        provider="sample",
+        sync_type="daily_bars",
+        status="succeeded",
+        started_at=started_at,
+        finished_at=started_at + timedelta(seconds=2),
+        rows_written=2,
+    )
+
+    health = repository.evaluate_health(
+        provider="sample",
+        sync_type="daily_bars",
+        now=started_at + timedelta(hours=2),
+        stale_after_minutes=60,
+        failure_rate_threshold=0.5,
+    )
+
+    assert health.status == "stale"
+    assert health.minutes_since_latest == 119
+    assert health.message == "Latest successful sync is older than 60 minutes."
+
+
+def test_provider_sync_repository_marks_latest_failure_as_failing():
+    repository = ProviderSyncRepository(_session())
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+    repository.record_run(
+        provider="polygon",
+        sync_type="bars_1m",
+        status="succeeded",
+        started_at=started_at,
+        finished_at=started_at + timedelta(seconds=2),
+        rows_written=12,
+    )
+    repository.record_run(
+        provider="polygon",
+        sync_type="bars_1m",
+        status="failed",
+        started_at=started_at + timedelta(minutes=5),
+        finished_at=started_at + timedelta(minutes=5, seconds=3),
+        rows_written=0,
+        error_message="rate limited",
+    )
+
+    health = repository.evaluate_health(
+        provider="polygon",
+        sync_type="bars_1m",
+        now=started_at + timedelta(minutes=10),
+        stale_after_minutes=60,
+        failure_rate_threshold=0.5,
+    )
+
+    assert health.status == "failing"
+    assert health.failed_runs == 1
+    assert health.total_runs == 2
+    assert health.message == "Latest sync failed."
+
+
+def test_sync_health_api_returns_stale_schedule_alert():
+    initialize_database()
+    session = SessionLocal()
+    try:
+        started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+        ProviderSyncRepository(session).record_run(
+            provider="sample",
+            sync_type="daily_bars",
+            status="succeeded",
+            started_at=started_at,
+            finished_at=started_at + timedelta(seconds=2),
+            rows_written=2,
+        )
+    finally:
+        session.close()
+
+    response = TestClient(app).get(
+        "/api/market-data/sync-health"
+        "?provider=sample"
+        "&sync_type=daily_bars"
+        "&now=2026-06-17T15:30:00Z"
+        "&stale_after_minutes=60"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "sample"
+    assert payload["sync_type"] == "daily_bars"
+    assert payload["status"] == "stale"
+    assert payload["minutes_since_latest"] == 119
+    assert payload["stale_after_minutes"] == 60

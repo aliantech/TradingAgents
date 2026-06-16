@@ -97,6 +97,20 @@ export type ProviderSyncSummaryGroupsResponse = {
   groups: ProviderSyncSummaryGroup[];
 };
 
+export type ProviderSyncHealth = {
+  provider: string;
+  sync_type: string;
+  status: string;
+  total_runs: number;
+  failed_runs: number;
+  failure_rate: number;
+  latest_status: string | null;
+  latest_finished_at: string | null;
+  minutes_since_latest: number | null;
+  stale_after_minutes: number;
+  message: string;
+};
+
 export type DailyBarSyncResponse = {
   status: string;
   rows_written: number;
@@ -206,6 +220,10 @@ export function listProviderSyncSummaryGroups(
   filters: ProviderSyncFilters = {},
 ): Promise<ProviderSyncSummaryGroupsResponse> {
   return requestJson<ProviderSyncSummaryGroupsResponse>(`/api/market-data/sync-summary/groups${providerSyncQuery(filters)}`);
+}
+
+export function getProviderSyncHealth(filters: ProviderSyncFilters = {}): Promise<ProviderSyncHealth> {
+  return requestJson<ProviderSyncHealth>(`/api/market-data/sync-health${providerSyncQuery(filters)}`);
 }
 
 export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {

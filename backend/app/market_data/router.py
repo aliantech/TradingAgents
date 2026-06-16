@@ -14,6 +14,7 @@ from app.market_data.schemas import (
     MarketBarsResponse,
     ProviderSyncRunItem,
     ProviderSyncRunsResponse,
+    ProviderSyncHealthResponse,
     ProviderSyncSummaryGroupItem,
     ProviderSyncSummaryGroupsResponse,
     ProviderSyncSummaryResponse,
@@ -148,6 +149,37 @@ def get_sync_summary_groups(
             )
             for group in groups
         ]
+    )
+
+
+@router.get("/sync-health", response_model=ProviderSyncHealthResponse)
+def get_sync_health(
+    provider: str | None = Query(default=None, min_length=1, max_length=64),
+    sync_type: str = Query(default="daily_bars", min_length=1, max_length=64),
+    now: datetime | None = Query(default=None),
+    stale_after_minutes: int = Query(default=settings.provider_sync_stale_after_minutes, ge=1, le=10080),
+    failure_rate_threshold: float = Query(default=settings.provider_sync_failure_rate_threshold, ge=0.0, le=1.0),
+    session: Session = Depends(get_db_session),
+) -> ProviderSyncHealthResponse:
+    health = ProviderSyncRepository(session).evaluate_health(
+        provider=provider or settings.market_data_provider,
+        sync_type=sync_type,
+        now=now or datetime.now(timezone.utc),
+        stale_after_minutes=stale_after_minutes,
+        failure_rate_threshold=failure_rate_threshold,
+    )
+    return ProviderSyncHealthResponse(
+        provider=health.provider,
+        sync_type=health.sync_type,
+        status=health.status,
+        total_runs=health.total_runs,
+        failed_runs=health.failed_runs,
+        failure_rate=health.failure_rate,
+        latest_status=health.latest_status,
+        latest_finished_at=health.latest_finished_at,
+        minutes_since_latest=health.minutes_since_latest,
+        stale_after_minutes=health.stale_after_minutes,
+        message=health.message,
     )
 
 

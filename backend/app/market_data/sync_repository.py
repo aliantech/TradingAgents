@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -42,6 +42,21 @@ class ProviderSyncSummaryGroup:
     latest_status: str | None
     latest_finished_at: datetime | None
     average_duration_ms: int
+
+
+@dataclass(frozen=True)
+class ProviderSyncHealth:
+    provider: str
+    sync_type: str
+    status: str
+    total_runs: int
+    failed_runs: int
+    failure_rate: float
+    latest_status: str | None
+    latest_finished_at: datetime | None
+    minutes_since_latest: int | None
+    stale_after_minutes: int
+    message: str
 
 
 class ProviderSyncRepository:
@@ -167,6 +182,64 @@ class ProviderSyncRepository:
             )
         return sorted(groups, key=lambda group: (group.provider, group.sync_type))
 
+    def evaluate_health(
+        self,
+        *,
+        provider: str,
+        sync_type: str,
+        now: datetime,
+        stale_after_minutes: int,
+        failure_rate_threshold: float,
+    ) -> ProviderSyncHealth:
+        runs = self.list_runs(limit=1000, provider=provider, sync_type=sync_type)
+        if not runs:
+            return ProviderSyncHealth(
+                provider=provider,
+                sync_type=sync_type,
+                status="missing",
+                total_runs=0,
+                failed_runs=0,
+                failure_rate=0.0,
+                latest_status=None,
+                latest_finished_at=None,
+                minutes_since_latest=None,
+                stale_after_minutes=stale_after_minutes,
+                message="No sync runs found for this target.",
+            )
+
+        latest = runs[0]
+        failed_runs = sum(1 for run in runs if run.status == "failed")
+        failure_rate = failed_runs / len(runs)
+        latest_finished_at = _as_utc(latest.finished_at) if latest.finished_at is not None else None
+        minutes_since_latest = int((_as_utc(now) - latest_finished_at).total_seconds() // 60) if latest_finished_at else None
+
+        if latest.status == "failed":
+            status = "failing"
+            message = "Latest sync failed."
+        elif failure_rate >= failure_rate_threshold and failed_runs > 0:
+            status = "failing"
+            message = f"Failure rate is at or above {failure_rate_threshold:.0%}."
+        elif minutes_since_latest is not None and minutes_since_latest > stale_after_minutes:
+            status = "stale"
+            message = f"Latest successful sync is older than {stale_after_minutes} minutes."
+        else:
+            status = "ok"
+            message = "Sync target is healthy."
+
+        return ProviderSyncHealth(
+            provider=provider,
+            sync_type=sync_type,
+            status=status,
+            total_runs=len(runs),
+            failed_runs=failed_runs,
+            failure_rate=round(failure_rate, 4),
+            latest_status=latest.status,
+            latest_finished_at=latest_finished_at,
+            minutes_since_latest=minutes_since_latest,
+            stale_after_minutes=stale_after_minutes,
+            message=message,
+        )
+
     def _to_schema(self, model: ProviderSyncRunModel) -> ProviderSyncRun:
         return ProviderSyncRun(
             id=model.id,
@@ -178,3 +251,9 @@ class ProviderSyncRepository:
             rows_written=model.rows_written,
             error_message=model.error_message,
         )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
