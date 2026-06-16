@@ -26,6 +26,15 @@ Do not read or print secrets, `.env` values, credential stores, browser sessions
 - Project services, dependency installation, Docker, tests, builds, and runtime verification should default to `ssh yasin-ubuntu` unless the user explicitly asks for Mac-local execution.
 - If sandbox restrictions block an operation, treat it as an execution-environment issue first and use the approval flow.
 
+## Branch and Upstream Policy
+
+- `main` must stay aligned with upstream `aliantech/TradingAgents` and should not contain AQuantLens custom work.
+- Custom U.S/options work happens on `aquanlens-us`.
+- When upstream TradingAgents changes, update `main` first, review the upstream diff, then selectively adapt `aquanlens-us`.
+- Do not blindly merge upstream into `aquanlens-us`; analyze compatibility, security fixes, model/provider updates, data-flow changes, and conflicts first.
+- Prefer small selective commits on `aquanlens-us` that explain why an upstream change was adopted, modified, or skipped.
+- If an upstream change touches shared TradingAgents core behavior, record the decision in project docs or Yasin Brain before large refactors.
+
 ## Phase 1 Scope
 
 Current approved phase: **U.S. AI research workbench MVP**.

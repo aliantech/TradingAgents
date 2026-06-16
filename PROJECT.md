@@ -31,6 +31,16 @@ AQuantLens US Options Branch should become an AI trading research and quant plat
 - Relationship to AQuantLens mainline: sibling branch/product direction, not a direct replacement.
 - Main reason for separation: the existing AQuantLens scope includes A-share and broader workflows that are not friendly to a U.S. options-first design.
 
+## Upstream Sync Strategy
+
+- `main` tracks upstream `aliantech/TradingAgents` and should remain clean of AQuantLens-specific changes.
+- `aquanlens-us` is the active product branch for U.S. equities, SPX/SPY/QQQ, and selected U.S. options.
+- Upstream updates should be pulled into `main` first.
+- After each upstream update, review changes before adapting them into `aquanlens-us`.
+- Adopt upstream changes selectively when they improve model support, provider support, security, stability, data handling, or TradingAgents core behavior.
+- Skip or rewrite upstream changes when they conflict with the U.S/options branch architecture, bilingual UI direction, Chinese-first reports, TimescaleDB/Redis data layer, or future quant/trading boundaries.
+- Keep adaptation commits small and auditable.
+
 ## Phase 1 Goal
 
 Deliver an MVP that can:
