@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db_session
-from app.market_data.cli import run_sync_daily_bars
+from app.market_data.cli import run_sync_bars
 from app.market_data.repository import MarketDataRepository
 from app.market_data.schemas import (
     DailyBarSyncRequest,
@@ -89,10 +89,11 @@ def sync_daily_bars(
     if not settings.manual_market_sync_enabled:
         raise HTTPException(status_code=403, detail="Manual market data sync is disabled.")
     try:
-        result = run_sync_daily_bars(
+        result = run_sync_bars(
             session=session,
             provider_name=request.provider or settings.market_data_provider,
             symbol=request.symbol,
+            timeframe=request.timeframe,
             start=request.start,
             end=request.end,
         )

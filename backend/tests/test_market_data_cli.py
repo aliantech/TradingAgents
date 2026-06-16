@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.market_data.cli import run_sync_daily_bars
+from app.market_data.cli import run_sync_bars, run_sync_daily_bars
 from app.market_data.repository import MarketDataRepository
 from app.market_data.sync_repository import ProviderSyncRepository
 
@@ -60,3 +60,21 @@ def test_run_sync_daily_bars_publishes_when_realtime_enabled(monkeypatch):
     assert result.status == "succeeded"
     assert len(published) == 1
     assert published[0].symbol == "SPY"
+
+
+def test_run_sync_bars_supports_intraday_timeframe():
+    session = _session()
+
+    result = run_sync_bars(
+        session=session,
+        provider_name="sample",
+        symbol="SPY",
+        timeframe="5m",
+        start=date(2026, 6, 17),
+        end=date(2026, 6, 17),
+    )
+
+    bars = MarketDataRepository(session).list_bars(symbol="SPY", timeframe="5m")
+    assert result.status == "succeeded"
+    assert result.rows_written == 1
+    assert len(bars) == 1

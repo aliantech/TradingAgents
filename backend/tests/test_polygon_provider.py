@@ -44,6 +44,28 @@ def test_polygon_provider_converts_aggregate_payload_to_daily_bars():
     assert "/v2/aggs/ticker/SPY/range/1/day/2026-06-17/2026-06-17" in transport.calls[0]
 
 
+def test_polygon_provider_converts_minute_aggregate_payload_to_intraday_bars():
+    transport = FakePolygonTransport(
+        [
+            {
+                "ticker": "SPY",
+                "results": [
+                    {"t": 1781703000000, "o": 551.0, "h": 551.5, "l": 550.8, "c": 551.2, "v": 1200000}
+                ],
+            }
+        ]
+    )
+    provider = PolygonMarketDataProvider(api_key="test-key", transport=transport)
+
+    bars = provider.fetch_bars("spy", "1m", date(2026, 6, 17), date(2026, 6, 17))
+
+    assert len(bars) == 1
+    assert bars[0].symbol == "SPY"
+    assert bars[0].timeframe == "1m"
+    assert bars[0].source == "polygon"
+    assert "/v2/aggs/ticker/SPY/range/1/minute/2026-06-17/2026-06-17" in transport.calls[0]
+
+
 def test_polygon_provider_retries_rate_limits_before_succeeding():
     sleeps: list[float] = []
     transport = FakePolygonTransport(

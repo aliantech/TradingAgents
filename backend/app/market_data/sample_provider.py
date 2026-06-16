@@ -5,6 +5,27 @@ from app.market_data.schemas import MarketBar
 
 
 class SampleMarketDataProvider(MarketDataProvider):
+    def fetch_bars(self, symbol: str, timeframe: str, start: date, end: date) -> list[MarketBar]:
+        if timeframe == "1d":
+            return self.fetch_daily_bars(symbol, start, end)
+        if timeframe not in {"1m", "5m"}:
+            raise NotImplementedError(f"Sample provider does not support {timeframe} bars.")
+        normalized_symbol = symbol.upper()
+        timestamp = datetime.combine(start, time(13, 30), tzinfo=UTC)
+        return [
+            MarketBar(
+                symbol=normalized_symbol,
+                timeframe=timeframe,
+                timestamp=timestamp,
+                open=550.0,
+                high=551.0,
+                low=549.5,
+                close=550.5,
+                volume=1_000_000,
+                source="sample",
+            )
+        ]
+
     def fetch_daily_bars(self, symbol: str, start: date, end: date) -> list[MarketBar]:
         normalized_symbol = symbol.upper()
         bars: list[MarketBar] = []

@@ -14,11 +14,12 @@ from app.market_data.sync_repository import ProviderSyncRepository
 from app.realtime.publisher_factory import create_market_data_publisher
 
 
-def run_sync_daily_bars(
+def run_sync_bars(
     *,
     session: Session,
     provider_name: str,
     symbol: str,
+    timeframe: str,
     start: date,
     end: date,
 ) -> MarketDataSyncResult:
@@ -40,7 +41,25 @@ def run_sync_daily_bars(
         ingestion=MarketDataIngestionService(MarketDataRepository(session), publisher=publisher),
         sync_repository=ProviderSyncRepository(session),
     )
-    return service.sync_daily_bars(symbol, start, end)
+    return service.sync_bars(symbol, timeframe, start, end)
+
+
+def run_sync_daily_bars(
+    *,
+    session: Session,
+    provider_name: str,
+    symbol: str,
+    start: date,
+    end: date,
+) -> MarketDataSyncResult:
+    return run_sync_bars(
+        session=session,
+        provider_name=provider_name,
+        symbol=symbol,
+        timeframe="1d",
+        start=start,
+        end=end,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -50,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     sync_parser.add_argument("--symbol", required=True)
     sync_parser.add_argument("--start", required=True, type=date.fromisoformat)
     sync_parser.add_argument("--end", required=True, type=date.fromisoformat)
+    sync_parser.add_argument("--timeframe", default="1d", choices=["1m", "5m", "1d"])
     sync_parser.add_argument("--provider", default=settings.market_data_provider)
     args = parser.parse_args(argv)
 
@@ -57,10 +77,11 @@ def main(argv: list[str] | None = None) -> int:
         initialize_database()
         session = SessionLocal()
         try:
-            result = run_sync_daily_bars(
+            result = run_sync_bars(
                 session=session,
                 provider_name=args.provider,
                 symbol=args.symbol,
+                timeframe=args.timeframe,
                 start=args.start,
                 end=args.end,
             )

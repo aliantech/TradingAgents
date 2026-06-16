@@ -28,13 +28,17 @@ class MarketDataSyncService:
         self.sync_repository = sync_repository
 
     def sync_daily_bars(self, symbol: str, start: date, end: date) -> MarketDataSyncResult:
+        return self.sync_bars(symbol, "1d", start, end)
+
+    def sync_bars(self, symbol: str, timeframe: str, start: date, end: date) -> MarketDataSyncResult:
         started_at = datetime.now(UTC)
+        sync_type = "daily_bars" if timeframe == "1d" else f"bars_{timeframe}"
         try:
-            bars = self.provider.fetch_daily_bars(symbol.upper(), start, end)
+            bars = self.provider.fetch_bars(symbol.upper(), timeframe, start, end)
             rows_written = self.ingestion.ingest_bars(bars)
             self.sync_repository.record_run(
                 provider=self.provider_name,
-                sync_type="daily_bars",
+                sync_type=sync_type,
                 status="succeeded",
                 started_at=started_at,
                 finished_at=datetime.now(UTC),
@@ -45,7 +49,7 @@ class MarketDataSyncService:
             error_message = str(exc)
             self.sync_repository.record_run(
                 provider=self.provider_name,
-                sync_type="daily_bars",
+                sync_type=sync_type,
                 status="failed",
                 started_at=started_at,
                 finished_at=datetime.now(UTC),

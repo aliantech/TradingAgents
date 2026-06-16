@@ -40,6 +40,7 @@ class DailyBarSyncRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=32)
     start: date
     end: date
+    timeframe: str = Field(default="1d", pattern="^(1m|5m|1d)$")
     provider: str | None = None
 
 
