@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     polygon_base_url: str = "https://api.polygon.io"
     provider_max_retries: int = 2
     provider_retry_backoff_seconds: float = 1.0
+    manual_market_sync_enabled: bool = True
 
     model_config = SettingsConfigDict(env_prefix="AQUANTLENS_")
 

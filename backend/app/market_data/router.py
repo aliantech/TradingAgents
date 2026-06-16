@@ -1,11 +1,20 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import get_db_session
+from app.market_data.cli import run_sync_daily_bars
 from app.market_data.repository import MarketDataRepository
-from app.market_data.schemas import MarketBar, MarketBarsResponse, ProviderSyncRunItem, ProviderSyncRunsResponse
+from app.market_data.schemas import (
+    DailyBarSyncRequest,
+    DailyBarSyncResponse,
+    MarketBar,
+    MarketBarsResponse,
+    ProviderSyncRunItem,
+    ProviderSyncRunsResponse,
+)
 from app.market_data.sync_repository import ProviderSyncRepository
 
 router = APIRouter(prefix="/api/market-data", tags=["market-data"])
@@ -69,4 +78,28 @@ def list_sync_runs(
             )
             for run in repository.list_runs(limit=limit)
         ]
+    )
+
+
+@router.post("/sync-daily-bars", response_model=DailyBarSyncResponse, status_code=202)
+def sync_daily_bars(
+    request: DailyBarSyncRequest,
+    session: Session = Depends(get_db_session),
+) -> DailyBarSyncResponse:
+    if not settings.manual_market_sync_enabled:
+        raise HTTPException(status_code=403, detail="Manual market data sync is disabled.")
+    try:
+        result = run_sync_daily_bars(
+            session=session,
+            provider_name=request.provider or settings.market_data_provider,
+            symbol=request.symbol,
+            start=request.start,
+            end=request.end,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return DailyBarSyncResponse(
+        status=result.status,
+        rows_written=result.rows_written,
+        error_message=result.error_message,
     )

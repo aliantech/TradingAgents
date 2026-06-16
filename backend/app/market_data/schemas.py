@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -34,3 +34,16 @@ class ProviderSyncRunItem(BaseModel):
 
 class ProviderSyncRunsResponse(BaseModel):
     runs: list[ProviderSyncRunItem]
+
+
+class DailyBarSyncRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=32)
+    start: date
+    end: date
+    provider: str | None = None
+
+
+class DailyBarSyncResponse(BaseModel):
+    status: str
+    rows_written: int
+    error_message: str | None = None
