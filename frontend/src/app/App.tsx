@@ -34,6 +34,8 @@ export function App() {
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadInitialState();
@@ -41,7 +43,8 @@ export function App() {
 
   async function loadInitialState() {
     try {
-      await Promise.all([loadMarketContext(symbol), refreshReports(), refreshSyncRuns()]);
+      await Promise.all([loadMarketContext(symbol), refreshReports()]);
+      await refreshSyncRuns();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "初始化数据加载失败，请检查后端服务是否已启动。");
     }
@@ -64,8 +67,16 @@ export function App() {
   }
 
   async function refreshSyncRuns() {
-    const response = await listProviderSyncRuns();
-    setSyncRuns(response.runs);
+    setSyncLoading(true);
+    setSyncError(null);
+    try {
+      const response = await listProviderSyncRuns();
+      setSyncRuns(response.runs);
+    } catch (caught) {
+      setSyncError(caught instanceof Error ? caught.message : "同步历史加载失败。");
+    } finally {
+      setSyncLoading(false);
+    }
   }
 
   async function handleRunAnalysis() {
@@ -156,7 +167,12 @@ export function App() {
           </div>
 
           <div id="sync">
-            <DataSyncPanel runs={syncRuns} />
+            <DataSyncPanel
+              runs={syncRuns}
+              loading={syncLoading}
+              error={syncError}
+              onRefresh={() => void refreshSyncRuns()}
+            />
           </div>
         </div>
       </section>
