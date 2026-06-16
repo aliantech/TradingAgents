@@ -67,7 +67,17 @@ export function App() {
   }
 
   async function refreshSyncRuns() {
-    setSyncLoading(true);
+    return loadSyncRuns({ showLoading: false });
+  }
+
+  async function handleRefreshSyncRuns() {
+    return loadSyncRuns({ showLoading: true });
+  }
+
+  async function loadSyncRuns({ showLoading }: { showLoading: boolean }) {
+    if (showLoading) {
+      setSyncLoading(true);
+    }
     setSyncError(null);
     try {
       const response = await listProviderSyncRuns();
@@ -75,7 +85,9 @@ export function App() {
     } catch (caught) {
       setSyncError(caught instanceof Error ? caught.message : "同步历史加载失败。");
     } finally {
-      setSyncLoading(false);
+      if (showLoading) {
+        setSyncLoading(false);
+      }
     }
   }
 
@@ -171,7 +183,7 @@ export function App() {
               runs={syncRuns}
               loading={syncLoading}
               error={syncError}
-              onRefresh={() => void refreshSyncRuns()}
+              onRefresh={() => void handleRefreshSyncRuns()}
             />
           </div>
         </div>
