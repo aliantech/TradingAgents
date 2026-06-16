@@ -292,6 +292,13 @@ th {
   gap: 10px;
 }
 
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .sync-item {
   display: grid;
   gap: 8px;

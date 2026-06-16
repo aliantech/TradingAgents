@@ -3,11 +3,13 @@ import type { ProviderSyncRunItem } from "../../lib/api";
 type DataSyncPanelProps = {
   runs: ProviderSyncRunItem[];
   loading: boolean;
+  syncing: boolean;
   error: string | null;
   onRefresh: () => void;
+  onSyncSample: () => void;
 };
 
-export function DataSyncPanel({ runs, loading, error, onRefresh }: DataSyncPanelProps) {
+export function DataSyncPanel({ runs, loading, syncing, error, onRefresh, onSyncSample }: DataSyncPanelProps) {
   return (
     <section className="panel sync-panel">
       <div className="panel-header">
@@ -15,9 +17,14 @@ export function DataSyncPanel({ runs, loading, error, onRefresh }: DataSyncPanel
           <h3>数据源同步</h3>
           <p>行情写入和 provider 审计记录。</p>
         </div>
-        <button type="button" className="secondary-button" onClick={onRefresh} disabled={loading}>
-          {loading ? "刷新中" : "刷新"}
-        </button>
+        <div className="sync-actions">
+          <button type="button" className="secondary-button" onClick={onSyncSample} disabled={syncing || loading}>
+            {syncing ? "同步中" : "同步 SPY"}
+          </button>
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={loading || syncing}>
+            {loading ? "刷新中" : "刷新"}
+          </button>
+        </div>
       </div>
 
       {error ? <div className="alert">{error}</div> : null}

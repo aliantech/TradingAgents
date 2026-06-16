@@ -71,6 +71,12 @@ export type ProviderSyncRunsResponse = {
   runs: ProviderSyncRunItem[];
 };
 
+export type DailyBarSyncResponse = {
+  status: string;
+  rows_written: number;
+  error_message: string | null;
+};
+
 export type OptionSnapshot = {
   option_symbol: string;
   underlying_symbol: string;
@@ -143,6 +149,18 @@ export function getMarketBars(symbol: string): Promise<MarketBarsResponse> {
 
 export function listProviderSyncRuns(): Promise<ProviderSyncRunsResponse> {
   return requestJson<ProviderSyncRunsResponse>("/api/market-data/sync-runs?limit=20");
+}
+
+export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {
+  return requestJson<DailyBarSyncResponse>("/api/market-data/sync-daily-bars", {
+    method: "POST",
+    body: JSON.stringify({
+      symbol,
+      start: "2026-06-16",
+      end: "2026-06-17",
+      provider: "sample",
+    }),
+  });
 }
 
 export function getOptionChain(underlying: string): Promise<OptionChainResponse> {

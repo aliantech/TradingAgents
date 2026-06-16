@@ -14,6 +14,7 @@ import {
   listProviderSyncRuns,
   listReports,
   startAnalysis,
+  syncDailyBars,
   type AnalysisStatus,
   type MarketBar,
   type OptionSnapshot,
@@ -35,6 +36,7 @@ export function App() {
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,6 +74,23 @@ export function App() {
 
   async function handleRefreshSyncRuns() {
     return loadSyncRuns({ showLoading: true });
+  }
+
+  async function handleSyncSampleBars() {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const response = await syncDailyBars("SPY");
+      if (response.status !== "succeeded") {
+        setSyncError(response.error_message ?? "同步未完成。");
+      }
+      await loadSyncRuns({ showLoading: false });
+      await loadMarketContext(symbol);
+    } catch (caught) {
+      setSyncError(caught instanceof Error ? caught.message : "同步触发失败。");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   async function loadSyncRuns({ showLoading }: { showLoading: boolean }) {
@@ -182,8 +201,10 @@ export function App() {
             <DataSyncPanel
               runs={syncRuns}
               loading={syncLoading}
+              syncing={syncing}
               error={syncError}
               onRefresh={() => void handleRefreshSyncRuns()}
+              onSyncSample={() => void handleSyncSampleBars()}
             />
           </div>
         </div>
