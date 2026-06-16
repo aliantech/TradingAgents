@@ -8,6 +8,7 @@ from urllib.request import urlopen
 
 from app.market_data.provider import MarketDataProvider
 from app.market_data.schemas import MarketBar
+from app.market_data.symbols import map_provider_symbol
 
 
 class ProviderRateLimitError(RuntimeError):
@@ -60,7 +61,8 @@ class PolygonMarketDataProvider(MarketDataProvider):
 
     def fetch_daily_bars(self, symbol: str, start: date, end: date) -> list[MarketBar]:
         normalized_symbol = symbol.upper()
-        path = f"/v2/aggs/ticker/{normalized_symbol}/range/1/day/{start.isoformat()}/{end.isoformat()}"
+        provider_symbol = map_provider_symbol(normalized_symbol, "polygon")
+        path = f"/v2/aggs/ticker/{provider_symbol}/range/1/day/{start.isoformat()}/{end.isoformat()}"
         query = urlencode({"adjusted": "true", "sort": "asc", "apiKey": self.api_key})
         payload = self._get_with_retry(f"{self.base_url}{path}?{query}")
         return [

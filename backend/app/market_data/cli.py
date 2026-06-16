@@ -11,6 +11,7 @@ from app.market_data.provider_registry import get_market_data_provider
 from app.market_data.repository import MarketDataRepository
 from app.market_data.sync import MarketDataSyncResult, MarketDataSyncService
 from app.market_data.sync_repository import ProviderSyncRepository
+from app.realtime.publisher_factory import create_market_data_publisher
 
 
 def run_sync_daily_bars(
@@ -28,10 +29,15 @@ def run_sync_daily_bars(
         max_retries=settings.provider_max_retries,
         retry_backoff_seconds=settings.provider_retry_backoff_seconds,
     )
+    publisher = create_market_data_publisher(
+        enabled=settings.realtime_market_publish_enabled,
+        redis_url=settings.redis_url,
+        ttl_seconds=settings.realtime_market_ttl_seconds,
+    )
     service = MarketDataSyncService(
         provider=provider,
         provider_name=provider_name,
-        ingestion=MarketDataIngestionService(MarketDataRepository(session)),
+        ingestion=MarketDataIngestionService(MarketDataRepository(session), publisher=publisher),
         sync_repository=ProviderSyncRepository(session),
     )
     return service.sync_daily_bars(symbol, start, end)
