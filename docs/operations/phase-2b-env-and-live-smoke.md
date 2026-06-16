@@ -82,10 +82,10 @@ Expected result:
 
 Run only after `provider-readiness --provider polygon` returns `ready=true`.
 
-Daily bars:
+Use the guarded live smoke command first. It runs the readiness gate before any provider request and prints only sanitized smoke metadata.
 
 ```bash
-python -m app.market_data.cli sync-daily-bars \
+python -m app.market_data.cli live-provider-smoke \
   --symbol SPY \
   --start 2026-06-17 \
   --end 2026-06-17 \
@@ -93,10 +93,22 @@ python -m app.market_data.cli sync-daily-bars \
   --timeframe 1d
 ```
 
-Intraday bars:
+Expected when configuration is missing:
+
+```json
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "not_ready", "rows_written": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
+```
+
+Expected when the provider request succeeds:
+
+```json
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "succeeded", "rows_written": 1, "missing": [], "error_message": null}
+```
+
+Intraday guarded smoke:
 
 ```bash
-python -m app.market_data.cli sync-daily-bars \
+python -m app.market_data.cli live-provider-smoke \
   --symbol SPY \
   --start 2026-06-17 \
   --end 2026-06-17 \
@@ -107,7 +119,7 @@ python -m app.market_data.cli sync-daily-bars \
 SPX uses provider symbol mapping internally:
 
 ```bash
-python -m app.market_data.cli sync-daily-bars \
+python -m app.market_data.cli live-provider-smoke \
   --symbol SPX \
   --start 2026-06-17 \
   --end 2026-06-17 \

@@ -1,5 +1,6 @@
 import argparse
 import json
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -14,6 +15,19 @@ from app.market_data.scheduler import run_configured_sync_targets_once, run_sche
 from app.market_data.sync import MarketDataSyncResult, MarketDataSyncService
 from app.market_data.sync_repository import ProviderSyncRepository
 from app.realtime.publisher_factory import create_market_data_publisher
+
+
+@dataclass(frozen=True)
+class LiveProviderSmokeResult:
+    provider: str
+    symbol: str
+    timeframe: str
+    start: str
+    end: str
+    status: str
+    rows_written: int
+    missing: list[str]
+    error_message: str | None = None
 
 
 def run_sync_bars(
@@ -64,6 +78,50 @@ def run_sync_daily_bars(
     )
 
 
+def run_live_provider_smoke(
+    *,
+    session: Session,
+    provider_name: str,
+    symbol: str,
+    timeframe: str,
+    start: date,
+    end: date,
+) -> LiveProviderSmokeResult:
+    normalized_symbol = symbol.upper()
+    readiness = check_market_data_provider_readiness(settings, provider=provider_name)
+    if not readiness.ready:
+        return LiveProviderSmokeResult(
+            provider=readiness.provider,
+            symbol=normalized_symbol,
+            timeframe=timeframe,
+            start=start.isoformat(),
+            end=end.isoformat(),
+            status="not_ready",
+            rows_written=0,
+            missing=readiness.missing,
+            error_message=readiness.message,
+        )
+    result = run_sync_bars(
+        session=session,
+        provider_name=readiness.provider,
+        symbol=normalized_symbol,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+    )
+    return LiveProviderSmokeResult(
+        provider=readiness.provider,
+        symbol=normalized_symbol,
+        timeframe=timeframe,
+        start=start.isoformat(),
+        end=end.isoformat(),
+        status=result.status,
+        rows_written=result.rows_written,
+        missing=[],
+        error_message=result.error_message,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="aquantlens-market-data")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -85,6 +143,12 @@ def main(argv: list[str] | None = None) -> int:
     scheduler_loop_parser.add_argument("--max-iterations", default=None, type=int)
     readiness_parser = subparsers.add_parser("provider-readiness")
     readiness_parser.add_argument("--provider", default=settings.market_data_provider)
+    live_smoke_parser = subparsers.add_parser("live-provider-smoke")
+    live_smoke_parser.add_argument("--provider", default=settings.market_data_provider)
+    live_smoke_parser.add_argument("--symbol", required=True)
+    live_smoke_parser.add_argument("--timeframe", default="1d", choices=["1m", "5m", "1d"])
+    live_smoke_parser.add_argument("--start", required=True, type=date.fromisoformat)
+    live_smoke_parser.add_argument("--end", required=True, type=date.fromisoformat)
     args = parser.parse_args(argv)
 
     if args.command == "sync-daily-bars":
@@ -140,6 +204,22 @@ def main(argv: list[str] | None = None) -> int:
         readiness = check_market_data_provider_readiness(settings, provider=args.provider)
         print(json.dumps(readiness.__dict__, ensure_ascii=False))
         return 0 if readiness.ready else 1
+    if args.command == "live-provider-smoke":
+        initialize_database()
+        session = SessionLocal()
+        try:
+            result = run_live_provider_smoke(
+                session=session,
+                provider_name=args.provider,
+                symbol=args.symbol,
+                timeframe=args.timeframe,
+                start=args.start,
+                end=args.end,
+            )
+        finally:
+            session.close()
+        print(json.dumps(result.__dict__, ensure_ascii=False))
+        return 0 if result.status == "succeeded" else 1
     return 1
 
 

@@ -200,6 +200,20 @@ GET /api/market-data/provider-readiness?provider=polygon
 - Readiness output includes only `provider`, `ready`, `missing`, and `message`.
 - Updated live smoke SOP so Polygon smoke must pass readiness first.
 
+## Completed in Sixteenth Slice
+
+- Added guarded live-provider smoke execution for user-provided runtime env vars.
+- Added CLI command:
+
+```bash
+python -m app.market_data.cli live-provider-smoke --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
+```
+
+- The command runs provider readiness before any live provider request.
+- When readiness fails, the command exits nonzero with `status=not_ready`, `rows_written=0`, and missing environment variable names only.
+- When readiness passes, the command runs the existing bounded `run_sync_bars()` path and prints sanitized smoke metadata.
+- The smoke output includes `provider`, `symbol`, `timeframe`, `start`, `end`, `status`, `rows_written`, `missing`, and `error_message`.
+
 ## Verification
 
 Ubuntu backend:
@@ -214,7 +228,21 @@ pytest -q
 Latest result:
 
 ```text
-62 passed
+65 passed
+```
+
+Live provider smoke targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_market_data_live_smoke.py -q
+```
+
+Latest result:
+
+```text
+3 passed
 ```
 
 Provider readiness targeted:
@@ -315,4 +343,4 @@ Browser smoke:
 
 ## Next Slice
 
-- Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
+- Run a real Polygon live smoke only after user-provided runtime env vars are available, without reading or printing secrets.
