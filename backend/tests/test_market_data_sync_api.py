@@ -32,3 +32,36 @@ def test_market_data_sync_runs_api_lists_recent_runs():
     assert matched["sync_type"] == "daily_bars"
     assert matched["status"] == "succeeded"
     assert matched["rows_written"] == 3
+
+
+def test_market_data_sync_runs_api_accepts_filters():
+    initialize_database()
+    session = SessionLocal()
+    try:
+        repository = ProviderSyncRepository(session)
+        repository.record_run(
+            provider="sample",
+            sync_type="bars_1m",
+            status="succeeded",
+            started_at=datetime(2026, 6, 17, 13, 30, tzinfo=timezone.utc),
+            finished_at=datetime(2026, 6, 17, 13, 31, tzinfo=timezone.utc),
+            rows_written=2,
+        )
+        repository.record_run(
+            provider="polygon",
+            sync_type="daily_bars",
+            status="failed",
+            started_at=datetime(2026, 6, 17, 13, 32, tzinfo=timezone.utc),
+            finished_at=datetime(2026, 6, 17, 13, 33, tzinfo=timezone.utc),
+            rows_written=0,
+        )
+    finally:
+        session.close()
+
+    response = TestClient(app).get("/api/market-data/sync-runs?provider=sample&sync_type=bars_1m")
+
+    assert response.status_code == 200
+    runs = response.json()["runs"]
+    assert runs
+    assert all(run["provider"] == "sample" for run in runs)
+    assert all(run["sync_type"] == "bars_1m" for run in runs)

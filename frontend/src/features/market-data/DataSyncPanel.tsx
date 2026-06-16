@@ -6,11 +6,27 @@ type DataSyncPanelProps = {
   loading: boolean;
   syncing: boolean;
   error: string | null;
+  providerFilter: string;
+  syncTypeFilter: string;
+  onProviderFilterChange: (provider: string) => void;
+  onSyncTypeFilterChange: (syncType: string) => void;
   onRefresh: () => void;
   onSyncSample: () => void;
 };
 
-export function DataSyncPanel({ runs, summary, loading, syncing, error, onRefresh, onSyncSample }: DataSyncPanelProps) {
+export function DataSyncPanel({
+  runs,
+  summary,
+  loading,
+  syncing,
+  error,
+  providerFilter,
+  syncTypeFilter,
+  onProviderFilterChange,
+  onSyncTypeFilterChange,
+  onRefresh,
+  onSyncSample,
+}: DataSyncPanelProps) {
   return (
     <section className="panel sync-panel">
       <div className="panel-header">
@@ -29,6 +45,26 @@ export function DataSyncPanel({ runs, summary, loading, syncing, error, onRefres
       </div>
 
       {error ? <div className="alert">{error}</div> : null}
+
+      <div className="sync-filters">
+        <label>
+          <span>Provider</span>
+          <input
+            value={providerFilter}
+            placeholder="sample / polygon"
+            onChange={(event) => onProviderFilterChange(event.target.value)}
+          />
+        </label>
+        <label>
+          <span>类型</span>
+          <select value={syncTypeFilter} onChange={(event) => onSyncTypeFilterChange(event.target.value)}>
+            <option value="">全部</option>
+            <option value="daily_bars">daily_bars</option>
+            <option value="bars_1m">bars_1m</option>
+            <option value="bars_5m">bars_5m</option>
+          </select>
+        </label>
+      </div>
 
       {summary ? (
         <div className="sync-summary">

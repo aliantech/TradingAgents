@@ -60,13 +60,43 @@ class ProviderSyncRepository:
         self.session.refresh(model)
         return self._to_schema(model)
 
-    def list_runs(self, *, limit: int = 100) -> list[ProviderSyncRun]:
-        statement = select(ProviderSyncRunModel).order_by(ProviderSyncRunModel.started_at.desc()).limit(limit)
+    def list_runs(
+        self,
+        *,
+        limit: int = 100,
+        provider: str | None = None,
+        sync_type: str | None = None,
+        started_after: datetime | None = None,
+        started_before: datetime | None = None,
+    ) -> list[ProviderSyncRun]:
+        statement = select(ProviderSyncRunModel)
+        if provider:
+            statement = statement.where(ProviderSyncRunModel.provider == provider)
+        if sync_type:
+            statement = statement.where(ProviderSyncRunModel.sync_type == sync_type)
+        if started_after:
+            statement = statement.where(ProviderSyncRunModel.started_at >= started_after)
+        if started_before:
+            statement = statement.where(ProviderSyncRunModel.started_at <= started_before)
+        statement = statement.order_by(ProviderSyncRunModel.started_at.desc()).limit(limit)
         models = self.session.scalars(statement).all()
         return [self._to_schema(model) for model in models]
 
-    def summarize_runs(self) -> ProviderSyncSummary:
-        runs = self.list_runs(limit=1000)
+    def summarize_runs(
+        self,
+        *,
+        provider: str | None = None,
+        sync_type: str | None = None,
+        started_after: datetime | None = None,
+        started_before: datetime | None = None,
+    ) -> ProviderSyncSummary:
+        runs = self.list_runs(
+            limit=1000,
+            provider=provider,
+            sync_type=sync_type,
+            started_after=started_after,
+            started_before=started_before,
+        )
         durations_ms = [
             int((run.finished_at - run.started_at).total_seconds() * 1000)
             for run in runs

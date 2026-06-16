@@ -51,6 +51,38 @@ def test_provider_sync_repository_summarizes_runs():
     assert summary.average_duration_ms == 3000
 
 
+def test_provider_sync_repository_filters_summary_and_runs():
+    repository = ProviderSyncRepository(_session())
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+    repository.record_run(
+        provider="sample",
+        sync_type="bars_1m",
+        status="succeeded",
+        started_at=started_at,
+        finished_at=started_at + timedelta(seconds=1),
+        rows_written=5,
+    )
+    repository.record_run(
+        provider="polygon",
+        sync_type="daily_bars",
+        status="failed",
+        started_at=started_at + timedelta(days=1),
+        finished_at=started_at + timedelta(days=1, seconds=3),
+        rows_written=0,
+    )
+
+    summary = repository.summarize_runs(provider="sample", sync_type="bars_1m", started_after=started_at)
+    runs = repository.list_runs(provider="sample", sync_type="bars_1m", started_after=started_at)
+
+    assert summary.total_runs == 1
+    assert summary.succeeded == 1
+    assert summary.failed == 0
+    assert summary.rows_written == 5
+    assert len(runs) == 1
+    assert runs[0].provider == "sample"
+    assert runs[0].sync_type == "bars_1m"
+
+
 def test_sync_summary_api_returns_health_metrics():
     initialize_database()
     session = SessionLocal()
@@ -69,3 +101,27 @@ def test_sync_summary_api_returns_health_metrics():
     assert payload["rows_written"] >= 10
     assert payload["latest_status"] in {"failed", "succeeded"}
     assert payload["average_duration_ms"] >= 0
+
+
+def test_sync_summary_api_accepts_filters():
+    initialize_database()
+    session = SessionLocal()
+    try:
+        started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+        ProviderSyncRepository(session).record_run(
+            provider="sample",
+            sync_type="bars_5m",
+            status="succeeded",
+            started_at=started_at,
+            finished_at=started_at + timedelta(seconds=1),
+            rows_written=1,
+        )
+    finally:
+        session.close()
+
+    response = TestClient(app).get("/api/market-data/sync-summary?provider=sample&sync_type=bars_5m")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_runs"] >= 1
+    assert payload["succeeded"] >= 1

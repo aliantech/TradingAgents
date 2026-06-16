@@ -38,6 +38,8 @@ export function App() {
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
+  const [syncProviderFilter, setSyncProviderFilter] = useState("");
+  const [syncTypeFilter, setSyncTypeFilter] = useState("");
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -79,6 +81,13 @@ export function App() {
     return loadSyncRuns({ showLoading: true });
   }
 
+  function currentSyncFilters() {
+    return {
+      provider: syncProviderFilter.trim() || undefined,
+      syncType: syncTypeFilter || undefined,
+    };
+  }
+
   async function handleSyncSampleBars() {
     setSyncing(true);
     setSyncError(null);
@@ -102,7 +111,8 @@ export function App() {
     }
     setSyncError(null);
     try {
-      const [response, summary] = await Promise.all([listProviderSyncRuns(), getProviderSyncSummary()]);
+      const filters = currentSyncFilters();
+      const [response, summary] = await Promise.all([listProviderSyncRuns(filters), getProviderSyncSummary(filters)]);
       setSyncRuns(response.runs);
       setSyncSummary(summary);
     } catch (caught) {
@@ -208,6 +218,10 @@ export function App() {
               loading={syncLoading}
               syncing={syncing}
               error={syncError}
+              providerFilter={syncProviderFilter}
+              syncTypeFilter={syncTypeFilter}
+              onProviderFilterChange={setSyncProviderFilter}
+              onSyncTypeFilterChange={setSyncTypeFilter}
               onRefresh={() => void handleRefreshSyncRuns()}
               onSyncSample={() => void handleSyncSampleBars()}
             />

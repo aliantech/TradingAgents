@@ -62,6 +62,10 @@ def get_market_bars(
 @router.get("/sync-runs", response_model=ProviderSyncRunsResponse)
 def list_sync_runs(
     limit: int = Query(default=100, ge=1, le=500),
+    provider: str | None = Query(default=None, min_length=1, max_length=64),
+    sync_type: str | None = Query(default=None, min_length=1, max_length=64),
+    started_after: datetime | None = Query(default=None),
+    started_before: datetime | None = Query(default=None),
     session: Session = Depends(get_db_session),
 ) -> ProviderSyncRunsResponse:
     repository = ProviderSyncRepository(session)
@@ -77,16 +81,31 @@ def list_sync_runs(
                 rows_written=run.rows_written,
                 error_message=run.error_message,
             )
-            for run in repository.list_runs(limit=limit)
+            for run in repository.list_runs(
+                limit=limit,
+                provider=provider,
+                sync_type=sync_type,
+                started_after=started_after,
+                started_before=started_before,
+            )
         ]
     )
 
 
 @router.get("/sync-summary", response_model=ProviderSyncSummaryResponse)
 def get_sync_summary(
+    provider: str | None = Query(default=None, min_length=1, max_length=64),
+    sync_type: str | None = Query(default=None, min_length=1, max_length=64),
+    started_after: datetime | None = Query(default=None),
+    started_before: datetime | None = Query(default=None),
     session: Session = Depends(get_db_session),
 ) -> ProviderSyncSummaryResponse:
-    summary = ProviderSyncRepository(session).summarize_runs()
+    summary = ProviderSyncRepository(session).summarize_runs(
+        provider=provider,
+        sync_type=sync_type,
+        started_after=started_after,
+        started_before=started_before,
+    )
     return ProviderSyncSummaryResponse(
         total_runs=summary.total_runs,
         succeeded=summary.succeeded,

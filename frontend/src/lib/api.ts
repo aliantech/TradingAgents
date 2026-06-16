@@ -71,6 +71,11 @@ export type ProviderSyncRunsResponse = {
   runs: ProviderSyncRunItem[];
 };
 
+export type ProviderSyncFilters = {
+  provider?: string;
+  syncType?: string;
+};
+
 export type ProviderSyncSummary = {
   total_runs: number;
   succeeded: number;
@@ -157,12 +162,27 @@ export function getMarketBars(symbol: string): Promise<MarketBarsResponse> {
   return requestJson<MarketBarsResponse>(`/api/market-data/bars?symbol=${encodeURIComponent(symbol)}&timeframe=1m`);
 }
 
-export function listProviderSyncRuns(): Promise<ProviderSyncRunsResponse> {
-  return requestJson<ProviderSyncRunsResponse>("/api/market-data/sync-runs?limit=20");
+function providerSyncQuery(filters: ProviderSyncFilters = {}, includeLimit = false) {
+  const params = new URLSearchParams();
+  if (includeLimit) {
+    params.set("limit", "20");
+  }
+  if (filters.provider) {
+    params.set("provider", filters.provider);
+  }
+  if (filters.syncType) {
+    params.set("sync_type", filters.syncType);
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
 }
 
-export function getProviderSyncSummary(): Promise<ProviderSyncSummary> {
-  return requestJson<ProviderSyncSummary>("/api/market-data/sync-summary");
+export function listProviderSyncRuns(filters: ProviderSyncFilters = {}): Promise<ProviderSyncRunsResponse> {
+  return requestJson<ProviderSyncRunsResponse>(`/api/market-data/sync-runs${providerSyncQuery(filters, true)}`);
+}
+
+export function getProviderSyncSummary(filters: ProviderSyncFilters = {}): Promise<ProviderSyncSummary> {
+  return requestJson<ProviderSyncSummary>(`/api/market-data/sync-summary${providerSyncQuery(filters)}`);
 }
 
 export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {
