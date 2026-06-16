@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
+from app.market_data import cli
 from app.market_data.cli import run_sync_bars, run_sync_daily_bars
 from app.market_data.repository import MarketDataRepository
 from app.market_data.sync_repository import ProviderSyncRepository
@@ -78,3 +79,27 @@ def test_run_sync_bars_supports_intraday_timeframe():
     assert result.status == "succeeded"
     assert result.rows_written == 1
     assert len(bars) == 1
+
+
+def test_cli_run_scheduler_once_outputs_each_target(monkeypatch, capsys):
+    session = _session()
+    monkeypatch.setattr(cli, "initialize_database", lambda: None)
+    monkeypatch.setattr(cli, "SessionLocal", lambda: session)
+
+    exit_code = cli.main(
+        [
+            "run-scheduler-once",
+            "--provider",
+            "sample",
+            "--targets",
+            "SPY:1d:2,QQQ:5m:1",
+            "--today",
+            "2026-06-17",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert '"symbol": "SPY"' in output
+    assert '"timeframe": "5m"' in output
+    assert len(ProviderSyncRepository(session).list_runs()) == 2

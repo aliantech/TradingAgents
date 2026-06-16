@@ -9,6 +9,7 @@ from app.db.session import SessionLocal, initialize_database
 from app.market_data.ingestion import MarketDataIngestionService
 from app.market_data.provider_registry import get_market_data_provider
 from app.market_data.repository import MarketDataRepository
+from app.market_data.scheduler import run_configured_sync_targets_once
 from app.market_data.sync import MarketDataSyncResult, MarketDataSyncService
 from app.market_data.sync_repository import ProviderSyncRepository
 from app.realtime.publisher_factory import create_market_data_publisher
@@ -71,6 +72,10 @@ def main(argv: list[str] | None = None) -> int:
     sync_parser.add_argument("--end", required=True, type=date.fromisoformat)
     sync_parser.add_argument("--timeframe", default="1d", choices=["1m", "5m", "1d"])
     sync_parser.add_argument("--provider", default=settings.market_data_provider)
+    scheduler_parser = subparsers.add_parser("run-scheduler-once")
+    scheduler_parser.add_argument("--targets", default=settings.scheduler_targets)
+    scheduler_parser.add_argument("--today", default=date.today(), type=date.fromisoformat)
+    scheduler_parser.add_argument("--provider", default=settings.market_data_provider)
     args = parser.parse_args(argv)
 
     if args.command == "sync-daily-bars":
@@ -89,6 +94,20 @@ def main(argv: list[str] | None = None) -> int:
             session.close()
         print(json.dumps(result.__dict__, ensure_ascii=False))
         return 0 if result.status == "succeeded" else 1
+    if args.command == "run-scheduler-once":
+        initialize_database()
+        session = SessionLocal()
+        try:
+            results = run_configured_sync_targets_once(
+                session=session,
+                provider_name=args.provider,
+                target_config=args.targets,
+                today=args.today,
+            )
+        finally:
+            session.close()
+        print(json.dumps([result.__dict__ for result in results], ensure_ascii=False))
+        return 0 if all(result.status == "succeeded" for result in results) else 1
     return 1
 
 

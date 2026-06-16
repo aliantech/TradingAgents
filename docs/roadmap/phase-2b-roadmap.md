@@ -145,6 +145,20 @@ POST /api/market-data/sync-daily-bars
 - Added timezone normalization in health evaluation so SQLite-backed local tests and aware API timestamps compare consistently.
 - Added frontend schedule health visibility in the data-source sync panel.
 
+## Completed in Twelfth Slice
+
+- Added a first configured scheduler runner boundary.
+- Added `AQUANTLENS_SCHEDULER_TARGETS` with `SYMBOL:timeframe:lookback_days` target format.
+- Added scheduler target parsing for `1m`, `5m`, and `1d` sync targets.
+- Added `run_configured_sync_targets_once()` so cron, systemd timers, or a future worker can invoke one configured sync round.
+- Added CLI command:
+
+```bash
+python -m app.market_data.cli run-scheduler-once --provider sample --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
+```
+
+- Added scheduler runner SOP at `docs/operations/phase-2b-scheduler-runner.md`.
+
 ## Verification
 
 Ubuntu backend:
@@ -159,7 +173,34 @@ pytest -q
 Latest result:
 
 ```text
-50 passed
+54 passed
+```
+
+Scheduler runner targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+rm -f aquanlens_us.db
+pytest tests/test_market_data_scheduler.py tests/test_market_data_cli.py -q
+```
+
+Latest result:
+
+```text
+8 passed
+```
+
+Scheduler CLI smoke:
+
+```bash
+python -m app.market_data.cli run-scheduler-once --provider sample --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
+```
+
+Latest result:
+
+```text
+SPY 1d succeeded with 2 rows; QQQ 5m succeeded with 1 row
 ```
 
 Ubuntu frontend:
@@ -194,4 +235,4 @@ Browser smoke:
 ## Next Slice
 
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add a first persistent scheduler runner or worker boundary that periodically invokes configured sync targets.
+- Add a periodic scheduler loop or external timer integration around `run-scheduler-once`.
