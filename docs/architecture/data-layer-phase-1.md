@@ -1,5 +1,17 @@
 # Phase 1 Data Layer
 
+## Phase 2A Status
+
+Phase 2A now has SQLAlchemy-backed persistence for the first durable workflows:
+
+- `analysis_runs` and `analysis_reports` are mapped through `AnalysisRepository`.
+- Analysis and report APIs write through the repository and keep the in-memory store only as a development fallback.
+- `instruments` and `market_bars` are mapped through `MarketDataRepository`.
+- `MarketDataIngestionService` provides the first normalized bar-ingestion entrypoint for future providers.
+- `/api/market-data/bars` reads persisted bars when available and falls back to deterministic sample bars when the repository is empty.
+
+SQLite is used for fast automated tests. PostgreSQL/TimescaleDB remains the target durable service for local deployment and later production-like environments.
+
 ## Durable Store
 
 Use PostgreSQL with TimescaleDB for durable Phase 1 data:
