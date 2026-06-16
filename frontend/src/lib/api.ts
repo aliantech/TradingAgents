@@ -250,8 +250,8 @@ export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {
   });
 }
 
-export function getOptionChain(underlying: string): Promise<OptionChainResponse> {
+export function getOptionChain(underlying: string, expiry = "2026-06-17"): Promise<OptionChainResponse> {
   return requestJson<OptionChainResponse>(
-    `/api/options/chain?underlying=${encodeURIComponent(underlying)}&expiry=2026-06-17`,
+    `/api/options/chain?underlying=${encodeURIComponent(underlying)}&expiry=${encodeURIComponent(expiry)}`,
   );
 }

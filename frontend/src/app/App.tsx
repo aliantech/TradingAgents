@@ -42,6 +42,10 @@ export function App() {
   const [reports, setReports] = useState<ReportListItem[]>([]);
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
+  const [optionUnderlying, setOptionUnderlying] = useState("SPX");
+  const [optionExpiry, setOptionExpiry] = useState("2026-06-17");
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
   const [syncGroups, setSyncGroups] = useState<ProviderSyncSummaryGroup[]>([]);
@@ -61,7 +65,7 @@ export function App() {
 
   async function loadInitialState() {
     try {
-      await Promise.all([loadMarketContext(symbol), refreshReports()]);
+      await Promise.all([loadMarketContext(symbol), loadOptionChain(optionUnderlying, optionExpiry), refreshReports()]);
       await refreshSyncRuns();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "初始化数据加载失败，请检查后端服务是否已启动。");
@@ -70,13 +74,27 @@ export function App() {
 
   async function loadMarketContext(nextSymbol: string) {
     const chartSymbol = nextSymbol.toUpperCase() === "SPX" ? "SPY" : nextSymbol;
-    const optionUnderlying = nextSymbol.toUpperCase() === "SPY" ? "SPX" : nextSymbol;
-    const [barsResponse, chainResponse] = await Promise.all([
-      getMarketBars(chartSymbol),
-      getOptionChain(optionUnderlying),
-    ]);
+    const barsResponse = await getMarketBars(chartSymbol);
     setBars(barsResponse.bars);
-    setOptionSnapshots(chainResponse.snapshots);
+  }
+
+  async function loadOptionChain(nextUnderlying: string, nextExpiry: string) {
+    setOptionsLoading(true);
+    setOptionsError(null);
+    try {
+      const chainResponse = await getOptionChain(nextUnderlying, nextExpiry);
+      setOptionSnapshots(chainResponse.snapshots);
+      setOptionUnderlying(chainResponse.underlying_symbol);
+      setOptionExpiry(chainResponse.expiry);
+    } catch (caught) {
+      setOptionsError(caught instanceof Error ? caught.message : "期权链加载失败。");
+    } finally {
+      setOptionsLoading(false);
+    }
+  }
+
+  async function handleRefreshOptions() {
+    await loadOptionChain(optionUnderlying, optionExpiry);
   }
 
   async function refreshReports() {
@@ -231,7 +249,16 @@ export function App() {
           </div>
 
           <div id="options">
-            <OptionChainTable snapshots={optionSnapshots} />
+            <OptionChainTable
+              snapshots={optionSnapshots}
+              underlying={optionUnderlying}
+              expiry={optionExpiry}
+              loading={optionsLoading}
+              error={optionsError}
+              onUnderlyingChange={setOptionUnderlying}
+              onExpiryChange={setOptionExpiry}
+              onRefresh={() => void handleRefreshOptions()}
+            />
           </div>
 
           <div id="sync">

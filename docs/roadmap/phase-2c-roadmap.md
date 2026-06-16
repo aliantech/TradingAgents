@@ -62,6 +62,23 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
   - persisted snapshot response;
   - deterministic SPX sample fallback.
 
+## Completed in Fifth Slice
+
+- Added a frontend option-chain control surface under `frontend`:
+  - underlying selector for `SPX`, `SPY`, and `QQQ`;
+  - expiry date input;
+  - manual refresh action;
+  - loading and error states.
+- Expanded the option-chain table with:
+  - last price;
+  - volume;
+  - IV;
+  - Delta, Gamma, Theta, Vega;
+  - open interest;
+  - source.
+- Added summary metrics for contract count, total volume, total open interest, and latest timestamp.
+- Kept the UI Chinese-first while preserving professional terms such as IV, Greeks, Volume, and Open Interest.
+
 ## Verification
 
 Ubuntu backend verification:
@@ -80,6 +97,7 @@ Results:
 - Targeted options live smoke tests: `4 passed`.
 - Timeout/retry options live smoke tests: `5 passed`.
 - Full backend suite: `82 passed`.
+- Frontend production build: `npm run build` succeeded.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 
 ## Live Entitlement Check
@@ -136,5 +154,4 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 ## Next Slice
 
-- Add frontend option-chain panel skeleton under `frontend`.
 - Keep provider-specific Polygon/Massive option-chain ingestion as the following slice after the API/UI boundary is stable.
