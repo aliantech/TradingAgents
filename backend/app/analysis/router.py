@@ -17,7 +17,7 @@ def start_analysis(request: AnalysisRequest) -> AnalysisQueuedResponse:
     return AnalysisQueuedResponse(
         analysis_id=run.analysis_id,
         symbol=run.request.symbol,
-        status=run.status,
+        status="queued",
         language=run.request.language,
     )
 
@@ -47,7 +47,7 @@ def stream_analysis_events(analysis_id: UUID) -> StreamingResponse:
 
     def event_stream():
         for event in run.progress:
-            yield f"data: {json.dumps(event.dict(), ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps(event.model_dump(), ensure_ascii=False)}\n\n"
         yield 'event: done\ndata: {"status":"completed"}\n\n'
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

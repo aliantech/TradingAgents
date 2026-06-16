@@ -52,7 +52,7 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
 def start_analysis(request: AnalysisRequest) -> AnalysisRun:
     analysis_id = uuid4()
     report_id = uuid4()
-    normalized_request = request.copy(update={"symbol": request.symbol.upper()})
+    normalized_request = request.model_copy(update={"symbol": request.symbol.upper()})
     run = AnalysisRun(
         analysis_id=analysis_id,
         request=normalized_request,
