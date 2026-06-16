@@ -117,43 +117,47 @@ export function OptionChainTable({
         <div className="empty-state">暂无期权链快照。请先同步当前 underlying 与到期日，或检查 provider readiness。</div>
       ) : null}
 
-      <div className="option-chain-layout">
+      <div className={`option-chain-layout ${visibleRows.length === 0 ? "is-empty" : ""}`}>
         <div className="table-wrap option-chain-wrap">
-          <table className="option-chain-table">
-            <thead>
-              <tr>
-                <th colSpan={7} className="side-title call-side">
-                  Call
-                </th>
-                <th className="strike-col">Strike</th>
-                <th colSpan={7} className="side-title put-side">
-                  Put
-                </th>
-              </tr>
-              <tr>
-                <th>Delta</th>
-                <th>IV</th>
-                <th>OI</th>
-                <th>Vol</th>
-                <th>Last</th>
-                <th>Bid</th>
-                <th>Ask</th>
-                <th className="strike-col">行权价</th>
-                <th>Bid</th>
-                <th>Ask</th>
-                <th>Last</th>
-                <th>Vol</th>
-                <th>OI</th>
-                <th>IV</th>
-                <th>Delta</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map((row) => (
-                <OptionRow key={row.strike} row={row} selectedSymbol={selectedSymbol} onSelect={setSelectedSymbol} />
-              ))}
-            </tbody>
-          </table>
+          {visibleRows.length > 0 ? (
+            <table className="option-chain-table">
+              <thead>
+                <tr>
+                  <th colSpan={7} className="side-title call-side">
+                    Call
+                  </th>
+                  <th className="strike-col">Strike</th>
+                  <th colSpan={7} className="side-title put-side">
+                    Put
+                  </th>
+                </tr>
+                <tr>
+                  <th>Delta</th>
+                  <th>IV</th>
+                  <th>OI</th>
+                  <th>Vol</th>
+                  <th>Last</th>
+                  <th>Bid</th>
+                  <th>Ask</th>
+                  <th className="strike-col">行权价</th>
+                  <th>Bid</th>
+                  <th>Ask</th>
+                  <th>Last</th>
+                  <th>Vol</th>
+                  <th>OI</th>
+                  <th>IV</th>
+                  <th>Delta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRows.map((row) => (
+                  <OptionRow key={row.strike} row={row} selectedSymbol={selectedSymbol} onSelect={setSelectedSymbol} />
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty-state option-table-empty">当前筛选没有可显示的期权行。</div>
+          )}
         </div>
 
         <aside className="selected-contract-panel">

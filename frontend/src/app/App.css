@@ -251,38 +251,11 @@ svg {
   overflow-x: auto;
 }
 
-.option-controls {
-  display: grid;
-  grid-template-columns: minmax(160px, 0.35fr) minmax(160px, 0.35fr);
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
 .option-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.option-controls label {
-  display: grid;
-  gap: 6px;
-}
-
-.option-controls span {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.option-controls input,
-.option-controls select {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 9px 10px;
-  color: #172026;
-  background: #ffffff;
 }
 
 .option-summary {
@@ -689,6 +662,10 @@ th {
   align-items: start;
 }
 
+.option-chain-layout.is-empty {
+  grid-template-columns: minmax(0, 1fr) 280px;
+}
+
 .option-chain-wrap {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -803,6 +780,13 @@ th {
   padding: 16px;
   color: #64748b;
   background: #f8fafc;
+}
+
+.option-table-empty {
+  margin: 0;
+  min-height: 142px;
+  display: flex;
+  align-items: center;
 }
 
 @media (max-width: 1180px) {
