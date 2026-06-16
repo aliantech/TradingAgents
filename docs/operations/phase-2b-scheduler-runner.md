@@ -83,6 +83,48 @@ python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SP
 
 Use an external supervisor such as systemd for restarts, logs, and process lifecycle. Keep `--max-iterations` for smoke tests and CI-like checks.
 
+## systemd User Timer
+
+Templates live in:
+
+```text
+infra/systemd/aquantlens-market-data-scheduler.service
+infra/systemd/aquantlens-market-data-scheduler.timer
+```
+
+Install for the current Ubuntu user:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp infra/systemd/aquantlens-market-data-scheduler.service ~/.config/systemd/user/
+cp infra/systemd/aquantlens-market-data-scheduler.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+```
+
+Run one supervised smoke:
+
+```bash
+systemctl --user start aquantlens-market-data-scheduler.service
+systemctl --user status aquantlens-market-data-scheduler.service --no-pager
+journalctl --user -u aquantlens-market-data-scheduler.service -n 80 --no-pager
+```
+
+Enable the timer:
+
+```bash
+systemctl --user enable --now aquantlens-market-data-scheduler.timer
+systemctl --user list-timers aquantlens-market-data-scheduler.timer
+```
+
+Stop or disable:
+
+```bash
+systemctl --user stop aquantlens-market-data-scheduler.service
+systemctl --user disable --now aquantlens-market-data-scheduler.timer
+```
+
+The checked-in service defaults to the `sample` provider. Override provider, targets, database, Redis, and vendor settings in `/home/yasin/workspace/TradingAgents/backend/.env` without printing secret values.
+
 ## Observability
 
 After a run, inspect:

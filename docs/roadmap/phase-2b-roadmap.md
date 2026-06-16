@@ -172,6 +172,15 @@ python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SP
 
 - Updated scheduler runner SOP with bounded smoke and long-running worker examples.
 
+## Completed in Fourteenth Slice
+
+- Added systemd user service and timer templates for the scheduler loop:
+  - `infra/systemd/aquantlens-market-data-scheduler.service`;
+  - `infra/systemd/aquantlens-market-data-scheduler.timer`.
+- Added template validation tests so service/timer files keep the expected loop command, env file, restart policy, and trading-weekday timer binding.
+- Updated scheduler runner SOP with install, smoke, enable, disable, and journal inspection commands.
+- Kept the checked-in service on the `sample` provider by default; live provider settings remain runtime env configuration only.
+
 ## Verification
 
 Ubuntu backend:
@@ -186,7 +195,7 @@ pytest -q
 Latest result:
 
 ```text
-56 passed
+58 passed
 ```
 
 Scheduler runner targeted:
@@ -202,6 +211,20 @@ Latest result:
 
 ```text
 10 passed
+```
+
+Systemd template targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_scheduler_systemd_templates.py -q
+```
+
+Latest result:
+
+```text
+2 passed
 ```
 
 Scheduler CLI smoke:
@@ -260,4 +283,4 @@ Browser smoke:
 ## Next Slice
 
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add systemd timer/service examples or deployment wiring for the scheduler loop.
+- Add safe live-provider smoke gates around runtime env availability and provider health.

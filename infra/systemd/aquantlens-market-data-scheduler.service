@@ -1,0 +1,18 @@
+[Unit]
+Description=AQuantLens US market data scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yasin/workspace/TradingAgents/backend
+Environment=AQUANTLENS_MARKET_DATA_PROVIDER=sample
+Environment=AQUANTLENS_SCHEDULER_TARGETS=SPY:1d:2
+Environment=AQUANTLENS_SCHEDULER_INTERVAL_SECONDS=300
+EnvironmentFile=-/home/yasin/workspace/TradingAgents/backend/.env
+ExecStart=/home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m app.market_data.cli run-scheduler-loop --provider ${AQUANTLENS_MARKET_DATA_PROVIDER} --targets ${AQUANTLENS_SCHEDULER_TARGETS} --interval-seconds ${AQUANTLENS_SCHEDULER_INTERVAL_SECONDS}
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

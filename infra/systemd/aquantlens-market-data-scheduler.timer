@@ -1,0 +1,10 @@
+[Unit]
+Description=Run AQuantLens US market data scheduler on trading weekdays
+
+[Timer]
+OnCalendar=Mon..Fri 22:10:00
+Unit=aquantlens-market-data-scheduler.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
