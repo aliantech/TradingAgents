@@ -7,7 +7,9 @@ import { KlineChart } from "../features/market-data/KlineChart";
 import { OptionChainTable } from "../features/options/OptionChainTable";
 import { ReportHistory } from "../features/reports/ReportHistory";
 import { ReportPanel } from "../features/reports/ReportPanel";
+import { SettingsPanel } from "../features/settings/SettingsPanel";
 import {
+  getProviderRuntimeSettings,
   getMarketBars,
   getOptionChain,
   getProviderReadiness,
@@ -20,11 +22,13 @@ import {
   startAnalysis,
   syncDailyBars,
   syncOptionChain,
+  updateProviderRuntimeSettings,
   type AnalysisStatus,
   type MarketBar,
   type OptionSnapshot,
   type ProviderSyncRunItem,
   type ProviderReadiness,
+  type ProviderRuntimeSettings,
   type ProviderSyncHealth,
   type ProviderSyncSummary,
   type ProviderSyncSummaryGroup,
@@ -60,6 +64,9 @@ export function App() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [runtimeSettings, setRuntimeSettings] = useState<ProviderRuntimeSettings | null>(null);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadInitialState();
@@ -67,7 +74,12 @@ export function App() {
 
   async function loadInitialState() {
     try {
-      await Promise.all([loadMarketContext(symbol), loadOptionChain(optionUnderlying, optionExpiry), refreshReports()]);
+      await Promise.all([
+        loadMarketContext(symbol),
+        loadOptionChain(optionUnderlying, optionExpiry),
+        refreshReports(),
+        refreshRuntimeSettings(),
+      ]);
       await refreshSyncRuns();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "初始化数据加载失败，请检查后端服务是否已启动。");
@@ -119,6 +131,26 @@ export function App() {
   async function refreshReports() {
     const reportItems = await listReports();
     setReports(reportItems);
+  }
+
+  async function refreshRuntimeSettings() {
+    const providerSettings = await getProviderRuntimeSettings();
+    setRuntimeSettings(providerSettings);
+  }
+
+  async function handleSaveRuntimeSettings(input: { polygonApiKey: string; polygonBaseUrl: string }) {
+    setSettingsSaving(true);
+    setSettingsError(null);
+    try {
+      const providerSettings = await updateProviderRuntimeSettings(input);
+      setRuntimeSettings(providerSettings);
+      await loadSyncRuns({ showLoading: false });
+      await loadOptionChain(optionUnderlying, optionExpiry);
+    } catch (caught) {
+      setSettingsError(caught instanceof Error ? caught.message : "设置保存失败。");
+    } finally {
+      setSettingsSaving(false);
+    }
   }
 
   async function refreshSyncRuns() {
@@ -231,6 +263,7 @@ export function App() {
           <a href="#market">Market Data</a>
           <a href="#options">Options</a>
           <a href="#sync">Sync</a>
+          <a href="#settings">Settings</a>
         </nav>
         <button type="button" className="language-button" onClick={() => i18n.changeLanguage(i18n.language === "zh" ? "en" : "zh")}>
           {i18n.language === "zh" ? "English" : "中文"}
@@ -302,6 +335,15 @@ export function App() {
               onStartedBeforeFilterChange={setSyncStartedBeforeFilter}
               onRefresh={() => void handleRefreshSyncRuns()}
               onSyncSample={() => void handleSyncSampleBars()}
+            />
+          </div>
+
+          <div id="settings">
+            <SettingsPanel
+              settings={runtimeSettings}
+              saving={settingsSaving}
+              error={settingsError}
+              onSave={(input) => void handleSaveRuntimeSettings(input)}
             />
           </div>
         </div>

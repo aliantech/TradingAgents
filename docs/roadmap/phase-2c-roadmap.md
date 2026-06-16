@@ -212,3 +212,32 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 - Add live guarded SPX/SPY option-chain sync smoke once the runtime shell has the API key loaded.
 - Add scheduler/backfill target config only after live option-chain sync smoke is stable.
+
+## Completed Slice: Runtime Provider Settings UI
+
+Users can now enter Polygon/Massive provider settings from the frontend Settings panel instead of editing runtime shell state for every UI-driven sync check.
+
+Scope:
+
+- Added an in-memory backend runtime config for Polygon/Massive API key and base URL.
+- Added `/api/settings/provider` read/update endpoints.
+- Updated provider readiness, daily bar sync provider construction, and options chain provider construction to prefer runtime settings when present.
+- Added a frontend Settings panel under the main workbench navigation.
+- The API key is never returned by the settings API and is not written to `.env`, the database, logs, or docs.
+
+Verification:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+.venv/bin/python -m pytest tests/test_runtime_settings_api.py -q
+.venv/bin/python -m pytest -q
+
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Results:
+
+- Runtime settings targeted tests: `3 passed`.
+- Full backend suite: `94 passed`.
+- Frontend production build: succeeded.

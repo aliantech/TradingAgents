@@ -11,6 +11,7 @@ from app.options.repository import OptionRepository, OptionSnapshotRecord
 from app.options.sample_data import seed_sample_option_chain
 from app.options.schemas import OptionChainResponse, OptionChainSyncRequest, OptionChainSyncResponse, OptionSnapshot
 from app.options.sync import OptionChainSyncService
+from app.runtime_config import runtime_config
 
 router = APIRouter(prefix="/api/options", tags=["options"])
 
@@ -20,8 +21,8 @@ def create_options_provider(provider_name: str) -> OptionChainProvider:
     if normalized_provider != "polygon":
         raise ValueError(f"Unsupported options provider: {provider_name}.")
     return PolygonOptionsProvider(
-        api_key=settings.polygon_api_key,
-        base_url=settings.polygon_base_url,
+        api_key=runtime_config.polygon_api_key(settings),
+        base_url=runtime_config.polygon_base_url(settings),
     )
 
 

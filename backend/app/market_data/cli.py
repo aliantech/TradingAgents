@@ -16,6 +16,7 @@ from app.market_data.scheduler import run_configured_sync_targets_once, run_sche
 from app.market_data.sync import MarketDataSyncResult, MarketDataSyncService
 from app.market_data.sync_repository import ProviderSyncRepository
 from app.realtime.publisher_factory import create_market_data_publisher
+from app.runtime_config import runtime_config
 
 
 SECRET_LIKE_PATTERN = re.compile(r"(?i)(api[-_]?key|token|secret|password)=([^&\s]+)")
@@ -87,8 +88,8 @@ def run_sync_bars(
 ) -> MarketDataSyncResult:
     provider = get_market_data_provider(
         provider_name,
-        polygon_api_key=settings.polygon_api_key,
-        polygon_base_url=settings.polygon_base_url,
+        polygon_api_key=runtime_config.polygon_api_key(settings),
+        polygon_base_url=runtime_config.polygon_base_url(settings),
         max_retries=settings.provider_max_retries,
         retry_backoff_seconds=settings.provider_retry_backoff_seconds,
     )

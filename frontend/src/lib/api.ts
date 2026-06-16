@@ -156,6 +156,13 @@ export type OptionChainSyncResponse = {
   error_message: string | null;
 };
 
+export type ProviderRuntimeSettings = {
+  provider: string;
+  polygon_configured: boolean;
+  polygon_base_url: string;
+  message: string;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -277,6 +284,24 @@ export function syncOptionChain(
       expiry,
       provider,
       limit: 250,
+    }),
+  });
+}
+
+export function getProviderRuntimeSettings(): Promise<ProviderRuntimeSettings> {
+  return requestJson<ProviderRuntimeSettings>("/api/settings/provider");
+}
+
+export function updateProviderRuntimeSettings(input: {
+  polygonApiKey?: string;
+  polygonBaseUrl?: string;
+}): Promise<ProviderRuntimeSettings> {
+  return requestJson<ProviderRuntimeSettings>("/api/settings/provider", {
+    method: "PUT",
+    body: JSON.stringify({
+      provider: "polygon",
+      polygon_api_key: input.polygonApiKey || undefined,
+      polygon_base_url: input.polygonBaseUrl || undefined,
     }),
   });
 }
