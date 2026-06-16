@@ -36,6 +36,16 @@ class ProviderSyncRunsResponse(BaseModel):
     runs: list[ProviderSyncRunItem]
 
 
+class ProviderSyncSummaryResponse(BaseModel):
+    total_runs: int
+    succeeded: int
+    failed: int
+    rows_written: int
+    latest_status: str | None
+    latest_finished_at: datetime | None
+    average_duration_ms: int
+
+
 class DailyBarSyncRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=32)
     start: date

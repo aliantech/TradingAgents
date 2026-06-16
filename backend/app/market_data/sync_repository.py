@@ -20,6 +20,17 @@ class ProviderSyncRun:
     error_message: str | None
 
 
+@dataclass(frozen=True)
+class ProviderSyncSummary:
+    total_runs: int
+    succeeded: int
+    failed: int
+    rows_written: int
+    latest_status: str | None
+    latest_finished_at: datetime | None
+    average_duration_ms: int
+
+
 class ProviderSyncRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -53,6 +64,24 @@ class ProviderSyncRepository:
         statement = select(ProviderSyncRunModel).order_by(ProviderSyncRunModel.started_at.desc()).limit(limit)
         models = self.session.scalars(statement).all()
         return [self._to_schema(model) for model in models]
+
+    def summarize_runs(self) -> ProviderSyncSummary:
+        runs = self.list_runs(limit=1000)
+        durations_ms = [
+            int((run.finished_at - run.started_at).total_seconds() * 1000)
+            for run in runs
+            if run.finished_at is not None
+        ]
+        latest = runs[0] if runs else None
+        return ProviderSyncSummary(
+            total_runs=len(runs),
+            succeeded=sum(1 for run in runs if run.status == "succeeded"),
+            failed=sum(1 for run in runs if run.status == "failed"),
+            rows_written=sum(run.rows_written for run in runs),
+            latest_status=latest.status if latest else None,
+            latest_finished_at=latest.finished_at if latest else None,
+            average_duration_ms=int(sum(durations_ms) / len(durations_ms)) if durations_ms else 0,
+        )
 
     def _to_schema(self, model: ProviderSyncRunModel) -> ProviderSyncRun:
         return ProviderSyncRun(

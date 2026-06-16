@@ -10,6 +10,7 @@ import { ReportPanel } from "../features/reports/ReportPanel";
 import {
   getMarketBars,
   getOptionChain,
+  getProviderSyncSummary,
   getReport,
   listProviderSyncRuns,
   listReports,
@@ -19,6 +20,7 @@ import {
   type MarketBar,
   type OptionSnapshot,
   type ProviderSyncRunItem,
+  type ProviderSyncSummary,
   type ReportListItem,
   type ResearchReport,
 } from "../lib/api";
@@ -35,6 +37,7 @@ export function App() {
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
+  const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -99,8 +102,9 @@ export function App() {
     }
     setSyncError(null);
     try {
-      const response = await listProviderSyncRuns();
+      const [response, summary] = await Promise.all([listProviderSyncRuns(), getProviderSyncSummary()]);
       setSyncRuns(response.runs);
+      setSyncSummary(summary);
     } catch (caught) {
       setSyncError(caught instanceof Error ? caught.message : "同步历史加载失败。");
     } finally {
@@ -200,6 +204,7 @@ export function App() {
           <div id="sync">
             <DataSyncPanel
               runs={syncRuns}
+              summary={syncSummary}
               loading={syncLoading}
               syncing={syncing}
               error={syncError}

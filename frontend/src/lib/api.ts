@@ -71,6 +71,16 @@ export type ProviderSyncRunsResponse = {
   runs: ProviderSyncRunItem[];
 };
 
+export type ProviderSyncSummary = {
+  total_runs: number;
+  succeeded: number;
+  failed: number;
+  rows_written: number;
+  latest_status: string | null;
+  latest_finished_at: string | null;
+  average_duration_ms: number;
+};
+
 export type DailyBarSyncResponse = {
   status: string;
   rows_written: number;
@@ -149,6 +159,10 @@ export function getMarketBars(symbol: string): Promise<MarketBarsResponse> {
 
 export function listProviderSyncRuns(): Promise<ProviderSyncRunsResponse> {
   return requestJson<ProviderSyncRunsResponse>("/api/market-data/sync-runs?limit=20");
+}
+
+export function getProviderSyncSummary(): Promise<ProviderSyncSummary> {
+  return requestJson<ProviderSyncSummary>("/api/market-data/sync-summary");
 }
 
 export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {

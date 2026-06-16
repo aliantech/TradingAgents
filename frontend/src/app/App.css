@@ -299,6 +299,32 @@ th {
   justify-content: flex-end;
 }
 
+.sync-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sync-metric {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.sync-metric span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.sync-metric strong {
+  color: #172026;
+  font-size: 16px;
+}
+
 .sync-item {
   display: grid;
   gap: 8px;
@@ -360,5 +386,9 @@ th {
   .option-panel,
   .sync-panel {
     grid-column: span 1;
+  }
+
+  .sync-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

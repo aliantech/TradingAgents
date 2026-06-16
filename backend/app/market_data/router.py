@@ -14,6 +14,7 @@ from app.market_data.schemas import (
     MarketBarsResponse,
     ProviderSyncRunItem,
     ProviderSyncRunsResponse,
+    ProviderSyncSummaryResponse,
 )
 from app.market_data.sync_repository import ProviderSyncRepository
 
@@ -78,6 +79,22 @@ def list_sync_runs(
             )
             for run in repository.list_runs(limit=limit)
         ]
+    )
+
+
+@router.get("/sync-summary", response_model=ProviderSyncSummaryResponse)
+def get_sync_summary(
+    session: Session = Depends(get_db_session),
+) -> ProviderSyncSummaryResponse:
+    summary = ProviderSyncRepository(session).summarize_runs()
+    return ProviderSyncSummaryResponse(
+        total_runs=summary.total_runs,
+        succeeded=summary.succeeded,
+        failed=summary.failed,
+        rows_written=summary.rows_written,
+        latest_status=summary.latest_status,
+        latest_finished_at=summary.latest_finished_at,
+        average_duration_ms=summary.average_duration_ms,
     )
 
 

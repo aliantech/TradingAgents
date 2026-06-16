@@ -1,7 +1,8 @@
-import type { ProviderSyncRunItem } from "../../lib/api";
+import type { ProviderSyncRunItem, ProviderSyncSummary } from "../../lib/api";
 
 type DataSyncPanelProps = {
   runs: ProviderSyncRunItem[];
+  summary: ProviderSyncSummary | null;
   loading: boolean;
   syncing: boolean;
   error: string | null;
@@ -9,7 +10,7 @@ type DataSyncPanelProps = {
   onSyncSample: () => void;
 };
 
-export function DataSyncPanel({ runs, loading, syncing, error, onRefresh, onSyncSample }: DataSyncPanelProps) {
+export function DataSyncPanel({ runs, summary, loading, syncing, error, onRefresh, onSyncSample }: DataSyncPanelProps) {
   return (
     <section className="panel sync-panel">
       <div className="panel-header">
@@ -28,6 +29,16 @@ export function DataSyncPanel({ runs, loading, syncing, error, onRefresh, onSync
       </div>
 
       {error ? <div className="alert">{error}</div> : null}
+
+      {summary ? (
+        <div className="sync-summary">
+          <Metric label="总次数" value={summary.total_runs.toLocaleString()} />
+          <Metric label="成功" value={summary.succeeded.toLocaleString()} />
+          <Metric label="失败" value={summary.failed.toLocaleString()} />
+          <Metric label="写入" value={summary.rows_written.toLocaleString()} />
+          <Metric label="平均耗时" value={`${summary.average_duration_ms} ms`} />
+        </div>
+      ) : null}
 
       {runs.length === 0 && !error ? (
         <p className="empty">暂无同步记录</p>
@@ -50,6 +61,15 @@ export function DataSyncPanel({ runs, loading, syncing, error, onRefresh, onSync
         </div>
       )}
     </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="sync-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 
