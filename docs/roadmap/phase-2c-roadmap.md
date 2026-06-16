@@ -100,6 +100,20 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
 - UI action refreshes the option chain and sync health/history after completion.
 - CLI remains an operations-only thin entrypoint and is not the daily product workflow.
 
+## Completed in Eighth Slice
+
+- Added thin operations CLI module:
+  - `python -m app.options.cli sync-chain`;
+  - readiness guard before provider access;
+  - calls `OptionChainSyncService`;
+  - emits JSON for CI, scheduler, and shell smoke usage.
+- Added `scripts/phase2c_options_sync_live_smoke.sh`.
+- The script does not read `.env`, print environment variables, or expose the API key.
+- Added tests for:
+  - CLI service delegation;
+  - no-key guarded output;
+  - script safety boundary.
+
 ## UI And CLI Boundary
 
 - UI is the daily product entrypoint for research workflows, option-chain inspection, and later manual data actions.
@@ -120,6 +134,7 @@ pytest tests/test_options_repository.py -q
 pytest tests/test_options_api.py -q
 pytest tests/test_options_polygon_provider.py tests/test_options_sync.py -q
 pytest tests/test_options_sync_api.py -q
+pytest tests/test_options_cli.py tests/test_phase2c_options_sync_live_smoke_script.py -q
 pytest tests/test_options_live_smoke.py tests/test_phase2c_options_live_smoke_script.py -q
 pytest -q
 ```
@@ -130,11 +145,13 @@ Results:
 - Targeted options API tests: `2 passed`.
 - Targeted options ingestion tests: `2 passed`.
 - Targeted options sync API tests: `2 passed`.
+- Targeted options CLI/smoke tests: `4 passed`.
 - Targeted options live smoke tests: `4 passed`.
 - Timeout/retry options live smoke tests: `5 passed`.
-- Full backend suite: `84 passed`.
+- Full backend suite: `90 passed`.
 - Frontend production build: `npm run build` succeeded.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
+- Guarded no-key option-chain sync smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 
 ## Live Entitlement Check
 
@@ -190,5 +207,5 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 ## Next Slice
 
-- Add a thin CLI command only for smoke/backfill/scheduler usage.
 - Add live guarded SPX/SPY option-chain sync smoke once the runtime shell has the API key loaded.
+- Add scheduler/backfill target config only after live option-chain sync smoke is stable.
