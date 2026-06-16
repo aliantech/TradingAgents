@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, JSON, String, Text
+from sqlalchemy import BigInteger, Date, DateTime, Float, ForeignKey, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -47,3 +47,38 @@ class AnalysisReportModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     run: Mapped[AnalysisRunModel] = relationship(back_populates="report")
+
+
+class InstrumentModel(Base):
+    __tablename__ = "instruments"
+    __table_args__ = (UniqueConstraint("symbol", "asset_type", "exchange", name="uq_instruments_identity"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    symbol: Mapped[str] = mapped_column(String(64), index=True)
+    asset_type: Mapped[str] = mapped_column(String(32))
+    exchange: Mapped[str] = mapped_column(String(64))
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
+    timezone: Mapped[str] = mapped_column(String(64), default="America/New_York")
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    bars: Mapped[list["MarketBarModel"]] = relationship(back_populates="instrument")
+
+
+class MarketBarModel(Base):
+    __tablename__ = "market_bars"
+
+    instrument_id: Mapped[UUID] = mapped_column(ForeignKey("instruments.id"), primary_key=True)
+    timeframe: Mapped[str] = mapped_column(String(16), primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    source: Mapped[str] = mapped_column(String(64), primary_key=True)
+    open: Mapped[float] = mapped_column(Float)
+    high: Mapped[float] = mapped_column(Float)
+    low: Mapped[float] = mapped_column(Float)
+    close: Mapped[float] = mapped_column(Float)
+    volume: Mapped[int] = mapped_column(BigInteger, default=0)
+    inserted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    instrument: Mapped[InstrumentModel] = relationship(back_populates="bars")

@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
+from app.db.session import get_db_session
+from app.market_data.repository import MarketDataRepository
 from app.market_data.schemas import MarketBar, MarketBarsResponse
 
 router = APIRouter(prefix="/api/market-data", tags=["market-data"])
@@ -33,10 +36,13 @@ def _sample_bars(symbol: str, timeframe: str) -> list[MarketBar]:
 def get_market_bars(
     symbol: str = Query(default="SPY", min_length=1, max_length=32),
     timeframe: str = Query(default="1m", pattern="^(1m|5m|1d)$"),
+    session: Session = Depends(get_db_session),
 ) -> MarketBarsResponse:
     normalized_symbol = symbol.upper()
+    repository = MarketDataRepository(session)
+    persisted_bars = repository.list_bars(symbol=normalized_symbol, timeframe=timeframe)
     return MarketBarsResponse(
         symbol=normalized_symbol,
         timeframe=timeframe,
-        bars=_sample_bars(normalized_symbol, timeframe),
+        bars=persisted_bars or _sample_bars(normalized_symbol, timeframe),
     )
