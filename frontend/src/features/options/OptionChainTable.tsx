@@ -24,11 +24,38 @@ type OptionChainTableProps = {
 };
 
 type SelectedAction = "inspect" | "buy" | "sell";
+type ColumnPreset = "essential" | "greeks" | "liquidity";
+type OptionColumn = "delta" | "iv" | "oi" | "vol" | "last" | "bid" | "ask";
 
 const DEFAULT_UNDERLYING_PRICE: Record<string, number> = {
   SPY: 550,
   QQQ: 480,
   SPX: 5500,
+};
+
+const COLUMN_LABELS: Record<OptionColumn, string> = {
+  delta: "Delta",
+  iv: "IV",
+  oi: "OI",
+  vol: "Vol",
+  last: "Last",
+  bid: "Bid",
+  ask: "Ask",
+};
+
+const COLUMN_PRESETS: Record<ColumnPreset, { call: OptionColumn[]; put: OptionColumn[] }> = {
+  essential: {
+    call: ["last", "bid", "ask"],
+    put: ["bid", "ask", "last"],
+  },
+  greeks: {
+    call: ["delta", "iv", "last", "bid", "ask"],
+    put: ["bid", "ask", "last", "iv", "delta"],
+  },
+  liquidity: {
+    call: ["oi", "vol", "last", "bid", "ask"],
+    put: ["bid", "ask", "last", "vol", "oi"],
+  },
 };
 
 export function OptionChainTable({
@@ -46,7 +73,9 @@ export function OptionChainTable({
   const [moneyness, setMoneyness] = useState<MoneynessFilter>("near");
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
   const [selectedAction, setSelectedAction] = useState<SelectedAction>("inspect");
+  const [columnPreset, setColumnPreset] = useState<ColumnPreset>("essential");
   const underlyingPrice = DEFAULT_UNDERLYING_PRICE[underlying.toUpperCase()] ?? null;
+  const columns = COLUMN_PRESETS[columnPreset];
   const rows = useMemo(() => groupOptionSnapshots(snapshots, underlyingPrice), [snapshots, underlyingPrice]);
   const visibleRows = useMemo(
     () => filterRowsByMoneyness(rows, moneyness, underlyingPrice),
@@ -132,6 +161,22 @@ export function OptionChainTable({
             </button>
           ))}
         </div>
+        <div className="segmented-control column-preset-control" aria-label="列预设">
+          {[
+            ["essential", "核心"],
+            ["greeks", "Greeks"],
+            ["liquidity", "流动性"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={columnPreset === value ? "active" : ""}
+              onClick={() => setColumnPreset(value as ColumnPreset)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="expiry-strip" aria-label="到期日">
@@ -160,30 +205,22 @@ export function OptionChainTable({
             <table className="option-chain-table">
               <thead>
                 <tr>
-                  <th colSpan={7} className="side-title call-side">
+                  <th colSpan={columns.call.length} className="side-title call-side">
                     Call
                   </th>
                   <th className="strike-col">Strike</th>
-                  <th colSpan={7} className="side-title put-side">
+                  <th colSpan={columns.put.length} className="side-title put-side">
                     Put
                   </th>
                 </tr>
                 <tr>
-                  <th>Delta</th>
-                  <th>IV</th>
-                  <th>OI</th>
-                  <th>Vol</th>
-                  <th>Last</th>
-                  <th>Bid</th>
-                  <th>Ask</th>
+                  {columns.call.map((column) => (
+                    <th key={`call-${column}`}>{COLUMN_LABELS[column]}</th>
+                  ))}
                   <th className="strike-col">行权价</th>
-                  <th>Bid</th>
-                  <th>Ask</th>
-                  <th>Last</th>
-                  <th>Vol</th>
-                  <th>OI</th>
-                  <th>IV</th>
-                  <th>Delta</th>
+                  {columns.put.map((column) => (
+                    <th key={`put-${column}`}>{COLUMN_LABELS[column]}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -191,11 +228,14 @@ export function OptionChainTable({
                   <Fragment key={row.strike}>
                     {row.isAtTheMoney && underlyingPrice !== null ? (
                       <tr className="current-price-marker">
-                        <td colSpan={15}>Current price near {formatOptionNumber(underlyingPrice)}</td>
+                        <td colSpan={columns.call.length + columns.put.length + 1}>
+                          Current price near {formatOptionNumber(underlyingPrice)}
+                        </td>
                       </tr>
                     ) : null}
                     <OptionRow
                       row={row}
+                      columns={columns}
                       selectedSymbol={selectedSymbol}
                       underlyingPrice={underlyingPrice}
                       onSelect={handleSelectContract}
@@ -251,11 +291,13 @@ export function OptionChainTable({
 
 function OptionRow({
   row,
+  columns,
   selectedSymbol,
   underlyingPrice,
   onSelect,
 }: {
   row: OptionChainRow;
+  columns: { call: OptionColumn[]; put: OptionColumn[] };
   selectedSymbol: string;
   underlyingPrice: number | null;
   onSelect: (symbol: string, action: SelectedAction) => void;
@@ -265,37 +307,59 @@ function OptionRow({
 
   return (
     <tr className={row.isAtTheMoney ? "atm-row" : ""}>
-      <OptionValue value={row.call?.delta} digits={4} selected={row.call?.option_symbol === selectedSymbol} tone={callMoneyness} />
-      <td className={callMoneyness}>{formatOptionPercent(row.call?.implied_volatility)}</td>
-      <td className={callMoneyness}>{row.call?.open_interest?.toLocaleString() ?? "-"}</td>
-      <td className={callMoneyness}>{row.call?.volume.toLocaleString() ?? "-"}</td>
-      <ActionCell snapshot={row.call} value={row.call?.last} action="inspect" tone={callMoneyness} onSelect={onSelect} />
-      <ActionCell snapshot={row.call} value={row.call?.bid} action="sell" tone={callMoneyness} onSelect={onSelect} />
-      <ActionCell snapshot={row.call} value={row.call?.ask} action="buy" tone={callMoneyness} onSelect={onSelect} />
+      {columns.call.map((column) => (
+        <OptionCell
+          key={`call-${row.strike}-${column}`}
+          column={column}
+          snapshot={row.call}
+          selectedSymbol={selectedSymbol}
+          tone={callMoneyness}
+          onSelect={onSelect}
+        />
+      ))}
       <td className="strike-col">{formatOptionNumber(row.strike)}</td>
-      <ActionCell snapshot={row.put} value={row.put?.bid} action="sell" tone={putMoneyness} onSelect={onSelect} />
-      <ActionCell snapshot={row.put} value={row.put?.ask} action="buy" tone={putMoneyness} onSelect={onSelect} />
-      <ActionCell snapshot={row.put} value={row.put?.last} action="inspect" tone={putMoneyness} onSelect={onSelect} />
-      <td className={putMoneyness}>{row.put?.volume.toLocaleString() ?? "-"}</td>
-      <td className={putMoneyness}>{row.put?.open_interest?.toLocaleString() ?? "-"}</td>
-      <td className={putMoneyness}>{formatOptionPercent(row.put?.implied_volatility)}</td>
-      <OptionValue value={row.put?.delta} digits={4} selected={row.put?.option_symbol === selectedSymbol} tone={putMoneyness} />
+      {columns.put.map((column) => (
+        <OptionCell
+          key={`put-${row.strike}-${column}`}
+          column={column}
+          snapshot={row.put}
+          selectedSymbol={selectedSymbol}
+          tone={putMoneyness}
+          onSelect={onSelect}
+        />
+      ))}
     </tr>
   );
 }
 
-function OptionValue({
-  value,
-  digits,
-  selected,
+function OptionCell({
+  column,
+  snapshot,
+  selectedSymbol,
   tone,
+  onSelect,
 }: {
-  value: number | null | undefined;
-  digits: number;
-  selected: boolean;
+  column: OptionColumn;
+  snapshot?: OptionSnapshot;
+  selectedSymbol: string;
   tone: string;
+  onSelect: (symbol: string, action: SelectedAction) => void;
 }) {
-  return <td className={`${tone} ${selected ? "selected-cell" : ""}`}>{formatOptionNumber(value, digits)}</td>;
+  if (column === "bid") {
+    return <ActionCell snapshot={snapshot} value={snapshot?.bid} action="sell" tone={tone} onSelect={onSelect} />;
+  }
+  if (column === "ask") {
+    return <ActionCell snapshot={snapshot} value={snapshot?.ask} action="buy" tone={tone} onSelect={onSelect} />;
+  }
+  if (column === "last") {
+    return <ActionCell snapshot={snapshot} value={snapshot?.last} action="inspect" tone={tone} onSelect={onSelect} />;
+  }
+
+  const selected = snapshot?.option_symbol === selectedSymbol;
+  if (column === "delta") return <td className={`${tone} ${selected ? "selected-cell" : ""}`}>{formatOptionNumber(snapshot?.delta, 4)}</td>;
+  if (column === "iv") return <td className={tone}>{formatOptionPercent(snapshot?.implied_volatility)}</td>;
+  if (column === "oi") return <td className={tone}>{snapshot?.open_interest?.toLocaleString() ?? "-"}</td>;
+  return <td className={tone}>{snapshot?.volume.toLocaleString() ?? "-"}</td>;
 }
 
 function ActionCell({

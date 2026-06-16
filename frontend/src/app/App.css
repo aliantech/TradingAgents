@@ -606,7 +606,7 @@ th {
 
 .option-toolbar {
   display: grid;
-  grid-template-columns: minmax(140px, 180px) minmax(150px, 190px) minmax(280px, 1fr);
+  grid-template-columns: minmax(140px, 180px) minmax(150px, 190px) minmax(220px, auto) minmax(230px, 1fr);
   gap: 12px;
   align-items: end;
   margin-bottom: 14px;
@@ -679,6 +679,10 @@ th {
   color: #0f172a;
   background: #ffffff;
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+}
+
+.column-preset-control {
+  justify-self: start;
 }
 
 .expiry-strip {
