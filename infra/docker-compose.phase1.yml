@@ -1,0 +1,36 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: aquanlens-us-timescaledb
+    environment:
+      POSTGRES_DB: aquanlens_us
+      POSTGRES_USER: aquser
+      POSTGRES_PASSWORD: aquantlens_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - aquanlens_us_timescale:/var/lib/postgresql/data
+      - ../backend/app/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aquser -d aquanlens_us"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aquanlens-us-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - aquanlens_us_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  aquanlens_us_timescale:
+  aquanlens_us_redis:
