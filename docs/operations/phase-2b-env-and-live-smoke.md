@@ -82,10 +82,10 @@ Expected result:
 
 Run only after `provider-readiness --provider polygon` returns `ready=true`.
 
-Use the guarded live smoke command first. It runs the readiness gate before any provider request and prints only sanitized smoke metadata.
+Use the final gate command first. It runs readiness, guarded smoke, and audit-row verification in one bounded workflow.
 
 ```bash
-python -m app.market_data.cli live-provider-smoke \
+python -m app.market_data.cli final-live-smoke-gate \
   --symbol SPY \
   --start 2026-06-17 \
   --end 2026-06-17 \
@@ -96,16 +96,24 @@ python -m app.market_data.cli live-provider-smoke \
 Expected when configuration is missing:
 
 ```json
-{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "not_ready", "rows_written": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "not_ready", "readiness_ready": false, "smoke_status": null, "rows_written": 0, "audit_rows_found": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
 ```
 
 Expected when the provider request succeeds:
 
 ```json
-{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "succeeded", "rows_written": 1, "missing": [], "error_message": null}
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "succeeded", "readiness_ready": true, "smoke_status": "succeeded", "rows_written": 1, "audit_rows_found": 1, "missing": [], "error_message": null}
 ```
 
-Confirm that the sync attempt was recorded in the audit table:
+For troubleshooting, run the component commands separately:
+
+```bash
+python -m app.market_data.cli provider-readiness --provider polygon
+python -m app.market_data.cli live-provider-smoke --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
+python -m app.market_data.cli list-sync-runs --provider polygon --sync-type daily_bars --limit 5
+```
+
+The audit listing command can also be run independently:
 
 ```bash
 python -m app.market_data.cli list-sync-runs --provider polygon --sync-type daily_bars --limit 5
@@ -114,7 +122,7 @@ python -m app.market_data.cli list-sync-runs --provider polygon --sync-type dail
 Intraday guarded smoke:
 
 ```bash
-python -m app.market_data.cli live-provider-smoke \
+python -m app.market_data.cli final-live-smoke-gate \
   --symbol SPY \
   --start 2026-06-17 \
   --end 2026-06-17 \
@@ -125,7 +133,7 @@ python -m app.market_data.cli live-provider-smoke \
 SPX uses provider symbol mapping internally:
 
 ```bash
-python -m app.market_data.cli live-provider-smoke \
+python -m app.market_data.cli final-live-smoke-gate \
   --symbol SPX \
   --start 2026-06-17 \
   --end 2026-06-17 \

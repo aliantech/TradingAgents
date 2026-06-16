@@ -8,6 +8,7 @@ from app.market_data import cli
 from app.market_data.cli import run_sync_bars, run_sync_daily_bars
 from app.market_data.repository import MarketDataRepository
 from app.market_data.sync_repository import ProviderSyncRepository
+from app.market_data.cli import LiveProviderSmokeResult
 
 
 def _session():
@@ -190,3 +191,89 @@ def test_cli_list_sync_runs_redacts_secret_like_error_messages(monkeypatch, caps
     assert exit_code == 0
     assert "secret-value" not in output
     assert "apiKey=***" in output
+
+
+def test_cli_final_live_smoke_gate_stops_when_provider_is_not_ready(monkeypatch, capsys):
+    session = _session()
+    calls = []
+
+    monkeypatch.setattr(cli, "settings", cli.settings.__class__(market_data_provider="polygon", polygon_api_key=""))
+    monkeypatch.setattr(cli, "initialize_database", lambda: None)
+    monkeypatch.setattr(cli, "SessionLocal", lambda: session)
+    monkeypatch.setattr(cli, "run_live_provider_smoke", lambda **kwargs: calls.append(kwargs))
+
+    exit_code = cli.main(
+        [
+            "final-live-smoke-gate",
+            "--provider",
+            "polygon",
+            "--symbol",
+            "SPY",
+            "--timeframe",
+            "1d",
+            "--start",
+            "2026-06-17",
+            "--end",
+            "2026-06-17",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert '"status": "not_ready"' in output
+    assert "AQUANTLENS_POLYGON_API_KEY" in output
+    assert calls == []
+
+
+def test_cli_final_live_smoke_gate_requires_successful_smoke_and_audit_row(monkeypatch, capsys):
+    session = _session()
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+
+    monkeypatch.setattr(cli, "settings", cli.settings.__class__(market_data_provider="polygon", polygon_api_key="secret-value"))
+    monkeypatch.setattr(cli, "initialize_database", lambda: None)
+    monkeypatch.setattr(cli, "SessionLocal", lambda: session)
+
+    def fake_live_smoke(**kwargs):
+        ProviderSyncRepository(session).record_run(
+            provider="polygon",
+            sync_type="daily_bars",
+            status="succeeded",
+            started_at=started_at,
+            finished_at=started_at + timedelta(seconds=2),
+            rows_written=1,
+        )
+        return LiveProviderSmokeResult(
+            provider="polygon",
+            symbol="SPY",
+            timeframe="1d",
+            start="2026-06-17",
+            end="2026-06-17",
+            status="succeeded",
+            rows_written=1,
+            missing=[],
+        )
+
+    monkeypatch.setattr(cli, "run_live_provider_smoke", fake_live_smoke)
+
+    exit_code = cli.main(
+        [
+            "final-live-smoke-gate",
+            "--provider",
+            "polygon",
+            "--symbol",
+            "SPY",
+            "--timeframe",
+            "1d",
+            "--start",
+            "2026-06-17",
+            "--end",
+            "2026-06-17",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert '"status": "succeeded"' in output
+    assert '"readiness_ready": true' in output
+    assert '"audit_rows_found": 1' in output
+    assert "secret-value" not in output

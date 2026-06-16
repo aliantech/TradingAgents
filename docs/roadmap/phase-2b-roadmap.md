@@ -230,6 +230,23 @@ python -m app.market_data.cli list-sync-runs --provider polygon --sync-type dail
 - Secret-like text in audit `error_message` output is redacted at the CLI layer.
 - Updated the Phase 2B completion audit and live smoke SOP so final Polygon smoke verification can confirm an audit row without direct database inspection.
 
+## Completed in Eighteenth Slice
+
+- Added one-command final live smoke gate for Phase 2B completion verification.
+- Added CLI command:
+
+```bash
+python -m app.market_data.cli final-live-smoke-gate --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
+```
+
+- The command runs:
+  - provider readiness;
+  - guarded live-provider smoke;
+  - provider sync audit-row verification.
+- It exits nonzero unless readiness is ready, smoke succeeds, and at least one matching audit row is found.
+- Output is a sanitized single gate result containing `readiness_ready`, `smoke_status`, `rows_written`, and `audit_rows_found`.
+- Updated the live smoke SOP and completion audit to use this command as the default final gate.
+
 ## Verification
 
 Ubuntu backend:
@@ -244,7 +261,21 @@ pytest -q
 Latest result:
 
 ```text
-67 passed
+69 passed
+```
+
+Final live smoke gate targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_market_data_cli.py::test_cli_final_live_smoke_gate_stops_when_provider_is_not_ready tests/test_market_data_cli.py::test_cli_final_live_smoke_gate_requires_successful_smoke_and_audit_row -q
+```
+
+Latest result:
+
+```text
+2 passed
 ```
 
 CLI audit listing targeted:

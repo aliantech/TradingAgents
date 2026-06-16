@@ -28,6 +28,7 @@ The code, scheduler, health, audit, cache-publisher, API, frontend visibility, a
 | Live provider readiness can be checked safely. | `provider-readiness` CLI/API and tests; output contains no secret values. | Complete |
 | Guarded live-provider smoke entrypoint exists. | `live-provider-smoke` CLI and tests; not-ready path does not call provider sync. | Complete |
 | CLI can inspect provider sync audit rows after live smoke. | `list-sync-runs` CLI filters by provider and sync type, returning sanitized audit fields with secret-like error text redacted. | Complete |
+| Final live smoke gate can run readiness, smoke, and audit-row verification together. | `final-live-smoke-gate` CLI returns one sanitized gate result and exits nonzero unless all checks pass. | Complete |
 | Real Polygon live smoke succeeds with user-provided runtime env vars. | Pending command below must return `status=succeeded` and nonzero `rows_written` or a provider-valid empty result for the selected market date. | Pending |
 
 ## Current Runtime Gate Evidence
@@ -38,18 +39,17 @@ Latest Ubuntu check without reading `.env`:
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
 python -m app.market_data.cli provider-readiness --provider polygon
-python -m app.market_data.cli live-provider-smoke --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
-python -m app.market_data.cli list-sync-runs --provider polygon --sync-type daily_bars --limit 5
+python -m app.market_data.cli final-live-smoke-gate --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
 ```
 
 Latest result:
 
 ```json
 {"provider": "polygon", "ready": false, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "message": "Polygon provider is missing required runtime configuration."}
-{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "not_ready", "rows_written": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
+{"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "not_ready", "readiness_ready": false, "smoke_status": null, "rows_written": 0, "audit_rows_found": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
 ```
 
-This proves the guarded command refuses to run live provider sync until runtime configuration is present. It does not prove real Polygon connectivity.
+This proves the final gate refuses to run live provider sync until runtime configuration is present. It does not prove real Polygon connectivity.
 
 ## Final Live Smoke Gate
 
@@ -58,16 +58,16 @@ After the user provides runtime env vars in the shell/session, run:
 ```bash
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
-python -m app.market_data.cli provider-readiness --provider polygon
-python -m app.market_data.cli live-provider-smoke --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
+python -m app.market_data.cli final-live-smoke-gate --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
 ```
 
 Acceptance:
 
-- `provider-readiness` returns `ready=true`.
-- `live-provider-smoke` returns `status=succeeded`.
+- `final-live-smoke-gate` returns `readiness_ready=true`.
+- `final-live-smoke-gate` returns `smoke_status=succeeded`.
+- `final-live-smoke-gate` returns `status=succeeded`.
 - Output contains no API key, token, credential value, `.env` content, account identifier, or browser/session data.
-- `list-sync-runs` returns a recent `polygon` + `daily_bars` audit row for the provider sync attempt, with any secret-like error text redacted.
+- `final-live-smoke-gate` returns `audit_rows_found >= 1`.
 - The command is run on a minimal symbol/date range first.
 
 ## Safety Boundary

@@ -34,10 +34,46 @@ class LiveProviderSmokeResult:
     error_message: str | None = None
 
 
+@dataclass(frozen=True)
+class FinalLiveSmokeGateResult:
+    provider: str
+    symbol: str
+    timeframe: str
+    start: str
+    end: str
+    status: str
+    readiness_ready: bool
+    smoke_status: str | None
+    rows_written: int
+    audit_rows_found: int
+    missing: list[str]
+    error_message: str | None = None
+
+
 def sanitize_cli_text(value: str | None) -> str | None:
     if value is None:
         return None
     return SECRET_LIKE_PATTERN.sub(lambda match: f"{match.group(1)}=***", value)
+
+
+def sync_type_for_timeframe(timeframe: str) -> str:
+    return "daily_bars" if timeframe == "1d" else f"bars_{timeframe}"
+
+
+def sync_runs_payload(runs) -> list[dict]:
+    return [
+        {
+            "id": str(run.id),
+            "provider": run.provider,
+            "sync_type": run.sync_type,
+            "status": run.status,
+            "started_at": run.started_at.isoformat(),
+            "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+            "rows_written": run.rows_written,
+            "error_message": sanitize_cli_text(run.error_message),
+        }
+        for run in runs
+    ]
 
 
 def run_sync_bars(
@@ -132,6 +168,66 @@ def run_live_provider_smoke(
     )
 
 
+def run_final_live_smoke_gate(
+    *,
+    session: Session,
+    provider_name: str,
+    symbol: str,
+    timeframe: str,
+    start: date,
+    end: date,
+) -> FinalLiveSmokeGateResult:
+    normalized_symbol = symbol.upper()
+    readiness = check_market_data_provider_readiness(settings, provider=provider_name)
+    if not readiness.ready:
+        return FinalLiveSmokeGateResult(
+            provider=readiness.provider,
+            symbol=normalized_symbol,
+            timeframe=timeframe,
+            start=start.isoformat(),
+            end=end.isoformat(),
+            status="not_ready",
+            readiness_ready=False,
+            smoke_status=None,
+            rows_written=0,
+            audit_rows_found=0,
+            missing=readiness.missing,
+            error_message=readiness.message,
+        )
+
+    smoke = run_live_provider_smoke(
+        session=session,
+        provider_name=readiness.provider,
+        symbol=normalized_symbol,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+    )
+    audit_rows = ProviderSyncRepository(session).list_runs(
+        limit=5,
+        provider=readiness.provider,
+        sync_type=sync_type_for_timeframe(timeframe),
+    )
+    audit_rows_found = len(audit_rows)
+    status = "succeeded" if smoke.status == "succeeded" and audit_rows_found > 0 else "audit_missing"
+    if smoke.status != "succeeded":
+        status = smoke.status
+    return FinalLiveSmokeGateResult(
+        provider=readiness.provider,
+        symbol=normalized_symbol,
+        timeframe=timeframe,
+        start=start.isoformat(),
+        end=end.isoformat(),
+        status=status,
+        readiness_ready=True,
+        smoke_status=smoke.status,
+        rows_written=smoke.rows_written,
+        audit_rows_found=audit_rows_found,
+        missing=smoke.missing,
+        error_message=sanitize_cli_text(smoke.error_message),
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="aquantlens-market-data")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -163,6 +259,12 @@ def main(argv: list[str] | None = None) -> int:
     list_runs_parser.add_argument("--provider", default=None)
     list_runs_parser.add_argument("--sync-type", default=None)
     list_runs_parser.add_argument("--limit", default=10, type=int)
+    final_gate_parser = subparsers.add_parser("final-live-smoke-gate")
+    final_gate_parser.add_argument("--provider", default=settings.market_data_provider)
+    final_gate_parser.add_argument("--symbol", required=True)
+    final_gate_parser.add_argument("--timeframe", default="1d", choices=["1m", "5m", "1d"])
+    final_gate_parser.add_argument("--start", required=True, type=date.fromisoformat)
+    final_gate_parser.add_argument("--end", required=True, type=date.fromisoformat)
     args = parser.parse_args(argv)
 
     if args.command == "sync-daily-bars":
@@ -245,21 +347,25 @@ def main(argv: list[str] | None = None) -> int:
             )
         finally:
             session.close()
-        payload = [
-            {
-                "id": str(run.id),
-                "provider": run.provider,
-                "sync_type": run.sync_type,
-                "status": run.status,
-                "started_at": run.started_at.isoformat(),
-                "finished_at": run.finished_at.isoformat() if run.finished_at else None,
-                "rows_written": run.rows_written,
-                "error_message": sanitize_cli_text(run.error_message),
-            }
-            for run in runs
-        ]
+        payload = sync_runs_payload(runs)
         print(json.dumps(payload, ensure_ascii=False))
         return 0
+    if args.command == "final-live-smoke-gate":
+        initialize_database()
+        session = SessionLocal()
+        try:
+            result = run_final_live_smoke_gate(
+                session=session,
+                provider_name=args.provider,
+                symbol=args.symbol,
+                timeframe=args.timeframe,
+                start=args.start,
+                end=args.end,
+            )
+        finally:
+            session.close()
+        print(json.dumps(result.__dict__, ensure_ascii=False))
+        return 0 if result.status == "succeeded" else 1
     return 1
 
 
