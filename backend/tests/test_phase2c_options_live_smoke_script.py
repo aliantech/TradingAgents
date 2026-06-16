@@ -8,8 +8,11 @@ SCRIPT = ROOT / "scripts" / "phase2c_options_live_smoke.sh"
 def test_phase2c_options_live_smoke_script_checks_spy_and_spx_by_default():
     content = SCRIPT.read_text()
 
-    assert "python -m app.options.live_smoke" in content
+    assert "app.options.live_smoke" in content
+    assert "python3" in content
     assert "SPY,SPX" in content
+    assert "--timeout" in content
+    assert "--retries" in content
     assert "reference/options/contracts" not in content
     assert "snapshot/options" not in content
 

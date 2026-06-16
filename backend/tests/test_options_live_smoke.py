@@ -1,4 +1,5 @@
 import json
+from socket import timeout as SocketTimeout
 from urllib.parse import parse_qs, urlparse
 
 from app.options.live_smoke import smoke_options_entitlement
@@ -62,3 +63,28 @@ def test_options_entitlement_smoke_is_guarded_when_api_key_missing():
     assert result["readiness_ready"] is False
     assert result["missing"] == ["AQUANTLENS_POLYGON_API_KEY"]
     assert result["checks"] == []
+
+
+def test_options_entitlement_smoke_retries_transient_timeout():
+    attempts = 0
+
+    def opener(url: str, timeout: int = 45):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise SocketTimeout("The read operation timed out")
+        return FakeResponse({"results": [{"ticker": "O:SPX240621C05000000"}]})
+
+    result = smoke_options_entitlement(
+        underlyings=["SPX"],
+        api_key="test-key",
+        base_url="https://api.massive.test",
+        opener=opener,
+        timeout=45,
+        retries=1,
+    )
+
+    assert result["status"] == "succeeded"
+    assert result["checks"][0]["contracts_status"] == "succeeded"
+    assert result["checks"][0]["chain_snapshot_status"] == "succeeded"
+    assert attempts == 3

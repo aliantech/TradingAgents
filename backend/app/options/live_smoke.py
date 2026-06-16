@@ -11,11 +11,19 @@ from app.core.config import settings
 UrlOpener = Callable[..., Any]
 
 
-def _fetch_json(url: str, *, opener: UrlOpener, timeout: int) -> dict[str, Any]:
-    with opener(url, timeout=timeout) as response:
-        payload = response.read().decode()
-    decoded = json.loads(payload)
-    return decoded if isinstance(decoded, dict) else {}
+def _fetch_json(url: str, *, opener: UrlOpener, timeout: int, retries: int) -> dict[str, Any]:
+    last_error: Exception | None = None
+    for _attempt in range(retries + 1):
+        try:
+            with opener(url, timeout=timeout) as response:
+                payload = response.read().decode()
+            decoded = json.loads(payload)
+            return decoded if isinstance(decoded, dict) else {}
+        except TimeoutError as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    return {}
 
 
 def _endpoint_status(payload: dict[str, Any]) -> tuple[str, int]:
@@ -43,7 +51,8 @@ def smoke_options_entitlement(
     api_key: str | None,
     base_url: str,
     opener: UrlOpener = urlopen,
-    timeout: int = 20,
+    timeout: int = 45,
+    retries: int = 1,
 ) -> dict[str, Any]:
     normalized_underlyings = [symbol.strip().upper() for symbol in underlyings if symbol.strip()]
     missing = []
@@ -79,7 +88,12 @@ def smoke_options_entitlement(
                 "/v3/reference/options/contracts",
                 {"underlying_ticker": underlying, "limit": 1, "apiKey": api_key or ""},
             )
-            contracts_payload = _fetch_json(contracts_url, opener=opener, timeout=timeout)
+            contracts_payload = _fetch_json(
+                contracts_url,
+                opener=opener,
+                timeout=timeout,
+                retries=retries,
+            )
             contracts_status, contracts_count = _endpoint_status(contracts_payload)
             check["contracts_status"] = contracts_status
             check["contracts_count"] = contracts_count
@@ -89,7 +103,12 @@ def smoke_options_entitlement(
                 f"/v3/snapshot/options/{underlying}",
                 {"limit": 1, "apiKey": api_key or ""},
             )
-            snapshot_payload = _fetch_json(snapshot_url, opener=opener, timeout=timeout)
+            snapshot_payload = _fetch_json(
+                snapshot_url,
+                opener=opener,
+                timeout=timeout,
+                retries=retries,
+            )
             snapshot_status, snapshot_count = _endpoint_status(snapshot_payload)
             check["chain_snapshot_status"] = snapshot_status
             check["chain_snapshot_count"] = snapshot_count
@@ -124,7 +143,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run a guarded options entitlement smoke check.")
     parser.add_argument("--underlyings", default="SPY,SPX")
     parser.add_argument("--base-url", default=settings.polygon_base_url)
-    parser.add_argument("--timeout", type=int, default=20)
+    parser.add_argument("--timeout", type=int, default=45)
+    parser.add_argument("--retries", type=int, default=1)
     args = parser.parse_args(argv)
 
     result = smoke_options_entitlement(
@@ -132,6 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         api_key=settings.polygon_api_key,
         base_url=args.base_url,
         timeout=args.timeout,
+        retries=args.retries,
     )
     print(json.dumps(result, ensure_ascii=False))
     return 0

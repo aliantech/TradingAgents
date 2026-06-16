@@ -32,6 +32,7 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
   - checks contracts endpoint for each underlying;
   - checks option-chain snapshot endpoint for each underlying;
   - defaults to `SPY,SPX` so ETF options and index options are tested together;
+  - supports configurable timeout and retry for slow option-chain responses;
   - returns JSON with `succeeded`, `partial`, `failed`, or `not_ready`.
 - Added `scripts/phase2c_options_live_smoke.sh`.
 - The shell script does not read `.env`, print environment variables, or expose the API key.
@@ -51,7 +52,8 @@ Results:
 
 - Targeted options repository tests: `2 passed`.
 - Targeted options live smoke tests: `4 passed`.
-- Full backend suite: `79 passed`.
+- Timeout/retry options live smoke tests: `5 passed`.
+- Full backend suite: `80 passed`.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 
 ## Live Entitlement Check
@@ -68,12 +70,28 @@ Optional custom underlyings:
 scripts/phase2c_options_live_smoke.sh SPY,QQQ,SPX
 ```
 
+For a slow index option-chain response, run SPX alone with a longer timeout:
+
+```bash
+scripts/phase2c_options_live_smoke.sh SPX 90 1
+```
+
 Interpretation:
 
 - `SPY` success verifies ETF options access.
 - `SPX` success verifies index options access.
 - `partial` means the endpoint was reachable but one side returned an empty result.
 - `failed` with HTTP 403 means the plan, ticker, or endpoint access needs entitlement review.
+- `failed` with a read timeout is inconclusive; rerun the underlying alone with a longer timeout before judging entitlement.
+
+Observed first live run:
+
+- `SPY` contracts and chain snapshot succeeded.
+- `SPX` did not return 403 or empty; the request timed out, so index-options entitlement remains inconclusive until a longer SPX-only check completes.
+
+## WebSocket Note
+
+Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes, and aggregates. WebSocket ingestion is useful for future realtime cache/events, but Phase 2C should first validate REST entitlement and persistence because REST responses are easier to audit and replay.
 
 ## Next Slice
 
