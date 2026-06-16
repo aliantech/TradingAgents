@@ -82,3 +82,16 @@ class MarketBarModel(Base):
     inserted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     instrument: Mapped[InstrumentModel] = relationship(back_populates="bars")
+
+
+class ProviderSyncRunModel(Base):
+    __tablename__ = "provider_sync_runs"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    provider: Mapped[str] = mapped_column(String(64), index=True)
+    sync_type: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rows_written: Mapped[int] = mapped_column(default=0)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
