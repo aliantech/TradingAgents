@@ -103,6 +103,14 @@ POST /api/market-data/sync-daily-bars
 - Added frontend provider input and sync type selector to the data-source sync panel.
 - Sync history and summary now use the same filter state.
 
+## Completed in Eighth Slice
+
+- Added frontend time-window filters for sync summary and history:
+  - started after;
+  - started before.
+- Frontend converts local datetime inputs to ISO query parameters for the existing API filters.
+- Browser smoke verifies the `开始` and `结束` controls render in the sync panel without layout breakage.
+
 ## Verification
 
 Ubuntu backend:
@@ -131,7 +139,7 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 167ms
+built in 169ms
 ```
 
 Browser smoke:
@@ -144,6 +152,7 @@ Browser smoke:
 - Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `sample`, `daily_bars`, and `2 rows`.
 - Confirmed filtered API query `provider=sample&sync_type=daily_bars` returned one successful run.
 - Confirmed filtered API query `provider=polygon` returned zero runs in the sample smoke database.
+- Confirmed browser snapshot includes `Provider`, `类型`, `开始`, and `结束` controls.
 
 ## Next Slice
 
