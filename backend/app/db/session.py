@@ -10,13 +10,19 @@ from app.db import models  # noqa: F401
 connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 engine = create_engine(settings.database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+_initialized = False
 
 
 def initialize_database() -> None:
+    global _initialized
+    if _initialized:
+        return
     Base.metadata.create_all(bind=engine)
+    _initialized = True
 
 
 def get_db_session() -> Generator[Session, None, None]:
+    initialize_database()
     session = SessionLocal()
     try:
         yield session

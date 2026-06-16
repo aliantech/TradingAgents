@@ -62,6 +62,8 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+backend/aquantlens_us.db
+backend/*.db-journal
 
 # Flask stuff:
 instance/
