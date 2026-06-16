@@ -26,19 +26,54 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
   - chain snapshot listing by underlying and expiry.
 - Added repository tests covering idempotent contract writes and idempotent snapshot updates.
 
+## Completed in Second Slice
+
+- Added a guarded options entitlement live smoke module:
+  - checks contracts endpoint for each underlying;
+  - checks option-chain snapshot endpoint for each underlying;
+  - defaults to `SPY,SPX` so ETF options and index options are tested together;
+  - returns JSON with `succeeded`, `partial`, `failed`, or `not_ready`.
+- Added `scripts/phase2c_options_live_smoke.sh`.
+- The shell script does not read `.env`, print environment variables, or expose the API key.
+- Added tests for the smoke module and shell-script safety boundary.
+
 ## Verification
 
 Ubuntu backend verification:
 
 ```bash
 pytest tests/test_options_repository.py -q
+pytest tests/test_options_live_smoke.py tests/test_phase2c_options_live_smoke_script.py -q
 pytest -q
 ```
 
 Results:
 
 - Targeted options repository tests: `2 passed`.
-- Full backend suite: `75 passed`.
+- Targeted options live smoke tests: `4 passed`.
+- Full backend suite: `79 passed`.
+- Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
+
+## Live Entitlement Check
+
+Run this in a runtime shell/session where `AQUANTLENS_POLYGON_API_KEY` is already provided:
+
+```bash
+scripts/phase2c_options_live_smoke.sh
+```
+
+Optional custom underlyings:
+
+```bash
+scripts/phase2c_options_live_smoke.sh SPY,QQQ,SPX
+```
+
+Interpretation:
+
+- `SPY` success verifies ETF options access.
+- `SPX` success verifies index options access.
+- `partial` means the endpoint was reachable but one side returned an empty result.
+- `failed` with HTTP 403 means the plan, ticker, or endpoint access needs entitlement review.
 
 ## Next Slice
 
