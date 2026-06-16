@@ -50,12 +50,25 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
   - index options: `SPX`, `SPXW` direction;
   - selected liquid U.S. single-name options.
 
+## Completed in Fourth Slice
+
+- Connected `GET /api/options/chain` to `OptionRepository`.
+- Added deterministic sample option-chain seeding for empty chains:
+  - `SPY`;
+  - `QQQ`;
+  - `SPX`.
+- API now returns persisted provider data when available and only seeds sample data when the requested chain is empty.
+- Added API tests for:
+  - persisted snapshot response;
+  - deterministic SPX sample fallback.
+
 ## Verification
 
 Ubuntu backend verification:
 
 ```bash
 pytest tests/test_options_repository.py -q
+pytest tests/test_options_api.py -q
 pytest tests/test_options_live_smoke.py tests/test_phase2c_options_live_smoke_script.py -q
 pytest -q
 ```
@@ -63,9 +76,10 @@ pytest -q
 Results:
 
 - Targeted options repository tests: `2 passed`.
+- Targeted options API tests: `2 passed`.
 - Targeted options live smoke tests: `4 passed`.
 - Timeout/retry options live smoke tests: `5 passed`.
-- Full backend suite: `80 passed`.
+- Full backend suite: `82 passed`.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 
 ## Live Entitlement Check
@@ -122,8 +136,5 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 ## Next Slice
 
-- Connect the existing options API layer to `OptionRepository`.
-- Add deterministic sample option-chain seed data for SPY and SPX-style contracts.
-- Add API tests for contract and chain snapshot responses.
 - Add frontend option-chain panel skeleton under `frontend`.
 - Keep provider-specific Polygon/Massive option-chain ingestion as the following slice after the API/UI boundary is stable.
