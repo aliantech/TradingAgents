@@ -117,6 +117,19 @@ POST /api/market-data/sync-daily-bars
 - FastAPI/Starlette `TestClient` now uses Starlette's preferred `httpx2` path.
 - Removed the recurring `StarletteDeprecationWarning` from backend test output.
 
+## Completed in Tenth Slice
+
+- Added grouped provider sync summary metrics by `provider` and `sync_type`.
+- Added `GET /api/market-data/sync-summary/groups`.
+- Added frontend grouped health rows to the data-source sync panel:
+  - provider;
+  - sync type;
+  - succeeded runs over total runs;
+  - failed runs;
+  - rows written;
+  - average duration in milliseconds.
+- Kept grouped metrics on the same provider, sync type, and time-window filters as the summary cards and history list.
+
 ## Verification
 
 Ubuntu backend:
@@ -131,7 +144,7 @@ pytest -q
 Latest result:
 
 ```text
-45 passed
+47 passed
 ```
 
 Ubuntu frontend:
@@ -145,17 +158,18 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 173ms
+built in 141ms
 ```
 
 Browser smoke:
 
-- Opened `http://192.168.100.123:5180/`.
+- Opened `http://192.168.100.123:5184/`.
 - Confirmed the page title is `AQuantLens`.
 - Clicked `同步 SPY`.
 - Confirmed sync history API returned `sample`, `daily_bars`, `succeeded`, `2 rows`.
 - Confirmed sync summary API returned `total_runs=1`, `succeeded=1`, `failed=0`, `rows_written=2`.
-- Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `sample`, `daily_bars`, and `2 rows`.
+- Confirmed sync grouped summary API returned one group with `provider=sample`, `sync_type=daily_bars`, `total_runs=1`, `succeeded=1`, `failed=0`, and `rows_written=2`.
+- Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `sample`, `daily_bars`, `1/1 成功`, `0 失败`, and `2 rows`.
 - Confirmed filtered API query `provider=sample&sync_type=daily_bars` returned one successful run.
 - Confirmed filtered API query `provider=polygon` returned zero runs in the sample smoke database.
 - Confirmed browser snapshot includes `Provider`, `类型`, `开始`, and `结束` controls.
@@ -163,5 +177,4 @@ Browser smoke:
 ## Next Slice
 
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
-- Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
+- Add periodic schedule state visibility and alert thresholds for stale or failing provider syncs.
