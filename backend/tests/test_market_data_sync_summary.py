@@ -83,6 +83,35 @@ def test_provider_sync_repository_filters_summary_and_runs():
     assert runs[0].sync_type == "bars_1m"
 
 
+def test_provider_sync_repository_groups_summary_by_provider_and_type():
+    repository = ProviderSyncRepository(_session())
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+    repository.record_run(
+        provider="sample",
+        sync_type="daily_bars",
+        status="succeeded",
+        started_at=started_at,
+        finished_at=started_at + timedelta(seconds=1),
+        rows_written=2,
+    )
+    repository.record_run(
+        provider="polygon",
+        sync_type="bars_1m",
+        status="failed",
+        started_at=started_at + timedelta(minutes=1),
+        finished_at=started_at + timedelta(minutes=1, seconds=3),
+        rows_written=0,
+    )
+
+    groups = repository.summarize_groups()
+
+    assert {(group.provider, group.sync_type) for group in groups} == {("sample", "daily_bars"), ("polygon", "bars_1m")}
+    sample = next(group for group in groups if group.provider == "sample")
+    assert sample.total_runs == 1
+    assert sample.succeeded == 1
+    assert sample.rows_written == 2
+
+
 def test_sync_summary_api_returns_health_metrics():
     initialize_database()
     session = SessionLocal()
@@ -125,3 +154,26 @@ def test_sync_summary_api_accepts_filters():
     payload = response.json()
     assert payload["total_runs"] >= 1
     assert payload["succeeded"] >= 1
+
+
+def test_sync_summary_groups_api_returns_grouped_metrics():
+    initialize_database()
+    session = SessionLocal()
+    try:
+        started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+        ProviderSyncRepository(session).record_run(
+            provider="sample",
+            sync_type="daily_bars",
+            status="succeeded",
+            started_at=started_at,
+            finished_at=started_at + timedelta(seconds=1),
+            rows_written=2,
+        )
+    finally:
+        session.close()
+
+    response = TestClient(app).get("/api/market-data/sync-summary/groups?provider=sample")
+
+    assert response.status_code == 200
+    groups = response.json()["groups"]
+    assert any(group["provider"] == "sample" and group["sync_type"] == "daily_bars" for group in groups)

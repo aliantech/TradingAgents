@@ -14,6 +14,8 @@ from app.market_data.schemas import (
     MarketBarsResponse,
     ProviderSyncRunItem,
     ProviderSyncRunsResponse,
+    ProviderSyncSummaryGroupItem,
+    ProviderSyncSummaryGroupsResponse,
     ProviderSyncSummaryResponse,
 )
 from app.market_data.sync_repository import ProviderSyncRepository
@@ -114,6 +116,38 @@ def get_sync_summary(
         latest_status=summary.latest_status,
         latest_finished_at=summary.latest_finished_at,
         average_duration_ms=summary.average_duration_ms,
+    )
+
+
+@router.get("/sync-summary/groups", response_model=ProviderSyncSummaryGroupsResponse)
+def get_sync_summary_groups(
+    provider: str | None = Query(default=None, min_length=1, max_length=64),
+    sync_type: str | None = Query(default=None, min_length=1, max_length=64),
+    started_after: datetime | None = Query(default=None),
+    started_before: datetime | None = Query(default=None),
+    session: Session = Depends(get_db_session),
+) -> ProviderSyncSummaryGroupsResponse:
+    groups = ProviderSyncRepository(session).summarize_groups(
+        provider=provider,
+        sync_type=sync_type,
+        started_after=started_after,
+        started_before=started_before,
+    )
+    return ProviderSyncSummaryGroupsResponse(
+        groups=[
+            ProviderSyncSummaryGroupItem(
+                provider=group.provider,
+                sync_type=group.sync_type,
+                total_runs=group.total_runs,
+                succeeded=group.succeeded,
+                failed=group.failed,
+                rows_written=group.rows_written,
+                latest_status=group.latest_status,
+                latest_finished_at=group.latest_finished_at,
+                average_duration_ms=group.average_duration_ms,
+            )
+            for group in groups
+        ]
     )
 
 

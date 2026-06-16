@@ -31,6 +31,19 @@ class ProviderSyncSummary:
     average_duration_ms: int
 
 
+@dataclass(frozen=True)
+class ProviderSyncSummaryGroup:
+    provider: str
+    sync_type: str
+    total_runs: int
+    succeeded: int
+    failed: int
+    rows_written: int
+    latest_status: str | None
+    latest_finished_at: datetime | None
+    average_duration_ms: int
+
+
 class ProviderSyncRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -112,6 +125,47 @@ class ProviderSyncRepository:
             latest_finished_at=latest.finished_at if latest else None,
             average_duration_ms=int(sum(durations_ms) / len(durations_ms)) if durations_ms else 0,
         )
+
+    def summarize_groups(
+        self,
+        *,
+        provider: str | None = None,
+        sync_type: str | None = None,
+        started_after: datetime | None = None,
+        started_before: datetime | None = None,
+    ) -> list[ProviderSyncSummaryGroup]:
+        runs = self.list_runs(
+            limit=1000,
+            provider=provider,
+            sync_type=sync_type,
+            started_after=started_after,
+            started_before=started_before,
+        )
+        grouped: dict[tuple[str, str], list[ProviderSyncRun]] = {}
+        for run in runs:
+            grouped.setdefault((run.provider, run.sync_type), []).append(run)
+        groups: list[ProviderSyncSummaryGroup] = []
+        for (group_provider, group_sync_type), group_runs in grouped.items():
+            durations_ms = [
+                int((run.finished_at - run.started_at).total_seconds() * 1000)
+                for run in group_runs
+                if run.finished_at is not None
+            ]
+            latest = group_runs[0]
+            groups.append(
+                ProviderSyncSummaryGroup(
+                    provider=group_provider,
+                    sync_type=group_sync_type,
+                    total_runs=len(group_runs),
+                    succeeded=sum(1 for run in group_runs if run.status == "succeeded"),
+                    failed=sum(1 for run in group_runs if run.status == "failed"),
+                    rows_written=sum(run.rows_written for run in group_runs),
+                    latest_status=latest.status,
+                    latest_finished_at=latest.finished_at,
+                    average_duration_ms=int(sum(durations_ms) / len(durations_ms)) if durations_ms else 0,
+                )
+            )
+        return sorted(groups, key=lambda group: (group.provider, group.sync_type))
 
     def _to_schema(self, model: ProviderSyncRunModel) -> ProviderSyncRun:
         return ProviderSyncRun(

@@ -12,6 +12,7 @@ import {
   getOptionChain,
   getProviderSyncSummary,
   getReport,
+  listProviderSyncSummaryGroups,
   listProviderSyncRuns,
   listReports,
   startAnalysis,
@@ -21,6 +22,7 @@ import {
   type OptionSnapshot,
   type ProviderSyncRunItem,
   type ProviderSyncSummary,
+  type ProviderSyncSummaryGroup,
   type ReportListItem,
   type ResearchReport,
 } from "../lib/api";
@@ -38,6 +40,7 @@ export function App() {
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
+  const [syncGroups, setSyncGroups] = useState<ProviderSyncSummaryGroup[]>([]);
   const [syncProviderFilter, setSyncProviderFilter] = useState("");
   const [syncTypeFilter, setSyncTypeFilter] = useState("");
   const [syncStartedAfterFilter, setSyncStartedAfterFilter] = useState("");
@@ -116,9 +119,14 @@ export function App() {
     setSyncError(null);
     try {
       const filters = currentSyncFilters();
-      const [response, summary] = await Promise.all([listProviderSyncRuns(filters), getProviderSyncSummary(filters)]);
+      const [response, summary, groups] = await Promise.all([
+        listProviderSyncRuns(filters),
+        getProviderSyncSummary(filters),
+        listProviderSyncSummaryGroups(filters),
+      ]);
       setSyncRuns(response.runs);
       setSyncSummary(summary);
+      setSyncGroups(groups.groups);
     } catch (caught) {
       setSyncError(caught instanceof Error ? caught.message : "同步历史加载失败。");
     } finally {
@@ -219,6 +227,7 @@ export function App() {
             <DataSyncPanel
               runs={syncRuns}
               summary={syncSummary}
+              groups={syncGroups}
               loading={syncLoading}
               syncing={syncing}
               error={syncError}

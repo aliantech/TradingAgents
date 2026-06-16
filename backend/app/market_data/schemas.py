@@ -46,6 +46,15 @@ class ProviderSyncSummaryResponse(BaseModel):
     average_duration_ms: int
 
 
+class ProviderSyncSummaryGroupItem(ProviderSyncSummaryResponse):
+    provider: str
+    sync_type: str
+
+
+class ProviderSyncSummaryGroupsResponse(BaseModel):
+    groups: list[ProviderSyncSummaryGroupItem]
+
+
 class DailyBarSyncRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=32)
     start: date

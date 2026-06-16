@@ -1,8 +1,9 @@
-import type { ProviderSyncRunItem, ProviderSyncSummary } from "../../lib/api";
+import type { ProviderSyncRunItem, ProviderSyncSummary, ProviderSyncSummaryGroup } from "../../lib/api";
 
 type DataSyncPanelProps = {
   runs: ProviderSyncRunItem[];
   summary: ProviderSyncSummary | null;
+  groups: ProviderSyncSummaryGroup[];
   loading: boolean;
   syncing: boolean;
   error: string | null;
@@ -21,6 +22,7 @@ type DataSyncPanelProps = {
 export function DataSyncPanel({
   runs,
   summary,
+  groups,
   loading,
   syncing,
   error,
@@ -97,6 +99,25 @@ export function DataSyncPanel({
           <Metric label="失败" value={summary.failed.toLocaleString()} />
           <Metric label="写入" value={summary.rows_written.toLocaleString()} />
           <Metric label="平均耗时" value={`${summary.average_duration_ms} ms`} />
+        </div>
+      ) : null}
+
+      {groups.length > 0 ? (
+        <div className="sync-groups">
+          {groups.map((group) => (
+            <article key={`${group.provider}:${group.sync_type}`} className="sync-group">
+              <div>
+                <strong>{group.provider}</strong>
+                <span>{group.sync_type}</span>
+              </div>
+              <div>
+                <span>{group.succeeded}/{group.total_runs} 成功</span>
+                <span>{group.failed} 失败</span>
+                <span>{group.rows_written.toLocaleString()} rows</span>
+                <span>{group.average_duration_ms} ms</span>
+              </div>
+            </article>
+          ))}
         </div>
       ) : null}
 
