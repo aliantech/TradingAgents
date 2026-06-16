@@ -19,6 +19,7 @@ import {
   listReports,
   startAnalysis,
   syncDailyBars,
+  syncOptionChain,
   type AnalysisStatus,
   type MarketBar,
   type OptionSnapshot,
@@ -45,6 +46,7 @@ export function App() {
   const [optionUnderlying, setOptionUnderlying] = useState("SPX");
   const [optionExpiry, setOptionExpiry] = useState("2026-06-17");
   const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsSyncing, setOptionsSyncing] = useState(false);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
@@ -95,6 +97,23 @@ export function App() {
 
   async function handleRefreshOptions() {
     await loadOptionChain(optionUnderlying, optionExpiry);
+  }
+
+  async function handleSyncOptions() {
+    setOptionsSyncing(true);
+    setOptionsError(null);
+    try {
+      const response = await syncOptionChain(optionUnderlying, optionExpiry);
+      if (response.status !== "succeeded") {
+        setOptionsError(response.error_message ?? "期权链同步未完成。");
+      }
+      await loadOptionChain(optionUnderlying, optionExpiry);
+      await refreshSyncRuns();
+    } catch (caught) {
+      setOptionsError(caught instanceof Error ? caught.message : "期权链同步触发失败。");
+    } finally {
+      setOptionsSyncing(false);
+    }
   }
 
   async function refreshReports() {
@@ -254,10 +273,12 @@ export function App() {
               underlying={optionUnderlying}
               expiry={optionExpiry}
               loading={optionsLoading}
+              syncing={optionsSyncing}
               error={optionsError}
               onUnderlyingChange={setOptionUnderlying}
               onExpiryChange={setOptionExpiry}
               onRefresh={() => void handleRefreshOptions()}
+              onSync={() => void handleSyncOptions()}
             />
           </div>
 

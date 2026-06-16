@@ -257,6 +257,13 @@ svg {
   margin-bottom: 14px;
 }
 
+.option-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .option-controls label {
   display: grid;
   gap: 6px;

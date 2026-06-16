@@ -90,6 +90,16 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
   - Polygon/Massive option-chain snapshot parsing;
   - option-chain sync persistence and audit writes.
 
+## Completed in Seventh Slice
+
+- Added guarded manual option-chain sync API:
+  - `POST /api/options/sync-chain`;
+  - uses `OptionChainSyncService`;
+  - protected by `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED`.
+- Added frontend action `同步期权链` on the option-chain panel.
+- UI action refreshes the option chain and sync health/history after completion.
+- CLI remains an operations-only thin entrypoint and is not the daily product workflow.
+
 ## UI And CLI Boundary
 
 - UI is the daily product entrypoint for research workflows, option-chain inspection, and later manual data actions.
@@ -109,6 +119,7 @@ Ubuntu backend verification:
 pytest tests/test_options_repository.py -q
 pytest tests/test_options_api.py -q
 pytest tests/test_options_polygon_provider.py tests/test_options_sync.py -q
+pytest tests/test_options_sync_api.py -q
 pytest tests/test_options_live_smoke.py tests/test_phase2c_options_live_smoke_script.py -q
 pytest -q
 ```
@@ -118,6 +129,7 @@ Results:
 - Targeted options repository tests: `2 passed`.
 - Targeted options API tests: `2 passed`.
 - Targeted options ingestion tests: `2 passed`.
+- Targeted options sync API tests: `2 passed`.
 - Targeted options live smoke tests: `4 passed`.
 - Timeout/retry options live smoke tests: `5 passed`.
 - Full backend suite: `84 passed`.
@@ -178,5 +190,5 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 ## Next Slice
 
-- Add a guarded UI/API manual action for option-chain sync after the service boundary is stable.
 - Add a thin CLI command only for smoke/backfill/scheduler usage.
+- Add live guarded SPX/SPY option-chain sync smoke once the runtime shell has the API key loaded.

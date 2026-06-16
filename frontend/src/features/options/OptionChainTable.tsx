@@ -5,10 +5,12 @@ type OptionChainTableProps = {
   underlying: string;
   expiry: string;
   loading: boolean;
+  syncing: boolean;
   error: string | null;
   onUnderlyingChange: (value: string) => void;
   onExpiryChange: (value: string) => void;
   onRefresh: () => void;
+  onSync: () => void;
 };
 
 export function OptionChainTable({
@@ -16,10 +18,12 @@ export function OptionChainTable({
   underlying,
   expiry,
   loading,
+  syncing,
   error,
   onUnderlyingChange,
   onExpiryChange,
   onRefresh,
+  onSync,
 }: OptionChainTableProps) {
   const totalVolume = snapshots.reduce((sum, snapshot) => sum + snapshot.volume, 0);
   const totalOpenInterest = snapshots.reduce((sum, snapshot) => sum + (snapshot.open_interest ?? 0), 0);
@@ -32,9 +36,14 @@ export function OptionChainTable({
           <h2>期权链</h2>
           <p>SPX/SPY/QQQ 与高流动性美股期权的 IV、Greeks、成交量和 OI 视图。</p>
         </div>
-        <button type="button" onClick={onRefresh} disabled={loading}>
-          {loading ? "加载中" : "刷新"}
-        </button>
+        <div className="option-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={loading || syncing}>
+            {loading ? "加载中" : "刷新"}
+          </button>
+          <button type="button" onClick={onSync} disabled={loading || syncing}>
+            {syncing ? "同步中" : "同步期权链"}
+          </button>
+        </div>
       </div>
 
       <div className="option-controls">

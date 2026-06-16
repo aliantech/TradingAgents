@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -24,3 +24,19 @@ class OptionChainResponse(BaseModel):
     underlying_symbol: str
     expiry: str
     snapshots: list[OptionSnapshot]
+
+
+class OptionChainSyncRequest(BaseModel):
+    underlying_symbol: str = Field(min_length=1, max_length=32)
+    expiry: date
+    provider: str = Field(default="polygon", min_length=1, max_length=64)
+    limit: int = Field(default=250, ge=1, le=250)
+
+
+class OptionChainSyncResponse(BaseModel):
+    provider: str
+    underlying_symbol: str
+    expiry: str
+    status: str
+    rows_written: int
+    error_message: str | None = None

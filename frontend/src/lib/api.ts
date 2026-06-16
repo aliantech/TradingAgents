@@ -147,6 +147,15 @@ export type OptionChainResponse = {
   snapshots: OptionSnapshot[];
 };
 
+export type OptionChainSyncResponse = {
+  provider: string;
+  underlying_symbol: string;
+  expiry: string;
+  status: string;
+  rows_written: number;
+  error_message: string | null;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -254,4 +263,20 @@ export function getOptionChain(underlying: string, expiry = "2026-06-17"): Promi
   return requestJson<OptionChainResponse>(
     `/api/options/chain?underlying=${encodeURIComponent(underlying)}&expiry=${encodeURIComponent(expiry)}`,
   );
+}
+
+export function syncOptionChain(
+  underlying: string,
+  expiry: string,
+  provider = "polygon",
+): Promise<OptionChainSyncResponse> {
+  return requestJson<OptionChainSyncResponse>("/api/options/sync-chain", {
+    method: "POST",
+    body: JSON.stringify({
+      underlying_symbol: underlying,
+      expiry,
+      provider,
+      limit: 250,
+    }),
+  });
 }
