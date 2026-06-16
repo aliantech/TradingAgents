@@ -1,0 +1,117 @@
+# Phase 2B Env Setup and Live Smoke
+
+## Scope
+
+This document describes local development setup and smoke-test commands for Phase 2B market data sync.
+
+Do not write real API keys, tokens, Redis passwords, broker credentials, or account identifiers into this file.
+
+## Environment Variables
+
+Backend settings use the `AQUANTLENS_` prefix.
+
+```bash
+export AQUANTLENS_DATABASE_URL="sqlite:///./aquantlens_us.db"
+export AQUANTLENS_MARKET_DATA_PROVIDER="sample"
+export AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED="true"
+export AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED="false"
+export AQUANTLENS_REDIS_URL="redis://127.0.0.1:6379/0"
+export AQUANTLENS_REALTIME_MARKET_TTL_SECONDS="300"
+```
+
+For Polygon live smoke, set the key only in the shell/session running the backend or CLI:
+
+```bash
+export AQUANTLENS_MARKET_DATA_PROVIDER="polygon"
+export AQUANTLENS_POLYGON_API_KEY="<set-in-shell-only>"
+export AQUANTLENS_POLYGON_BASE_URL="https://api.polygon.io"
+export AQUANTLENS_PROVIDER_MAX_RETRIES="2"
+export AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS="1.0"
+```
+
+Never print the API key. Never commit `.env`.
+
+## Sample Provider Smoke
+
+```bash
+cd backend
+. .venv/bin/activate
+python -m app.market_data.cli sync-daily-bars \
+  --symbol SPY \
+  --start 2026-06-17 \
+  --end 2026-06-17 \
+  --provider sample \
+  --timeframe 5m
+```
+
+Expected result:
+
+```json
+{"status": "succeeded", "rows_written": 1, "error_message": null}
+```
+
+## Polygon Live Smoke
+
+Run only after the API key is available in the shell environment.
+
+Daily bars:
+
+```bash
+python -m app.market_data.cli sync-daily-bars \
+  --symbol SPY \
+  --start 2026-06-17 \
+  --end 2026-06-17 \
+  --provider polygon \
+  --timeframe 1d
+```
+
+Intraday bars:
+
+```bash
+python -m app.market_data.cli sync-daily-bars \
+  --symbol SPY \
+  --start 2026-06-17 \
+  --end 2026-06-17 \
+  --provider polygon \
+  --timeframe 1m
+```
+
+SPX uses provider symbol mapping internally:
+
+```bash
+python -m app.market_data.cli sync-daily-bars \
+  --symbol SPX \
+  --start 2026-06-17 \
+  --end 2026-06-17 \
+  --provider polygon \
+  --timeframe 1d
+```
+
+## Redis Publisher Smoke
+
+Run only against a local or development Redis instance.
+
+```bash
+export AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED="true"
+export AQUANTLENS_REDIS_URL="redis://127.0.0.1:6379/0"
+
+python -m app.market_data.cli sync-daily-bars \
+  --symbol SPY \
+  --start 2026-06-17 \
+  --end 2026-06-17 \
+  --provider sample \
+  --timeframe 1m
+```
+
+Expected Redis writes:
+
+- `latest:SPY`
+- `stream:market_events`
+
+## Safety Notes
+
+- Phase 2B is market-data sync only.
+- No broker order placement is implemented.
+- No real-money trading is enabled.
+- Manual sync API is controlled by `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED`.
+- Live smoke commands should be run with minimum scope symbols and short date ranges first.

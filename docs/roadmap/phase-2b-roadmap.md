@@ -65,6 +65,19 @@ POST /api/market-data/sync-daily-bars
 - Added `redis>=5.0` backend dependency for runtime publisher binding.
 - Connected `run_sync_daily_bars()` to optional realtime publishing through `MarketDataIngestionService`.
 
+## Completed in Fifth Slice
+
+- Added generic `fetch_bars(symbol, timeframe, start, end)` provider path.
+- Added Polygon intraday aggregate support:
+  - `1m` -> `1/minute`;
+  - `5m` -> `5/minute`;
+  - `1d` remains `1/day`.
+- Added intraday sync support through `MarketDataSyncService.sync_bars()`.
+- Added CLI `--timeframe` support for `1m`, `5m`, and `1d`.
+- Added manual sync API `timeframe` support.
+- Added sample provider intraday fixtures for deterministic local tests.
+- Added env setup and live smoke SOP at `docs/operations/phase-2b-env-and-live-smoke.md`.
+
 ## Verification
 
 Ubuntu backend:
@@ -79,7 +92,7 @@ pytest -q
 Latest result:
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 Ubuntu frontend:
@@ -106,7 +119,6 @@ Browser smoke:
 
 ## Next Slice
 
-- Add intraday `1m/5m` provider path after daily-bars behavior is stable.
-- Add documented env-var setup for local development without exposing secrets.
 - Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
-- Add live-provider smoke procedure that uses user-provided env vars without reading or printing secrets.
+- Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
+- Add provider sync status counters and latency metrics.
