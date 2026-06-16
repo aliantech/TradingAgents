@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.analysis.router import router as analysis_router
 from app.api.health import router as health_router
+from app.db.session import initialize_database
 from app.market_data.router import router as market_data_router
 from app.options.router import router as options_router
 from app.reports.router import router as reports_router
@@ -15,6 +16,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup() -> None:
+    initialize_database()
+
+
 app.include_router(health_router)
 app.include_router(analysis_router)
 app.include_router(reports_router)

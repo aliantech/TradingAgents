@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 
+from app.analysis.repository import AnalysisRepository
 from app.analysis.schemas import AnalysisProgressEvent, AnalysisRequest
 from app.analysis.store import AnalysisRun, analysis_store
 from app.reports.schemas import ResearchReport
@@ -49,7 +50,7 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
     )
 
 
-def start_analysis(request: AnalysisRequest) -> AnalysisRun:
+def start_analysis(request: AnalysisRequest, repository: AnalysisRepository | None = None) -> AnalysisRun:
     analysis_id = uuid4()
     report_id = uuid4()
     normalized_request = request.model_copy(update={"symbol": request.symbol.upper()})
@@ -60,4 +61,6 @@ def start_analysis(request: AnalysisRequest) -> AnalysisRun:
         progress=_build_progress(normalized_request.symbol),
     )
     run.report = _build_report(analysis_id, report_id, normalized_request)
+    if repository is not None:
+        repository.save_run(run)
     return analysis_store.save(run)
