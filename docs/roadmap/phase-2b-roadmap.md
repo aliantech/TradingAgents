@@ -31,6 +31,27 @@ python -m app.market_data.cli sync-daily-bars --symbol SPY --start 2026-06-16 --
 - Updated ingestion so persisted bars can optionally publish realtime cache/events.
 - Added manual refresh, loading state, empty state, and local error state for the frontend sync panel.
 
+## Completed in Third Slice
+
+- Added a Polygon-style provider adapter boundary:
+  - aggregate daily-bars payload parsing;
+  - API key validation without reading or exposing secrets;
+  - retry handling for rate limits and temporary provider transport failures.
+- Added provider config:
+  - `AQUANTLENS_POLYGON_API_KEY`;
+  - `AQUANTLENS_POLYGON_BASE_URL`;
+  - `AQUANTLENS_PROVIDER_MAX_RETRIES`;
+  - `AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS`.
+- Added scheduler wrapper through `run_daily_bar_sync_schedule()`.
+- Added research/development manual sync API:
+
+```text
+POST /api/market-data/sync-daily-bars
+```
+
+- Added `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED` kill switch for the manual sync API.
+- Added frontend `同步 SPY` action that triggers sample daily-bars sync, refreshes sync history, and reloads market context.
+
 ## Verification
 
 Ubuntu backend:
@@ -45,7 +66,7 @@ pytest -q
 Latest result:
 
 ```text
-23 passed, 1 warning
+29 passed, 1 warning
 ```
 
 Ubuntu frontend:
@@ -59,19 +80,21 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 138ms
+built in 145ms
 ```
 
 Browser smoke:
 
-- Opened `http://192.168.100.123:5179/`.
+- Opened `http://192.168.100.123:5180/`.
 - Confirmed the page title is `AQuantLens`.
-- Confirmed the rendered snapshot includes `数据源同步`, `刷新`, and `暂无同步记录`.
+- Clicked `同步 SPY`.
+- Confirmed sync history API returned `sample`, `daily_bars`, `succeeded`, `2 rows`.
+- Confirmed the rendered snapshot includes `sample`, `daily_bars`, and `2 rows`.
 
 ## Next Slice
 
-- Add a concrete adapter for the first real data source.
-- Add config validation and documented env-var setup without exposing secrets.
-- Add scheduler wrapper around the CLI sync command.
-- Add API endpoint to trigger research-only manual sync jobs in development mode.
-- Add provider-specific rate-limit and retry policy.
+- Bind runtime Redis client behind `RedisMarketDataPublisher` when Redis is configured.
+- Add provider-specific symbol mapping for SPX/SPY/QQQ and selected single-name equities.
+- Add intraday `1m/5m` provider path after daily-bars behavior is stable.
+- Add documented env-var setup for local development without exposing secrets.
+- Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
