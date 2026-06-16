@@ -84,6 +84,16 @@ Run only after `provider-readiness --provider polygon` returns `ready=true`.
 
 Use the final gate command first. It runs readiness, guarded smoke, and audit-row verification in one bounded workflow.
 
+Recommended script:
+
+```bash
+scripts/phase2b_final_live_smoke.sh
+```
+
+The script uses the current shell/session runtime env vars. It does not read `.env`.
+
+Equivalent CLI:
+
 ```bash
 python -m app.market_data.cli final-live-smoke-gate \
   --symbol SPY \

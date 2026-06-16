@@ -260,6 +260,28 @@ GET /api/market-data/provider-readiness?provider=polygon
 - The readiness check follows the provider filter when present and defaults to `polygon` for live-provider gate visibility.
 - Kept the UI display sanitized: it shows missing environment variable names, not secret values.
 
+## Completed in Twentieth Slice
+
+- Added a safe script entrypoint for the Phase 2B final live smoke gate:
+
+```bash
+scripts/phase2b_final_live_smoke.sh
+```
+
+- Script defaults:
+  - provider: `polygon`;
+  - symbol: `SPY`;
+  - timeframe: `1d`;
+  - start/end: `2026-06-17`.
+- Optional positional overrides:
+
+```bash
+scripts/phase2b_final_live_smoke.sh polygon SPY 1d 2026-06-17 2026-06-17
+```
+
+- The script does not read `.env`, does not print environment variables, and delegates to `final-live-smoke-gate`.
+- Updated the live smoke SOP and completion audit to use the script as the default final gate entrypoint.
+
 ## Verification
 
 Ubuntu backend:
@@ -274,7 +296,21 @@ pytest -q
 Latest result:
 
 ```text
-69 passed
+71 passed
+```
+
+Final live smoke script targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_phase2b_final_live_smoke_script.py -q
+```
+
+Latest result:
+
+```text
+2 passed
 ```
 
 Final live smoke gate targeted:
