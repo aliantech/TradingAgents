@@ -363,7 +363,22 @@ th {
   background: #ffffff;
 }
 
+.provider-readiness {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #cbd5e1;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: #ffffff;
+}
+
 .sync-health.ok {
+  border-left-color: #0f766e;
+}
+
+.provider-readiness.ready {
   border-left-color: #0f766e;
 }
 
@@ -372,28 +387,36 @@ th {
   border-left-color: #b45309;
 }
 
+.provider-readiness.not-ready {
+  border-left-color: #b45309;
+}
+
 .sync-health.failing {
   border-left-color: #b91c1c;
 }
 
-.sync-health div {
+.sync-health div,
+.provider-readiness div {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
 
-.sync-health span {
+.sync-health span,
+.provider-readiness span {
   color: #64748b;
   font-size: 12px;
 }
 
-.sync-health strong {
+.sync-health strong,
+.provider-readiness strong {
   color: #172026;
   font-size: 16px;
 }
 
-.sync-health p {
+.sync-health p,
+.provider-readiness p {
   margin: 0;
   color: #475569;
   font-size: 13px;

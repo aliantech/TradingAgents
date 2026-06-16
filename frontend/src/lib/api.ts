@@ -111,6 +111,13 @@ export type ProviderSyncHealth = {
   message: string;
 };
 
+export type ProviderReadiness = {
+  provider: string;
+  ready: boolean;
+  missing: string[];
+  message: string;
+};
+
 export type DailyBarSyncResponse = {
   status: string;
   rows_written: number;
@@ -224,6 +231,11 @@ export function listProviderSyncSummaryGroups(
 
 export function getProviderSyncHealth(filters: ProviderSyncFilters = {}): Promise<ProviderSyncHealth> {
   return requestJson<ProviderSyncHealth>(`/api/market-data/sync-health${providerSyncQuery(filters)}`);
+}
+
+export function getProviderReadiness(provider: string): Promise<ProviderReadiness> {
+  const params = new URLSearchParams({ provider });
+  return requestJson<ProviderReadiness>(`/api/market-data/provider-readiness?${params.toString()}`);
 }
 
 export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {

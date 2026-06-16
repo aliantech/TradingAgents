@@ -247,6 +247,19 @@ python -m app.market_data.cli final-live-smoke-gate --provider polygon --symbol 
 - Output is a sanitized single gate result containing `readiness_ready`, `smoke_status`, `rows_written`, and `audit_rows_found`.
 - Updated the live smoke SOP and completion audit to use this command as the default final gate.
 
+## Completed in Nineteenth Slice
+
+- Added frontend visibility for provider readiness in the data-source sync panel.
+- Added frontend API client support for:
+
+```text
+GET /api/market-data/provider-readiness?provider=polygon
+```
+
+- The Sync panel now shows `Provider 准备状态`, `可用` / `未就绪`, provider name, missing runtime variable names, and the readiness message.
+- The readiness check follows the provider filter when present and defaults to `polygon` for live-provider gate visibility.
+- Kept the UI display sanitized: it shows missing environment variable names, not secret values.
+
 ## Verification
 
 Ubuntu backend:
@@ -401,6 +414,41 @@ Browser smoke:
 - Confirmed filtered API query `provider=sample&sync_type=daily_bars` returned one successful run.
 - Confirmed filtered API query `provider=polygon` returned zero runs in the sample smoke database.
 - Confirmed browser snapshot includes `Provider`, `类型`, `开始`, and `结束` controls.
+
+Frontend provider readiness UI:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Latest result:
+
+```text
+51 modules transformed
+built in 162ms
+```
+
+Runtime checks:
+
+```bash
+curl -sSf http://127.0.0.1:8020/api/market-data/provider-readiness?provider=polygon
+curl -sSf http://127.0.0.1:5199/
+```
+
+Latest result:
+
+```text
+provider=polygon ready=false missing=AQUANTLENS_POLYGON_API_KEY
+frontend HTML title=AQuantLens
+```
+
+Browser/Playwright note:
+
+- Browser plugin path was attempted but timed out waiting for the in-app Browser webview to attach.
+- Codex Playwright package was available, but its local browser binary was not installed.
+- Ubuntu did not have `chromium`, `chromium-browser`, or `google-chrome` available.
+- No committed screenshot evidence was produced for this slice.
 
 ## Next Slice
 

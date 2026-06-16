@@ -1,10 +1,17 @@
-import type { ProviderSyncHealth, ProviderSyncRunItem, ProviderSyncSummary, ProviderSyncSummaryGroup } from "../../lib/api";
+import type {
+  ProviderReadiness,
+  ProviderSyncHealth,
+  ProviderSyncRunItem,
+  ProviderSyncSummary,
+  ProviderSyncSummaryGroup,
+} from "../../lib/api";
 
 type DataSyncPanelProps = {
   runs: ProviderSyncRunItem[];
   summary: ProviderSyncSummary | null;
   groups: ProviderSyncSummaryGroup[];
   health: ProviderSyncHealth | null;
+  readiness: ProviderReadiness | null;
   loading: boolean;
   syncing: boolean;
   error: string | null;
@@ -25,6 +32,7 @@ export function DataSyncPanel({
   summary,
   groups,
   health,
+  readiness,
   loading,
   syncing,
   error,
@@ -117,6 +125,20 @@ export function DataSyncPanel({
             {health.minutes_since_latest !== null ? <span>{health.minutes_since_latest} 分钟前</span> : null}
           </div>
           <p>{health.message}</p>
+        </div>
+      ) : null}
+
+      {readiness ? (
+        <div className={`provider-readiness ${readiness.ready ? "ready" : "not-ready"}`}>
+          <div>
+            <span>Provider 准备状态</span>
+            <strong>{readiness.ready ? "可用" : "未就绪"}</strong>
+          </div>
+          <div>
+            <span>{readiness.provider}</span>
+            {readiness.missing.length > 0 ? <span>缺少 {readiness.missing.join(", ")}</span> : <span>运行时配置已就绪</span>}
+          </div>
+          <p>{readiness.message}</p>
         </div>
       ) : null}
 

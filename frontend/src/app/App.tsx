@@ -10,6 +10,7 @@ import { ReportPanel } from "../features/reports/ReportPanel";
 import {
   getMarketBars,
   getOptionChain,
+  getProviderReadiness,
   getProviderSyncHealth,
   getProviderSyncSummary,
   getReport,
@@ -22,6 +23,7 @@ import {
   type MarketBar,
   type OptionSnapshot,
   type ProviderSyncRunItem,
+  type ProviderReadiness,
   type ProviderSyncHealth,
   type ProviderSyncSummary,
   type ProviderSyncSummaryGroup,
@@ -44,6 +46,7 @@ export function App() {
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
   const [syncGroups, setSyncGroups] = useState<ProviderSyncSummaryGroup[]>([]);
   const [syncHealth, setSyncHealth] = useState<ProviderSyncHealth | null>(null);
+  const [providerReadiness, setProviderReadiness] = useState<ProviderReadiness | null>(null);
   const [syncProviderFilter, setSyncProviderFilter] = useState("");
   const [syncTypeFilter, setSyncTypeFilter] = useState("");
   const [syncStartedAfterFilter, setSyncStartedAfterFilter] = useState("");
@@ -122,16 +125,19 @@ export function App() {
     setSyncError(null);
     try {
       const filters = currentSyncFilters();
-      const [response, summary, groups, health] = await Promise.all([
+      const readinessProvider = syncProviderFilter.trim() || "polygon";
+      const [response, summary, groups, health, readiness] = await Promise.all([
         listProviderSyncRuns(filters),
         getProviderSyncSummary(filters),
         listProviderSyncSummaryGroups(filters),
         getProviderSyncHealth(filters),
+        getProviderReadiness(readinessProvider),
       ]);
       setSyncRuns(response.runs);
       setSyncSummary(summary);
       setSyncGroups(groups.groups);
       setSyncHealth(health);
+      setProviderReadiness(readiness);
     } catch (caught) {
       setSyncError(caught instanceof Error ? caught.message : "同步历史加载失败。");
     } finally {
@@ -234,6 +240,7 @@ export function App() {
               summary={syncSummary}
               groups={syncGroups}
               health={syncHealth}
+              readiness={providerReadiness}
               loading={syncLoading}
               syncing={syncing}
               error={syncError}
