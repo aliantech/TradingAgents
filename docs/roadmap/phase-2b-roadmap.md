@@ -111,6 +111,12 @@ POST /api/market-data/sync-daily-bars
 - Frontend converts local datetime inputs to ISO query parameters for the existing API filters.
 - Browser smoke verifies the `开始` and `结束` controls render in the sync panel without layout breakage.
 
+## Completed in Ninth Slice
+
+- Replaced backend test extra dependency `httpx` with `httpx2>=2.4`.
+- FastAPI/Starlette `TestClient` now uses Starlette's preferred `httpx2` path.
+- Removed the recurring `StarletteDeprecationWarning` from backend test output.
+
 ## Verification
 
 Ubuntu backend:
@@ -125,7 +131,7 @@ pytest -q
 Latest result:
 
 ```text
-45 passed, 1 warning
+45 passed
 ```
 
 Ubuntu frontend:
@@ -139,7 +145,7 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 169ms
+built in 173ms
 ```
 
 Browser smoke:
@@ -156,7 +162,6 @@ Browser smoke:
 
 ## Next Slice
 
-- Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
 - Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
