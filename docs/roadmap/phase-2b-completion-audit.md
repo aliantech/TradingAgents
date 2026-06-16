@@ -27,6 +27,7 @@ The code, scheduler, health, audit, cache-publisher, API, frontend visibility, a
 | Frontend can inspect sync history, summary, grouped summary, filters, and schedule health. | Frontend build and browser smoke evidence in roadmap. | Complete |
 | Live provider readiness can be checked safely. | `provider-readiness` CLI/API and tests; output contains no secret values. | Complete |
 | Guarded live-provider smoke entrypoint exists. | `live-provider-smoke` CLI and tests; not-ready path does not call provider sync. | Complete |
+| CLI can inspect provider sync audit rows after live smoke. | `list-sync-runs` CLI filters by provider and sync type, returning sanitized audit fields with secret-like error text redacted. | Complete |
 | Real Polygon live smoke succeeds with user-provided runtime env vars. | Pending command below must return `status=succeeded` and nonzero `rows_written` or a provider-valid empty result for the selected market date. | Pending |
 
 ## Current Runtime Gate Evidence
@@ -38,6 +39,7 @@ cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
 python -m app.market_data.cli provider-readiness --provider polygon
 python -m app.market_data.cli live-provider-smoke --provider polygon --symbol SPY --timeframe 1d --start 2026-06-17 --end 2026-06-17
+python -m app.market_data.cli list-sync-runs --provider polygon --sync-type daily_bars --limit 5
 ```
 
 Latest result:
@@ -65,7 +67,7 @@ Acceptance:
 - `provider-readiness` returns `ready=true`.
 - `live-provider-smoke` returns `status=succeeded`.
 - Output contains no API key, token, credential value, `.env` content, account identifier, or browser/session data.
-- A `provider_sync_runs` row is recorded for the provider sync attempt.
+- `list-sync-runs` returns a recent `polygon` + `daily_bars` audit row for the provider sync attempt, with any secret-like error text redacted.
 - The command is run on a minimal symbol/date range first.
 
 ## Safety Boundary

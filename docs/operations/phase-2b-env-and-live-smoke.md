@@ -105,6 +105,12 @@ Expected when the provider request succeeds:
 {"provider": "polygon", "symbol": "SPY", "timeframe": "1d", "start": "2026-06-17", "end": "2026-06-17", "status": "succeeded", "rows_written": 1, "missing": [], "error_message": null}
 ```
 
+Confirm that the sync attempt was recorded in the audit table:
+
+```bash
+python -m app.market_data.cli list-sync-runs --provider polygon --sync-type daily_bars --limit 5
+```
+
 Intraday guarded smoke:
 
 ```bash

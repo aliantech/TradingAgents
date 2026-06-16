@@ -216,6 +216,20 @@ python -m app.market_data.cli live-provider-smoke --provider polygon --symbol SP
 - When readiness passes, the command runs the existing bounded `run_sync_bars()` path and prints sanitized smoke metadata.
 - The smoke output includes `provider`, `symbol`, `timeframe`, `start`, `end`, `status`, `rows_written`, `missing`, and `error_message`.
 
+## Completed in Seventeenth Slice
+
+- Added sanitized CLI sync audit listing for final live smoke verification.
+- Added CLI command:
+
+```bash
+python -m app.market_data.cli list-sync-runs --provider polygon --sync-type daily_bars --limit 5
+```
+
+- The command reads `provider_sync_runs` through `ProviderSyncRepository.list_runs()`.
+- Output includes audit fields only: `id`, `provider`, `sync_type`, `status`, `started_at`, `finished_at`, `rows_written`, and `error_message`.
+- Secret-like text in audit `error_message` output is redacted at the CLI layer.
+- Updated the Phase 2B completion audit and live smoke SOP so final Polygon smoke verification can confirm an audit row without direct database inspection.
+
 ## Verification
 
 Ubuntu backend:
@@ -230,7 +244,21 @@ pytest -q
 Latest result:
 
 ```text
-65 passed
+67 passed
+```
+
+CLI audit listing targeted:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest tests/test_market_data_cli.py::test_cli_list_sync_runs_outputs_sanitized_audit_rows -q
+```
+
+Latest result:
+
+```text
+2 passed
 ```
 
 Live provider smoke targeted:

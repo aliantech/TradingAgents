@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -131,3 +131,62 @@ def test_cli_run_scheduler_loop_supports_limited_iterations(monkeypatch, capsys)
     assert '"iteration": 1' in output
     assert '"rows_written": 2' in output
     assert len(ProviderSyncRepository(session).list_runs()) == 1
+
+
+def test_cli_list_sync_runs_outputs_sanitized_audit_rows(monkeypatch, capsys):
+    session = _session()
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+    repository = ProviderSyncRepository(session)
+    repository.record_run(
+        provider="polygon",
+        sync_type="daily_bars",
+        status="succeeded",
+        started_at=started_at,
+        finished_at=started_at + timedelta(seconds=2),
+        rows_written=1,
+    )
+    repository.record_run(
+        provider="sample",
+        sync_type="bars_1m",
+        status="failed",
+        started_at=started_at + timedelta(minutes=1),
+        finished_at=started_at + timedelta(minutes=1, seconds=3),
+        rows_written=0,
+        error_message="sample timeout",
+    )
+    monkeypatch.setattr(cli, "initialize_database", lambda: None)
+    monkeypatch.setattr(cli, "SessionLocal", lambda: session)
+
+    exit_code = cli.main(["list-sync-runs", "--provider", "polygon", "--sync-type", "daily_bars", "--limit", "5"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert '"provider": "polygon"' in output
+    assert '"sync_type": "daily_bars"' in output
+    assert '"status": "succeeded"' in output
+    assert '"rows_written": 1' in output
+    assert '"sample timeout"' not in output
+    assert "apiKey" not in output
+
+
+def test_cli_list_sync_runs_redacts_secret_like_error_messages(monkeypatch, capsys):
+    session = _session()
+    started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
+    ProviderSyncRepository(session).record_run(
+        provider="polygon",
+        sync_type="daily_bars",
+        status="failed",
+        started_at=started_at,
+        finished_at=started_at + timedelta(seconds=2),
+        rows_written=0,
+        error_message="request failed: https://api.polygon.io/v2/aggs?apiKey=secret-value&adjusted=true",
+    )
+    monkeypatch.setattr(cli, "initialize_database", lambda: None)
+    monkeypatch.setattr(cli, "SessionLocal", lambda: session)
+
+    exit_code = cli.main(["list-sync-runs", "--provider", "polygon", "--sync-type", "daily_bars"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "secret-value" not in output
+    assert "apiKey=***" in output
