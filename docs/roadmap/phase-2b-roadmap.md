@@ -52,6 +52,19 @@ POST /api/market-data/sync-daily-bars
 - Added `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED` kill switch for the manual sync API.
 - Added frontend `同步 SPY` action that triggers sample daily-bars sync, refreshes sync history, and reloads market context.
 
+## Completed in Fourth Slice
+
+- Added provider-specific symbol mapping:
+  - Polygon `SPX` maps to `I:SPX`;
+  - `SPY`, `QQQ`, and selected U.S. single-name equities keep normal ticker symbols.
+- Added runtime Redis publisher factory:
+  - controlled by `AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED`;
+  - uses `AQUANTLENS_REDIS_URL`;
+  - applies `AQUANTLENS_REALTIME_MARKET_TTL_SECONDS`;
+  - defaults to disabled so local sync does not require Redis.
+- Added `redis>=5.0` backend dependency for runtime publisher binding.
+- Connected `run_sync_daily_bars()` to optional realtime publishing through `MarketDataIngestionService`.
+
 ## Verification
 
 Ubuntu backend:
@@ -66,7 +79,7 @@ pytest -q
 Latest result:
 
 ```text
-29 passed, 1 warning
+37 passed, 1 warning
 ```
 
 Ubuntu frontend:
@@ -80,7 +93,7 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 145ms
+built in 231ms
 ```
 
 Browser smoke:
@@ -93,8 +106,7 @@ Browser smoke:
 
 ## Next Slice
 
-- Bind runtime Redis client behind `RedisMarketDataPublisher` when Redis is configured.
-- Add provider-specific symbol mapping for SPX/SPY/QQQ and selected single-name equities.
 - Add intraday `1m/5m` provider path after daily-bars behavior is stable.
 - Add documented env-var setup for local development without exposing secrets.
 - Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
+- Add live-provider smoke procedure that uses user-provided env vars without reading or printing secrets.
