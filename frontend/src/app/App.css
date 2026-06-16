@@ -626,3 +626,205 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+.option-header {
+  align-items: center;
+}
+
+.option-toolbar {
+  display: grid;
+  grid-template-columns: minmax(140px, 180px) minmax(150px, 190px) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.option-toolbar label {
+  display: grid;
+  gap: 6px;
+}
+
+.option-toolbar span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.option-toolbar input,
+.option-toolbar select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: #172026;
+  background: #ffffff;
+}
+
+.segmented-control {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 3px;
+  background: #f8fafc;
+}
+
+.segmented-control button {
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #475569;
+  background: transparent;
+}
+
+.segmented-control button.active {
+  color: #0f172a;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+}
+
+.option-chain-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+  align-items: start;
+}
+
+.option-chain-wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.option-chain-table {
+  min-width: 1160px;
+  font-size: 12px;
+}
+
+.option-chain-table th,
+.option-chain-table td {
+  padding: 7px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.option-chain-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.side-title {
+  text-align: center !important;
+  font-weight: 760;
+}
+
+.call-side {
+  color: #2563eb !important;
+}
+
+.put-side {
+  color: #b45309 !important;
+}
+
+.strike-col {
+  text-align: center !important;
+  color: #0f172a;
+  background: #f1f5f9 !important;
+  font-weight: 760;
+}
+
+.atm-row td {
+  background: #eff6ff;
+}
+
+.action-cell button {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  color: #0f766e;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-align: right;
+}
+
+.action-cell button:hover,
+.action-cell button:focus-visible {
+  text-decoration: underline;
+}
+
+.selected-cell {
+  color: #0f766e;
+  background: #ecfdf5 !important;
+  font-weight: 760;
+}
+
+.selected-contract-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.selected-contract-panel h3 {
+  margin: 0 0 12px;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.selected-contract-panel p {
+  font-size: 13px;
+}
+
+.selected-contract-panel dl {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 8px 10px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.selected-contract-panel dt {
+  color: #64748b;
+}
+
+.selected-contract-panel dd {
+  min-width: 0;
+  margin: 0;
+  color: #0f172a;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+@media (max-width: 1180px) {
+  .option-chain-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-contract-panel {
+    max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .option-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .segmented-control {
+    width: 100%;
+  }
+
+  .segmented-control button {
+    flex: 1;
+  }
+}
