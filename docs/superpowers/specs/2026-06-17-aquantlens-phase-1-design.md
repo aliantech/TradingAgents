@@ -10,7 +10,7 @@ The current repository is the upstream TradingAgents framework. Yasin Brain alre
 
 ## Branch Boundary
 
-- Branch: `aquanlens-us`.
+- Branch: `aquantlens-us`.
 - Role: sibling U.S/options branch under the AQuantLens umbrella.
 - Reason: avoid forcing U.S. options workflows into the existing AQuantLens mainline.
 - Long-term merge policy: share reusable concepts only after interfaces are stable; do not assume direct code merge.

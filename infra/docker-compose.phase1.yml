@@ -1,7 +1,7 @@
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
-    container_name: aquanlens-us-timescaledb
+    container_name: aquantlens-us-timescaledb
     environment:
       POSTGRES_DB: aquanlens_us
       POSTGRES_USER: aquser
@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: aquanlens-us-redis
+    container_name: aquantlens-us-redis
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]

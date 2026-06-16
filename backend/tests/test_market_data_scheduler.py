@@ -70,3 +70,24 @@ def test_run_configured_sync_targets_once_records_each_target():
     assert [result.rows_written for result in results] == [2, 1]
     assert len(runs) == 2
     assert {run.sync_type for run in runs} == {"daily_bars", "bars_5m"}
+
+
+def test_run_scheduler_loop_runs_configured_targets_for_limited_iterations():
+    session = _session()
+    sleeps = []
+
+    iterations = scheduler.run_scheduler_loop(
+        session_factory=lambda: session,
+        provider_name="sample",
+        target_config="SPY:1d:2",
+        today_fn=lambda: date(2026, 6, 17),
+        interval_seconds=15,
+        max_iterations=2,
+        sleep_fn=sleeps.append,
+    )
+
+    runs = ProviderSyncRepository(session).list_runs()
+    assert [iteration.iteration for iteration in iterations] == [1, 2]
+    assert [iteration.results[0].rows_written for iteration in iterations] == [2, 2]
+    assert sleeps == [15]
+    assert len(runs) == 2

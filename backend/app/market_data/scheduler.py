@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, timedelta
+from time import sleep
+from typing import Callable
 
 from sqlalchemy.orm import Session
 
@@ -27,6 +29,12 @@ class ScheduledSyncResult:
     status: str
     rows_written: int
     error_message: str | None
+
+
+@dataclass(frozen=True)
+class SchedulerLoopIteration:
+    iteration: int
+    results: list[ScheduledSyncResult]
 
 
 def run_daily_bar_sync_schedule(
@@ -99,3 +107,39 @@ def run_configured_sync_targets_once(
             )
         )
     return results
+
+
+def run_scheduler_loop(
+    *,
+    session_factory: Callable[[], Session],
+    provider_name: str,
+    target_config: str,
+    interval_seconds: int,
+    today_fn: Callable[[], date] = date.today,
+    sleep_fn: Callable[[int], None] = sleep,
+    max_iterations: int | None = None,
+) -> list[SchedulerLoopIteration]:
+    if interval_seconds < 1:
+        raise ValueError("Scheduler interval_seconds must be at least 1.")
+    if max_iterations is not None and max_iterations < 1:
+        raise ValueError("Scheduler max_iterations must be at least 1 when provided.")
+
+    iterations: list[SchedulerLoopIteration] = []
+    iteration = 0
+    while max_iterations is None or iteration < max_iterations:
+        iteration += 1
+        session = session_factory()
+        try:
+            results = run_configured_sync_targets_once(
+                session=session,
+                provider_name=provider_name,
+                target_config=target_config,
+                today=today_fn(),
+            )
+        finally:
+            session.close()
+        if max_iterations is not None:
+            iterations.append(SchedulerLoopIteration(iteration=iteration, results=results))
+        if max_iterations is None or iteration < max_iterations:
+            sleep_fn(interval_seconds)
+    return iterations

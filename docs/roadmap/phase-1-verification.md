@@ -27,7 +27,7 @@
 Environment:
 
 - Ubuntu repo: `/home/yasin/workspace/TradingAgents`
-- Branch: `aquanlens-us`
+- Branch: `aquantlens-us`
 - Backend smoke port: `8014`
 - Frontend preview port: `4176`
 

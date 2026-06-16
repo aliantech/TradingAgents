@@ -1,7 +1,7 @@
 # Phase 2A Verification
 
 Date: 2026-06-17
-Branch: `aquanlens-us`
+Branch: `aquantlens-us`
 
 ## Completed Scope
 
@@ -20,7 +20,7 @@ Ubuntu validation repository:
 ```bash
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
-rm -f aquanlens_us.db
+rm -f aquantlens_us.db
 pytest tests/test_analysis_api_persistence.py tests/test_analysis_repository.py -q
 ```
 
@@ -33,7 +33,7 @@ Result:
 ```bash
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
-rm -f aquanlens_us.db
+rm -f aquantlens_us.db
 pytest tests/test_market_data_repository.py tests/test_market_data_ingestion.py -q
 ```
 
@@ -46,7 +46,7 @@ Result:
 ```bash
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
-rm -f aquanlens_us.db
+rm -f aquantlens_us.db
 pytest -q
 ```
 

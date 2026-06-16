@@ -68,7 +68,7 @@ backend/tests/
 - [x] Run Ubuntu `pytest -q`.
 - [x] Run Ubuntu frontend `npm run build`.
 - [ ] Commit docs with `docs: record phase two a verification`.
-- [ ] Push `aquanlens-us`.
+- [ ] Push `aquantlens-us`.
 
 ## Self-Review
 

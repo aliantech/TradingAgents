@@ -103,3 +103,31 @@ def test_cli_run_scheduler_once_outputs_each_target(monkeypatch, capsys):
     assert '"symbol": "SPY"' in output
     assert '"timeframe": "5m"' in output
     assert len(ProviderSyncRepository(session).list_runs()) == 2
+
+
+def test_cli_run_scheduler_loop_supports_limited_iterations(monkeypatch, capsys):
+    session = _session()
+    monkeypatch.setattr(cli, "initialize_database", lambda: None)
+    monkeypatch.setattr(cli, "SessionLocal", lambda: session)
+
+    exit_code = cli.main(
+        [
+            "run-scheduler-loop",
+            "--provider",
+            "sample",
+            "--targets",
+            "SPY:1d:2",
+            "--today",
+            "2026-06-17",
+            "--interval-seconds",
+            "1",
+            "--max-iterations",
+            "1",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert '"iteration": 1' in output
+    assert '"rows_written": 2' in output
+    assert len(ProviderSyncRepository(session).list_runs()) == 1

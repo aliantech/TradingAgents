@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     provider_sync_stale_after_minutes: int = 1440
     provider_sync_failure_rate_threshold: float = 0.5
     scheduler_targets: str = "SPY:1d:2"
+    scheduler_interval_seconds: int = 300
     realtime_market_publish_enabled: bool = False
     realtime_market_ttl_seconds: int = 300
 

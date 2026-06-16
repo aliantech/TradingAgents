@@ -12,7 +12,7 @@
 
 ## Branch Boundary
 
-- Active branch: `aquanlens-us`.
+- Active branch: `aquantlens-us`.
 - Product role: AQuantLens U.S/options sibling branch.
 - Market focus: U.S. equities, ETFs, SPX/SPY/QQQ, VIX, and selected U.S. options.
 - Do not import A-share assumptions, China-market provider assumptions, or legacy AQuantLens runtime constraints unless they are explicitly useful.

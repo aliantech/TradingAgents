@@ -35,6 +35,7 @@ Default config:
 
 ```text
 AQUANTLENS_SCHEDULER_TARGETS=SPY:1d:2
+AQUANTLENS_SCHEDULER_INTERVAL_SECONDS=300
 ```
 
 Provider config still uses:
@@ -65,6 +66,22 @@ Exit code:
 
 - `0` when all targets succeed.
 - `1` when at least one target fails.
+
+## Run Loop
+
+For a bounded smoke test:
+
+```bash
+python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
+```
+
+For a long-running local worker:
+
+```bash
+python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --interval-seconds 300
+```
+
+Use an external supervisor such as systemd for restarts, logs, and process lifecycle. Keep `--max-iterations` for smoke tests and CI-like checks.
 
 ## Observability
 

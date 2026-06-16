@@ -159,6 +159,19 @@ python -m app.market_data.cli run-scheduler-once --provider sample --targets "SP
 
 - Added scheduler runner SOP at `docs/operations/phase-2b-scheduler-runner.md`.
 
+## Completed in Thirteenth Slice
+
+- Added a periodic scheduler loop boundary around configured sync targets.
+- Added `AQUANTLENS_SCHEDULER_INTERVAL_SECONDS`.
+- Added `run_scheduler_loop()` with injectable `today_fn`, `sleep_fn`, and optional `max_iterations` for deterministic tests and bounded smoke runs.
+- Added CLI command:
+
+```bash
+python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
+```
+
+- Updated scheduler runner SOP with bounded smoke and long-running worker examples.
+
 ## Verification
 
 Ubuntu backend:
@@ -166,14 +179,14 @@ Ubuntu backend:
 ```bash
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
-rm -f aquanlens_us.db
+rm -f aquantlens_us.db
 pytest -q
 ```
 
 Latest result:
 
 ```text
-54 passed
+56 passed
 ```
 
 Scheduler runner targeted:
@@ -181,14 +194,14 @@ Scheduler runner targeted:
 ```bash
 cd /home/yasin/workspace/TradingAgents/backend
 . .venv/bin/activate
-rm -f aquanlens_us.db
+rm -f aquantlens_us.db
 pytest tests/test_market_data_scheduler.py tests/test_market_data_cli.py -q
 ```
 
 Latest result:
 
 ```text
-8 passed
+10 passed
 ```
 
 Scheduler CLI smoke:
@@ -201,6 +214,18 @@ Latest result:
 
 ```text
 SPY 1d succeeded with 2 rows; QQQ 5m succeeded with 1 row
+```
+
+Scheduler loop CLI smoke:
+
+```bash
+python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
+```
+
+Latest result:
+
+```text
+iteration 1: SPY 1d succeeded with 2 rows
 ```
 
 Ubuntu frontend:
@@ -235,4 +260,4 @@ Browser smoke:
 ## Next Slice
 
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add a periodic scheduler loop or external timer integration around `run-scheduler-once`.
+- Add systemd timer/service examples or deployment wiring for the scheduler loop.
