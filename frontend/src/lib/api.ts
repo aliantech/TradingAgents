@@ -56,6 +56,21 @@ export type MarketBarsResponse = {
   bars: MarketBar[];
 };
 
+export type ProviderSyncRunItem = {
+  id: string;
+  provider: string;
+  sync_type: string;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  rows_written: number;
+  error_message: string | null;
+};
+
+export type ProviderSyncRunsResponse = {
+  runs: ProviderSyncRunItem[];
+};
+
 export type OptionSnapshot = {
   option_symbol: string;
   underlying_symbol: string;
@@ -124,6 +139,10 @@ export function getReport(reportId: string): Promise<ResearchReport> {
 
 export function getMarketBars(symbol: string): Promise<MarketBarsResponse> {
   return requestJson<MarketBarsResponse>(`/api/market-data/bars?symbol=${encodeURIComponent(symbol)}&timeframe=1m`);
+}
+
+export function listProviderSyncRuns(): Promise<ProviderSyncRunsResponse> {
+  return requestJson<ProviderSyncRunsResponse>("/api/market-data/sync-runs?limit=20");
 }
 
 export function getOptionChain(underlying: string): Promise<OptionChainResponse> {

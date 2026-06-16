@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AnalysisPanel } from "../features/analysis/AnalysisPanel";
+import { DataSyncPanel } from "../features/market-data/DataSyncPanel";
 import { KlineChart } from "../features/market-data/KlineChart";
 import { OptionChainTable } from "../features/options/OptionChainTable";
 import { ReportHistory } from "../features/reports/ReportHistory";
@@ -10,11 +11,13 @@ import {
   getMarketBars,
   getOptionChain,
   getReport,
+  listProviderSyncRuns,
   listReports,
   startAnalysis,
   type AnalysisStatus,
   type MarketBar,
   type OptionSnapshot,
+  type ProviderSyncRunItem,
   type ReportListItem,
   type ResearchReport,
 } from "../lib/api";
@@ -30,6 +33,7 @@ export function App() {
   const [reports, setReports] = useState<ReportListItem[]>([]);
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [optionSnapshots, setOptionSnapshots] = useState<OptionSnapshot[]>([]);
+  const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
 
   useEffect(() => {
     void loadInitialState();
@@ -37,7 +41,7 @@ export function App() {
 
   async function loadInitialState() {
     try {
-      await Promise.all([loadMarketContext(symbol), refreshReports()]);
+      await Promise.all([loadMarketContext(symbol), refreshReports(), refreshSyncRuns()]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "初始化数据加载失败，请检查后端服务是否已启动。");
     }
@@ -59,6 +63,11 @@ export function App() {
     setReports(reportItems);
   }
 
+  async function refreshSyncRuns() {
+    const response = await listProviderSyncRuns();
+    setSyncRuns(response.runs);
+  }
+
   async function handleRunAnalysis() {
     setLoading(true);
     setError(null);
@@ -68,6 +77,7 @@ export function App() {
       setAnalysisStatus(status);
       await loadMarketContext(status.symbol);
       await refreshReports();
+      await refreshSyncRuns();
 
       if (status.report_id) {
         const report = await getReport(status.report_id);
@@ -104,6 +114,7 @@ export function App() {
           <a href="#report">Reports</a>
           <a href="#market">Market Data</a>
           <a href="#options">Options</a>
+          <a href="#sync">Sync</a>
         </nav>
         <button type="button" className="language-button" onClick={() => i18n.changeLanguage(i18n.language === "zh" ? "en" : "zh")}>
           {i18n.language === "zh" ? "English" : "中文"}
@@ -142,6 +153,10 @@ export function App() {
 
           <div id="options">
             <OptionChainTable snapshots={optionSnapshots} />
+          </div>
+
+          <div id="sync">
+            <DataSyncPanel runs={syncRuns} />
           </div>
         </div>
       </section>

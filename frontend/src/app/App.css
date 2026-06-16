@@ -213,7 +213,8 @@ input {
 }
 
 .chart-panel,
-.option-panel {
+.option-panel,
+.sync-panel {
   grid-column: span 2;
 }
 
@@ -280,6 +281,55 @@ th {
   color: #94a3b8;
 }
 
+.sync-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sync-item {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.sync-item > div:first-child,
+.sync-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sync-status {
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 12px;
+}
+
+.sync-status.succeeded {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.sync-status.failed {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.sync-meta {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.sync-error {
+  color: #991b1b;
+}
+
 @media (max-width: 920px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -294,7 +344,8 @@ th {
   }
 
   .chart-panel,
-  .option-panel {
+  .option-panel,
+  .sync-panel {
     grid-column: span 1;
   }
 }
