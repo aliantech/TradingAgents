@@ -258,12 +258,12 @@ export function App() {
           <p>{t("subtitle")}</p>
         </div>
         <nav>
-          <a href="#analysis">Analysis</a>
-          <a href="#report">Reports</a>
-          <a href="#market">Market Data</a>
-          <a href="#options">Options</a>
-          <a href="#sync">Sync</a>
-          <a href="#settings">Settings</a>
+          <a href="#analysis">AI 分析</a>
+          <a href="#report">研究报告</a>
+          <a href="#market">行情数据</a>
+          <a href="#options">期权链</a>
+          <a href="#sync">数据同步</a>
+          <a href="#settings">设置</a>
         </nav>
         <button type="button" className="language-button" onClick={() => i18n.changeLanguage(i18n.language === "zh" ? "en" : "zh")}>
           {i18n.language === "zh" ? "English" : "中文"}
