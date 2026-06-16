@@ -79,6 +79,28 @@ Phase 2C remains a data and research layer. It does not add broker order placeme
 - Added summary metrics for contract count, total volume, total open interest, and latest timestamp.
 - Kept the UI Chinese-first while preserving professional terms such as IV, Greeks, Volume, and Open Interest.
 
+## Completed in Sixth Slice
+
+- Added `PolygonOptionsProvider` for Massive/Polygon option-chain snapshot payloads.
+- Converted option-chain snapshot rows into:
+  - `OptionContractRecord`;
+  - `OptionSnapshotRecord`.
+- Added `OptionChainSyncService` to persist option contracts, snapshots, and `provider_sync_runs` audit records.
+- Added tests for:
+  - Polygon/Massive option-chain snapshot parsing;
+  - option-chain sync persistence and audit writes.
+
+## UI And CLI Boundary
+
+- UI is the daily product entrypoint for research workflows, option-chain inspection, and later manual data actions.
+- CLI remains a thin engineering/operations entrypoint for:
+  - provider smoke tests;
+  - CI verification;
+  - cron/systemd scheduled sync;
+  - one-off backfills;
+  - server-side diagnostics when the UI is unavailable.
+- Business logic should live in provider/service/repository modules, not inside CLI commands.
+
 ## Verification
 
 Ubuntu backend verification:
@@ -86,6 +108,7 @@ Ubuntu backend verification:
 ```bash
 pytest tests/test_options_repository.py -q
 pytest tests/test_options_api.py -q
+pytest tests/test_options_polygon_provider.py tests/test_options_sync.py -q
 pytest tests/test_options_live_smoke.py tests/test_phase2c_options_live_smoke_script.py -q
 pytest -q
 ```
@@ -94,9 +117,10 @@ Results:
 
 - Targeted options repository tests: `2 passed`.
 - Targeted options API tests: `2 passed`.
+- Targeted options ingestion tests: `2 passed`.
 - Targeted options live smoke tests: `4 passed`.
 - Timeout/retry options live smoke tests: `5 passed`.
-- Full backend suite: `82 passed`.
+- Full backend suite: `84 passed`.
 - Frontend production build: `npm run build` succeeded.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 
@@ -154,4 +178,5 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 ## Next Slice
 
-- Keep provider-specific Polygon/Massive option-chain ingestion as the following slice after the API/UI boundary is stable.
+- Add a guarded UI/API manual action for option-chain sync after the service boundary is stable.
+- Add a thin CLI command only for smoke/backfill/scheduler usage.
