@@ -13,6 +13,24 @@ Build the provider-sync foundation that will later connect real U.S. market data
 - Added `GET /api/market-data/sync-runs` for recent sync history.
 - Added a frontend data-source sync panel that displays provider, sync type, status, rows written, timestamp, and error messages.
 
+## Completed in Second Slice
+
+- Added config-driven provider selection with `AQUANTLENS_MARKET_DATA_PROVIDER`.
+- Added `SampleMarketDataProvider` as the first concrete adapter boundary.
+- Added provider registry lookup through `get_market_data_provider()`.
+- Added CLI entrypoint:
+
+```bash
+python -m app.market_data.cli sync-daily-bars --symbol SPY --start 2026-06-16 --end 2026-06-17 --provider sample
+```
+
+- Added Redis-compatible market-data publisher boundary:
+  - writes latest bar snapshot to `latest:{SYMBOL}`;
+  - appends bar events to `stream:market_events`;
+  - remains testable with a fake Redis client and does not require reading secrets.
+- Updated ingestion so persisted bars can optionally publish realtime cache/events.
+- Added manual refresh, loading state, empty state, and local error state for the frontend sync panel.
+
 ## Verification
 
 Ubuntu backend:
@@ -24,10 +42,10 @@ rm -f aquanlens_us.db
 pytest -q
 ```
 
-Result:
+Latest result:
 
 ```text
-18 passed, 1 warning
+23 passed, 1 warning
 ```
 
 Ubuntu frontend:
@@ -37,23 +55,23 @@ cd /home/yasin/workspace/TradingAgents/frontend
 npm run build
 ```
 
-Result:
+Latest result:
 
 ```text
 51 modules transformed
-built in 149ms
+built in 138ms
 ```
 
 Browser smoke:
 
-- Opened `http://192.168.100.123:5178/`.
+- Opened `http://192.168.100.123:5179/`.
 - Confirmed the page title is `AQuantLens`.
-- Confirmed the rendered snapshot includes `数据源同步` and provider sync rows.
+- Confirmed the rendered snapshot includes `数据源同步`, `刷新`, and `暂无同步记录`.
 
 ## Next Slice
 
-- Add a concrete provider adapter boundary for the first real data source.
-- Add config-driven provider selection without reading secrets in code or tests.
-- Add Redis latest quote and market-events stream writers.
-- Add scheduler/CLI command for daily bars sync.
-- Add frontend refresh controls and empty/error states for sync history.
+- Add a concrete adapter for the first real data source.
+- Add config validation and documented env-var setup without exposing secrets.
+- Add scheduler wrapper around the CLI sync command.
+- Add API endpoint to trigger research-only manual sync jobs in development mode.
+- Add provider-specific rate-limit and retry policy.
