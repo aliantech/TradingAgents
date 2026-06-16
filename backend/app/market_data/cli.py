@@ -21,7 +21,13 @@ def run_sync_daily_bars(
     start: date,
     end: date,
 ) -> MarketDataSyncResult:
-    provider = get_market_data_provider(provider_name)
+    provider = get_market_data_provider(
+        provider_name,
+        polygon_api_key=settings.polygon_api_key,
+        polygon_base_url=settings.polygon_base_url,
+        max_retries=settings.provider_max_retries,
+        retry_backoff_seconds=settings.provider_retry_backoff_seconds,
+    )
     service = MarketDataSyncService(
         provider=provider,
         provider_name=provider_name,
