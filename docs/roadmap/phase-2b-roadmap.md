@@ -92,6 +92,17 @@ POST /api/market-data/sync-daily-bars
 - Added frontend health metric cards to the data-source sync panel.
 - Browser smoke verifies the summary updates after clicking `同步 SPY`.
 
+## Completed in Seventh Slice
+
+- Added provider, sync type, and time-window filters to sync runs and summary queries.
+- Added API filter support for:
+  - `provider`;
+  - `sync_type`;
+  - `started_after`;
+  - `started_before`.
+- Added frontend provider input and sync type selector to the data-source sync panel.
+- Sync history and summary now use the same filter state.
+
 ## Verification
 
 Ubuntu backend:
@@ -106,7 +117,7 @@ pytest -q
 Latest result:
 
 ```text
-42 passed, 1 warning
+45 passed, 1 warning
 ```
 
 Ubuntu frontend:
@@ -120,7 +131,7 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 186ms
+built in 167ms
 ```
 
 Browser smoke:
@@ -131,10 +142,12 @@ Browser smoke:
 - Confirmed sync history API returned `sample`, `daily_bars`, `succeeded`, `2 rows`.
 - Confirmed sync summary API returned `total_runs=1`, `succeeded=1`, `failed=0`, `rows_written=2`.
 - Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `sample`, `daily_bars`, and `2 rows`.
+- Confirmed filtered API query `provider=sample&sync_type=daily_bars` returned one successful run.
+- Confirmed filtered API query `provider=polygon` returned zero runs in the sample smoke database.
 
 ## Next Slice
 
 - Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
 - Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
-- Add per-provider/per-sync-type filters to the sync summary endpoint.
+- Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
