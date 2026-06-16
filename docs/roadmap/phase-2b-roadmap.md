@@ -78,6 +78,20 @@ POST /api/market-data/sync-daily-bars
 - Added sample provider intraday fixtures for deterministic local tests.
 - Added env setup and live smoke SOP at `docs/operations/phase-2b-env-and-live-smoke.md`.
 
+## Completed in Sixth Slice
+
+- Added provider sync summary metrics:
+  - total runs;
+  - succeeded runs;
+  - failed runs;
+  - rows written;
+  - latest status;
+  - latest finished timestamp;
+  - average duration in milliseconds.
+- Added `GET /api/market-data/sync-summary`.
+- Added frontend health metric cards to the data-source sync panel.
+- Browser smoke verifies the summary updates after clicking `同步 SPY`.
+
 ## Verification
 
 Ubuntu backend:
@@ -92,7 +106,7 @@ pytest -q
 Latest result:
 
 ```text
-40 passed, 1 warning
+42 passed, 1 warning
 ```
 
 Ubuntu frontend:
@@ -106,7 +120,7 @@ Latest result:
 
 ```text
 51 modules transformed
-built in 231ms
+built in 186ms
 ```
 
 Browser smoke:
@@ -115,10 +129,12 @@ Browser smoke:
 - Confirmed the page title is `AQuantLens`.
 - Clicked `同步 SPY`.
 - Confirmed sync history API returned `sample`, `daily_bars`, `succeeded`, `2 rows`.
-- Confirmed the rendered snapshot includes `sample`, `daily_bars`, and `2 rows`.
+- Confirmed sync summary API returned `total_runs=1`, `succeeded=1`, `failed=0`, `rows_written=2`.
+- Confirmed the rendered snapshot includes `总次数=1`, `成功=1`, `失败=0`, `写入=2`, `sample`, `daily_bars`, and `2 rows`.
 
 ## Next Slice
 
 - Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
 - Add live-provider smoke execution once user-provided env vars are available, without reading or printing secrets.
-- Add provider sync status counters and latency metrics.
+- Add dependency pinning cleanup for the FastAPI/Starlette `TestClient` warning.
+- Add per-provider/per-sync-type filters to the sync summary endpoint.
