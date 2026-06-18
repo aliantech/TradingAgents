@@ -20,4 +20,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (id.includes("@tanstack/react-table")) return "vendor-table";
+          if (id.includes("@radix-ui") || id.includes("radix-ui")) return "vendor-radix";
+          if (id.includes("react") || id.includes("i18next")) return "vendor-react";
+          return "vendor";
+        },
+      },
+    },
+  },
 });
