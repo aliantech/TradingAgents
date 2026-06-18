@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 2D Slice 1 Research Brief Implemented and Validated
+Status: Phase 2D Slice 2 Persistent Watchlist Implemented
 Last Reviewed: 2026-06-19
 Owner: Yasin
 
@@ -60,7 +60,7 @@ As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
 - Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
-- Current Phase 2D state: the pre-Phase-2D Settings/provider readiness product-path cleanup is complete, and Slice 1 adds a research brief to the Analysis workflow so users can review market, options, provider, and prior-report context before launching TradingAgents.
+- Current Phase 2D state: the Analysis workflow includes a research brief, and the Dashboard now uses a database-backed `research.watchlist` setting so the research cockpit can persist the user's default symbol list.
 
 Current code shape:
 

@@ -102,6 +102,7 @@ const NAV_KEYS: PageKey[] = ["dashboard", "analysis", "reports", "market", "opti
 
 const DEFAULT_ANALYSIS_DATE = new Date().toISOString().slice(0, 10);
 const SUPPORTED_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META"];
+const WATCHLIST_SETTING_KEY = "research.watchlist";
 const MARKET_PULSE_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX"];
 const MARKET_COLORS = {
   up: "#16a34a",
@@ -111,6 +112,28 @@ const MARKET_COLORS = {
 function pageFromLocationHash(): PageKey {
   const page = window.location.hash.replace(/^#/, "") as PageKey;
   return NAV_KEYS.includes(page) ? page : "dashboard";
+}
+
+function normalizeWatchlist(symbols: string[]) {
+  const seen = new Set<string>();
+  return symbols
+    .map((item) => item.trim().toUpperCase())
+    .filter((item) => SUPPORTED_SYMBOLS.includes(item))
+    .filter((item) => {
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    })
+    .slice(0, 10);
+}
+
+function parseWatchlistSetting(value: string | null) {
+  const parsed = normalizeWatchlist(value?.split(",") ?? []);
+  return parsed.length > 0 ? parsed : SUPPORTED_SYMBOLS.slice(0, 6);
+}
+
+function serializeWatchlist(symbols: string[]) {
+  return normalizeWatchlist(symbols).join(",");
 }
 
 export function App() {
@@ -168,6 +191,9 @@ export function App() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [watchlist, setWatchlist] = useState<string[]>(SUPPORTED_SYMBOLS.slice(0, 6));
+  const [watchlistSaving, setWatchlistSaving] = useState(false);
+  const [watchlistError, setWatchlistError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -223,8 +249,42 @@ export function App() {
       refreshBackendHealth(),
       refreshReports(),
       refreshAnalysisRuns(),
+      loadResearchWatchlist(),
     ]);
     await refreshSyncRuns();
+  }
+
+  async function loadResearchWatchlist() {
+    setWatchlistError(null);
+    try {
+      const response = await listSettings();
+      const item = response.items.find((setting) => setting.key === WATCHLIST_SETTING_KEY);
+      setWatchlist(parseWatchlistSetting(item?.value ?? null));
+    } catch (caught) {
+      setWatchlistError(caught instanceof Error ? caught.message : t("dashboard.watchlistLoadError"));
+    }
+  }
+
+  async function saveResearchWatchlist(nextSymbols: string[]) {
+    const normalized = normalizeWatchlist(nextSymbols);
+    setWatchlistSaving(true);
+    setWatchlistError(null);
+    try {
+      const response = await upsertSettings([
+        {
+          key: WATCHLIST_SETTING_KEY,
+          value: serializeWatchlist(normalized),
+          category: "user",
+          is_secret: false,
+        },
+      ]);
+      const item = response.items.find((setting) => setting.key === WATCHLIST_SETTING_KEY);
+      setWatchlist(parseWatchlistSetting(item?.value ?? serializeWatchlist(normalized)));
+    } catch (caught) {
+      setWatchlistError(caught instanceof Error ? caught.message : t("dashboard.watchlistSaveError"));
+    } finally {
+      setWatchlistSaving(false);
+    }
   }
 
   async function loadMarketContext(nextSymbol: string, timeframe = marketTimeframe) {
@@ -582,7 +642,11 @@ export function App() {
             optionContracts={optionContracts}
             syncSummary={syncSummary}
             readiness={optionsProviderReadiness}
+            watchlist={watchlist}
+            watchlistSaving={watchlistSaving}
+            watchlistError={watchlistError}
             onSymbolChange={setSymbol}
+            onSaveWatchlist={(symbols) => void saveResearchWatchlist(symbols)}
             onOpenReport={(reportId) => void handleOpenReportFromRun(reportId)}
             onNavigate={navigateToPage}
           />
@@ -1345,7 +1409,11 @@ function DashboardPage({
   optionContracts,
   syncSummary,
   readiness,
+  watchlist,
+  watchlistSaving,
+  watchlistError,
   onSymbolChange,
+  onSaveWatchlist,
   onOpenReport,
   onNavigate,
 }: {
@@ -1358,7 +1426,11 @@ function DashboardPage({
   optionContracts: OptionContract[];
   syncSummary: ProviderSyncSummary | null;
   readiness: ProviderReadiness | null;
+  watchlist: string[];
+  watchlistSaving: boolean;
+  watchlistError: string | null;
   onSymbolChange: (symbol: string) => void;
+  onSaveWatchlist: (symbols: string[]) => void;
   onOpenReport: (reportId: string) => void;
   onNavigate: (page: PageKey) => void;
 }) {
@@ -1368,6 +1440,8 @@ function DashboardPage({
   const optionContractCoverage = buildOptionContractCoverage(optionContracts);
 	  const latestClose = bars.length > 0 ? bars[bars.length - 1].close : null;
 	  const indicators = calculateMarketIndicators(bars);
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  const canAddSymbol = SUPPORTED_SYMBOLS.includes(normalizedSymbol) && !watchlist.includes(normalizedSymbol);
 	  const pipelineSteps = [
 	    {
 	      key: "provider",
@@ -1440,6 +1514,8 @@ function DashboardPage({
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{symbol}</Badge>
+              <Badge variant="outline">{t("dashboard.watchlistCount", { count: watchlist.length })}</Badge>
+              {watchlistSaving ? <Badge variant="outline">{t("dashboard.savingWatchlist")}</Badge> : null}
             </div>
             <CardTitle>{t("dashboard.promptTitle")}</CardTitle>
           </div>
@@ -1453,19 +1529,49 @@ function DashboardPage({
           </CardAction>
         </CardHeader>
         <CardContent className="grid grid-cols-[minmax(0,1fr)_320px] gap-4 max-xl:grid-cols-1">
-          <div className="grid grid-cols-5 gap-2 max-lg:grid-cols-3 max-sm:grid-cols-2">
-            {SUPPORTED_SYMBOLS.map((candidate) => (
+          <div className="grid gap-3">
+            {watchlistError ? (
+              <Alert variant="destructive">
+                <AlertDescription>{watchlistError}</AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
+              {watchlist.map((candidate) => (
+                <div key={candidate} className="grid grid-cols-[minmax(0,1fr)_40px] gap-2">
+                  <Button
+                    type="button"
+                    variant={candidate === symbol ? "secondary" : "outline"}
+                    className="justify-between"
+                    onClick={() => onSymbolChange(candidate)}
+                  >
+                    <span>{candidate}</span>
+                    {candidate === symbol ? <Badge variant="outline">active</Badge> : null}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={watchlistSaving || watchlist.length <= 1}
+                    aria-label={t("dashboard.removeFromWatchlist", { symbol: candidate })}
+                    title={t("dashboard.removeFromWatchlist", { symbol: candidate })}
+                    onClick={() => onSaveWatchlist(watchlist.filter((item) => item !== candidate))}
+                  >
+                    <X />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {canAddSymbol ? (
               <Button
-                key={candidate}
                 type="button"
-                variant={candidate === symbol ? "secondary" : "outline"}
-                className="justify-between"
-                onClick={() => onSymbolChange(candidate)}
+                variant="outline"
+                className="justify-start"
+                disabled={watchlistSaving}
+                onClick={() => onSaveWatchlist([...watchlist, normalizedSymbol])}
               >
-                <span>{candidate}</span>
-                {candidate === symbol ? <Badge variant="outline">active</Badge> : null}
+                {t("dashboard.addToWatchlist", { symbol: normalizedSymbol })}
               </Button>
-            ))}
+            ) : null}
           </div>
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-3">
             <div className="flex items-center justify-between gap-3">
@@ -2232,7 +2338,7 @@ function defaultConfigValue(configKey: string) {
     "analysis.language": "zh",
     "analysis.depth": "standard",
     "analysis.analyst_set": "macro-options",
-    SUPPORTED_SYMBOLS: SUPPORTED_SYMBOLS.join(","),
+    "research.watchlist": SUPPORTED_SYMBOLS.slice(0, 6).join(","),
     "market.refresh": "manual",
     "options.sync-chain": "manual",
     "data_vendors.core_stock_apis": "yfinance",

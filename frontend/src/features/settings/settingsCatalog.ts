@@ -305,9 +305,9 @@ export function getSettingsCatalog(): SettingsCatalog {
             labelKey: "settings.user.items.watchlist.label",
             detailKey: "settings.user.items.watchlist.detail",
             scopeKey: "settings.user.scopes.workspace",
-            configKeys: ["SUPPORTED_SYMBOLS"],
-            sourceKey: "settings.sources.frontendState",
-            statusSource: "local",
+            configKeys: ["research.watchlist"],
+            sourceKey: "settings.sources.userPreference",
+            statusSource: "runtime",
           },
           {
             id: "risk-view",

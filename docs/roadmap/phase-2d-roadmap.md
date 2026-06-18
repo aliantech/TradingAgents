@@ -42,9 +42,25 @@ Implemented surface:
 - Checklist items cover market data, options context, provider readiness, and prior report availability.
 - Missing context items expose direct actions to Market Data, Options, Settings, or Reports.
 
+## Slice 2: Persistent Watchlist
+
+Status: implemented in the working tree.
+
+Purpose:
+
+- Turn the Dashboard symbol picker into a saved research watchlist.
+- Keep the watchlist in the database-backed settings API instead of local browser state.
+- Let users add the active supported symbol to the watchlist or remove symbols while preserving a research-first cockpit.
+
+Implemented surface:
+
+- Dashboard reads `research.watchlist` from `/api/settings`.
+- Dashboard writes watchlist changes back to `/api/settings` with `category=user` and `is_secret=false`.
+- Settings catalog now exposes `research.watchlist` under user/workspace preferences.
+- Watchlist actions are constrained to the currently supported U.S./index/ETF symbol universe.
+
 ## Next Slices
 
-- Watchlist and research queue: define a small saved symbol list and research priority view.
 - Report comparison: compare latest report against prior report for the same symbol.
 - Research templates: add task types such as earnings preview, macro/options read-through, and technical setup.
 - Report quality pass: improve generated Chinese report structure, evidence labels, and options-specific language.
