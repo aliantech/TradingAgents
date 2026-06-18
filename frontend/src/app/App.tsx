@@ -609,6 +609,7 @@ export function App() {
                 optionContracts={optionContracts}
                 providerReadiness={providerReadiness}
                 optionsProviderReadiness={optionsProviderReadiness}
+                analysisConfig={analysisConfig}
                 latestReport={reports[0] ?? null}
                 onNavigate={navigateToPage}
               />
@@ -2287,6 +2288,7 @@ function ResearchContextCard({
   optionContracts,
   providerReadiness,
   optionsProviderReadiness,
+  analysisConfig,
   latestReport,
   onNavigate,
 }: {
@@ -2296,6 +2298,7 @@ function ResearchContextCard({
   optionContracts: OptionContract[];
   providerReadiness: ProviderReadiness | null;
   optionsProviderReadiness: ProviderReadiness | null;
+  analysisConfig: Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet">;
   latestReport: ReportListItem | null;
   onNavigate: (page: PageKey) => void;
 }) {
@@ -2305,6 +2308,49 @@ function ResearchContextCard({
   const optionVolume = optionSnapshots.reduce((sum, snapshot) => sum + snapshot.volume, 0);
   const optionOpenInterest = optionSnapshots.reduce((sum, snapshot) => sum + (snapshot.open_interest ?? 0), 0);
   const providerReady = Boolean(providerReadiness?.ready || optionsProviderReadiness?.ready);
+  const briefItems = [
+    {
+      key: "market",
+      ready: bars.length > 0,
+      label: t("analysis.brief.market"),
+      detail: latestBar
+        ? t("analysis.brief.marketReady", { count: bars.length, close: latestBar.close.toFixed(2) })
+        : t("analysis.brief.marketMissing"),
+      action: () => onNavigate("market"),
+      actionLabel: t("analysis.context.openMarket"),
+    },
+    {
+      key: "options",
+      ready: optionSnapshots.length > 0 || optionContracts.length > 0,
+      label: t("analysis.brief.options"),
+      detail:
+        optionSnapshots.length > 0
+          ? t("analysis.brief.optionsReady", { snapshots: optionSnapshots.length, contracts: optionContracts.length })
+          : t("analysis.brief.optionsMissing", { contracts: optionContracts.length }),
+      action: () => onNavigate("options"),
+      actionLabel: t("analysis.context.openOptions"),
+    },
+    {
+      key: "provider",
+      ready: providerReady,
+      label: t("analysis.brief.provider"),
+      detail: providerReady ? t("analysis.brief.providerReady") : t("analysis.brief.providerMissing"),
+      action: () => onNavigate("settings"),
+      actionLabel: t("analysis.context.configure"),
+    },
+    {
+      key: "report",
+      ready: Boolean(latestReport),
+      label: t("analysis.brief.priorReport"),
+      detail: latestReport
+        ? t("analysis.brief.priorReportReady", { symbol: latestReport.symbol, confidence: (latestReport.confidence * 100).toFixed(0) })
+        : t("analysis.brief.priorReportMissing"),
+      action: () => onNavigate("reports"),
+      actionLabel: t("analysis.context.openReports"),
+    },
+  ];
+  const readyItemCount = briefItems.filter((item) => item.ready).length;
+  const briefTone = readyItemCount >= 3 ? "default" : "secondary";
 
   return (
     <Card>
@@ -2319,6 +2365,47 @@ function ResearchContextCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
+        <section className="rounded-lg border bg-background p-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={briefTone}>{t("analysis.brief.phase")}</Badge>
+                <Badge variant="outline">{analysisConfig.depth}</Badge>
+                <Badge variant="outline">{analysisConfig.analystSet}</Badge>
+              </div>
+              <h3 className="mt-3 text-sm font-semibold">{t("analysis.brief.title", { symbol })}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {t("analysis.brief.description", {
+                  date: analysisConfig.analysisDate,
+                  model: `${analysisConfig.llmProvider} · ${analysisConfig.model}`,
+                  ready: readyItemCount,
+                  total: briefItems.length,
+                })}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+            {briefItems.map((item) => (
+              <div key={item.key} className="flex min-h-[132px] flex-col justify-between gap-3 rounded-lg border bg-card p-3">
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">{item.label}</span>
+                    <Badge variant={item.ready ? "secondary" : "outline"}>
+                      {item.ready ? t("analysis.brief.ready") : t("analysis.brief.needsWork")}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+                </div>
+                {!item.ready ? (
+                  <Button type="button" variant="outline" size="sm" onClick={item.action}>
+                    {item.actionLabel}
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+
         <div className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
           <StatusCard
             label={t("analysis.context.market")}
