@@ -104,12 +104,25 @@ Notes:
 
 ### Slice 5: SignalStrategy Research Lab Plan
 
-Planned:
+Status: implemented and validated on 2026-06-19.
 
-- Define `SignalStrategy` dataframe contract.
-- Define deterministic backtest contract.
-- Define chart overlay and report-linked notes contract.
-- Keep event-driven runtime strategies, paper execution, broker adapters, and live execution out of scope until separate risk controls are designed.
+Implemented:
+
+- `backend/app/strategy_lab` defines a research-only `SignalStrategy` dataframe-row contract.
+- Deterministic research backtest contract returns `research_only` results, final equity, return, and closed research trades.
+- Chart overlay contract maps generated signals into price series and BUY/EXIT markers.
+- Report-linked strategy note contract connects strategy observations to existing research reports and evidence labels.
+- `POST /api/strategy-lab/signal-strategy/preview` returns strategy metadata, signals, backtest, overlay, and optional report-linked note in one payload.
+- Frontend Strategy Lab page provides WYSIWYG realtime preview: parameter edits refresh the right-side overlay chart, backtest metrics, and signal rows.
+- Fast/slow window controls keep the preview in a valid state by preventing `fast_window > slow_window`.
+
+Out of scope:
+
+- Event-driven runtime strategies.
+- Paper execution.
+- Broker adapters.
+- Live execution.
+- AI trading authority.
 
 ## Validation Targets
 
@@ -176,3 +189,38 @@ Result:
 ```text
 5 passed in 0.03s
 ```
+
+Slice 5 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_strategy_lab_contracts.py tests/test_strategy_lab_api.py
+```
+
+Result:
+
+```text
+6 passed in 0.58s
+```
+
+Frontend validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+✓ built in 394ms
+```
+
+Rendered WYSIWYG check:
+
+- Opened `http://127.0.0.1:5173/#strategy` against the current backend preview API.
+- Confirmed the Strategy Lab page renders with the parameter panel on the left and overlay chart on the right at 1440px viewport width.
+- Confirmed changing Fast Window from `2` to `5` automatically changed Slow Window from `3` to `5`.
+- Confirmed the right-side preview changed from `Markers 34 / Trades 17 / Final $10,040.95` to `Markers 0 / Trades 0 / Final $10,000`.
+- Browser console had no warnings or errors during the rendered check.

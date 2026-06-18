@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, Bot, CandlestickChart, ClipboardList, Database, FileText, KeyRound, Languages, LayoutDashboard, Menu, Moon, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck, SlidersHorizontal, Sun, type LucideIcon, X, Workflow } from "lucide-react";
+import { Activity, Bot, CandlestickChart, ClipboardList, Database, FileText, FlaskConical, KeyRound, Languages, LayoutDashboard, Menu, Moon, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck, SlidersHorizontal, Sun, type LucideIcon, X, Workflow } from "lucide-react";
 import {
   flexRender,
   getCoreRowModel,
@@ -12,6 +12,7 @@ import { AnalysisPanel } from "../features/analysis/AnalysisPanel";
 import { DataSyncPanel } from "../features/market-data/DataSyncPanel";
 import { ReportHistory } from "../features/reports/ReportHistory";
 import { ReportPanel } from "../features/reports/ReportPanel";
+import { StrategyLabPanel } from "../features/strategy-lab/StrategyLabPanel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ import {
 } from "../lib/api";
 import "./App.css";
 
-type PageKey = "dashboard" | "analysis" | "reports" | "market" | "options" | "runs" | "settings";
+type PageKey = "dashboard" | "analysis" | "reports" | "market" | "options" | "strategy" | "runs" | "settings";
 type NavItem = { key: PageKey; label: string };
 
 const NAV_ICONS: Record<PageKey, LucideIcon> = {
@@ -90,6 +91,7 @@ const NAV_ICONS: Record<PageKey, LucideIcon> = {
   reports: FileText,
   market: CandlestickChart,
   options: Activity,
+  strategy: FlaskConical,
   runs: ClipboardList,
   settings: Settings,
 };
@@ -101,7 +103,7 @@ const OptionChainTable = lazy(() =>
   import("../features/options/OptionChainTable").then((module) => ({ default: module.OptionChainTable })),
 );
 
-const NAV_KEYS: PageKey[] = ["dashboard", "analysis", "reports", "market", "options", "runs", "settings"];
+const NAV_KEYS: PageKey[] = ["dashboard", "analysis", "reports", "market", "options", "strategy", "runs", "settings"];
 
 const DEFAULT_ANALYSIS_DATE = new Date().toISOString().slice(0, 10);
 const SUPPORTED_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META"];
@@ -589,6 +591,7 @@ export function App() {
   }
 
   const currentNavItem = navItems.find((item) => item.key === activePage);
+  const latestSymbolReport = reports.find((report) => report.symbol === symbol.toUpperCase()) ?? null;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -789,6 +792,15 @@ export function App() {
               />
             </Suspense>
           </div>
+        ) : null}
+
+        {activePage === "strategy" ? (
+          <StrategyLabPanel
+            symbol={symbol}
+            bars={bars}
+            latestReport={latestSymbolReport}
+            onRefreshMarket={() => void loadMarketContext(symbol, marketTimeframe)}
+          />
         ) : null}
 
         {activePage === "runs" ? (

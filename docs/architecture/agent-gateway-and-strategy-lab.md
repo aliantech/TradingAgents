@@ -111,14 +111,22 @@ MCP must not:
 - Accept broker credentials.
 - Expose live trading or broker account mutation.
 
-### Phase 4 Candidate: Strategy Lab
+### Phase 3 Candidate: Strategy Lab
+
+Status: SignalStrategy research lab implemented in Phase 3 Slice 5.
 
 Use a staged strategy model:
 
 - `SignalStrategy`: dataframe-based indicator and signal research.
 - `RuntimeStrategy`: event-driven strategy for paper-only runtime behavior.
 
-Start with `SignalStrategy` only. It should support deterministic backtests, chart overlays, signal review, and report-linked research notes.
+Implemented scope starts with `SignalStrategy` only:
+
+- dataframe-row signal contract
+- deterministic research backtest contract
+- chart overlay markers
+- report-linked research notes
+- WYSIWYG frontend preview that updates the right-side overlay, metrics, and signal rows when parameters change
 
 `RuntimeStrategy` should wait until AQuantLens has:
 

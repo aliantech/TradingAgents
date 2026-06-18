@@ -274,6 +274,69 @@ export type SettingsUpsertItem = {
   is_secret: boolean;
 };
 
+export type StrategySignalRow = {
+  timestamp: string;
+  symbol: string;
+  close: number;
+  signal: number;
+  position: number;
+  reason: string;
+};
+
+export type StrategyBacktestResult = {
+  mode: "research_only";
+  initial_equity: number;
+  final_equity: number;
+  return_pct: number;
+  trades: Array<{
+    entry_timestamp: string;
+    exit_timestamp: string;
+    symbol: string;
+    entry_price: number;
+    exit_price: number;
+    quantity: number;
+    pnl: number;
+  }>;
+};
+
+export type StrategyChartOverlay = {
+  symbol: string;
+  price_series: Array<{ time: string; value: number }>;
+  markers: Array<{
+    time: string;
+    position: "belowBar" | "aboveBar";
+    color: string;
+    shape: "arrowUp" | "arrowDown";
+    text: string;
+  }>;
+};
+
+export type StrategyPreviewResponse = {
+  strategy: {
+    strategy_id: string;
+    name: string;
+    description: string;
+    parameters: {
+      fast_window: number;
+      slow_window: number;
+    };
+  };
+  signals: StrategySignalRow[];
+  backtest: StrategyBacktestResult;
+  overlay: StrategyChartOverlay;
+  note: Record<string, unknown> | null;
+  scope: "research_only";
+};
+
+export type StrategyPreviewPayload = {
+  symbol: string;
+  fastWindow: number;
+  slowWindow: number;
+  initialEquity: number;
+  bars: MarketBar[];
+  reportId?: string | null;
+};
+
 const API_BASE_URL = resolveApiBaseUrl({
   configuredBaseUrl: import.meta.env.VITE_API_BASE_URL,
   pageHostname: globalThis.location?.hostname,
@@ -457,5 +520,27 @@ export function upsertSettings(items: SettingsUpsertItem[]): Promise<SettingsRes
   return requestJson<SettingsResponse>("/api/settings", {
     method: "PUT",
     body: JSON.stringify({ items }),
+  });
+}
+
+export function previewSignalStrategy(payload: StrategyPreviewPayload): Promise<StrategyPreviewResponse> {
+  return requestJson<StrategyPreviewResponse>("/api/strategy-lab/signal-strategy/preview", {
+    method: "POST",
+    body: JSON.stringify({
+      symbol: payload.symbol,
+      fast_window: payload.fastWindow,
+      slow_window: payload.slowWindow,
+      initial_equity: payload.initialEquity,
+      bars: payload.bars.map((bar) => ({
+        timestamp: bar.timestamp,
+        symbol: bar.symbol,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        volume: bar.volume,
+      })),
+      report_id: payload.reportId,
+    }),
   });
 }

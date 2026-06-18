@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 3 Slice 4 MCP Thin Wrapper Implemented
+Status: Phase 3 Complete
 Last Reviewed: 2026-06-19
 Owner: Yasin
 
@@ -60,7 +60,7 @@ As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
 - Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
-- Current Phase 3 state: Phase 2D is complete, and the Research Agent Gateway now has token-hash persistence, `whoami`, gateway health, read-scoped report endpoints, append-only audit records, token expiry enforcement, instrument allowlist enforcement, report-list filtering, a local rate-limit guard, a durable agent-facing research analysis job contract with idempotency-key replay, and an MCP thin wrapper that forwards tools through `/api/agent/v1`. The gateway and MCP wrapper remain research-only and do not expose trading, broker credentials, or live execution.
+- Current Phase 3 state: Phase 2D is complete, and Phase 3 is complete. The branch now has a Research Agent Gateway with token-hash persistence, `whoami`, gateway health, read-scoped report endpoints, append-only audit records, token expiry enforcement, instrument allowlist enforcement, report-list filtering, a local rate-limit guard, a durable agent-facing research analysis job contract with idempotency-key replay, an MCP thin wrapper that forwards tools through `/api/agent/v1`, and a WYSIWYG SignalStrategy research lab with backend preview API, deterministic research backtest, chart overlay, and report-linked notes. The gateway, MCP wrapper, and Strategy Lab remain research-only and do not expose trading, broker credentials, or live execution.
 
 Current code shape:
 
@@ -126,5 +126,6 @@ Initial storage scope:
 - `docs/roadmap/phase-2d-roadmap.md`
 - `docs/roadmap/phase-2d-completion-audit.md`
 - `docs/roadmap/phase-3-roadmap.md`
+- `docs/roadmap/phase-3-completion-audit.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`
