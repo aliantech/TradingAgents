@@ -48,12 +48,14 @@ import {
   getProviderSyncHealth,
   getProviderSyncSummary,
   getReport,
+  getReportComparison,
   listAnalysisRuns,
   listOptionContracts,
   listProviderSyncSummaryGroups,
   listProviderSyncRuns,
   listReports,
   listSettings,
+  retryAnalysis,
   startAnalysis,
   type AnalysisRunItem,
   type AnalysisStartPayload,
@@ -71,6 +73,7 @@ import {
   type ProviderSyncHealth,
   type ProviderSyncSummary,
   type ProviderSyncSummaryGroup,
+  type ReportComparison,
   type ReportListItem,
   type ResearchReport,
   type SettingItem,
@@ -143,19 +146,21 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisConfig, setAnalysisConfig] = useState<
-    Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet">
+    Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet" | "researchTemplate">
   >({
     analysisDate: DEFAULT_ANALYSIS_DATE,
     llmProvider: "openai",
     model: "gpt-5.5",
     depth: "standard",
     analystSet: "macro-options",
+    researchTemplate: "general",
   });
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus | null>(null);
   const [analysisRuns, setAnalysisRuns] = useState<AnalysisRunItem[]>([]);
   const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(null);
   const [backendHealthError, setBackendHealthError] = useState<string | null>(null);
   const [activeReport, setActiveReport] = useState<ResearchReport | null>(null);
+  const [activeReportComparison, setActiveReportComparison] = useState<ReportComparison | null>(null);
   const [reports, setReports] = useState<ReportListItem[]>([]);
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [marketTimeframe, setMarketTimeframe] = useState<MarketTimeframe>("1d");
@@ -524,6 +529,7 @@ export function App() {
         model: analysisConfig.model,
         depth: analysisConfig.depth,
         analystSet: analysisConfig.analystSet,
+        researchTemplate: analysisConfig.researchTemplate,
       });
       setAnalysisStatus(status);
       await loadMarketContext(status.symbol);
@@ -534,6 +540,7 @@ export function App() {
       if (status.report_id) {
         const report = await getReport(status.report_id);
         setActiveReport(report);
+        await loadReportComparison(status.report_id);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("errors.analysisRun"));
@@ -547,6 +554,7 @@ export function App() {
     try {
       const report = await getReport(reportId);
       setActiveReport(report);
+      await loadReportComparison(reportId);
       setSymbol(report.symbol);
       await loadMarketContext(report.symbol);
     } catch (caught) {
@@ -557,6 +565,27 @@ export function App() {
   async function handleOpenReportFromRun(reportId: string) {
     await handleSelectReport(reportId);
     navigateToPage("reports");
+  }
+
+  async function handleRetryAnalysisRun(analysisId: string) {
+    setError(null);
+    try {
+      const status = await retryAnalysis(analysisId);
+      setAnalysisStatus(status);
+      await refreshAnalysisRuns();
+      await refreshReports();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("errors.analysisRun"));
+    }
+  }
+
+  async function loadReportComparison(reportId: string) {
+    try {
+      const comparison = await getReportComparison(reportId);
+      setActiveReportComparison(comparison);
+    } catch {
+      setActiveReportComparison(null);
+    }
   }
 
   const currentNavItem = navItems.find((item) => item.key === activePage);
@@ -679,14 +708,14 @@ export function App() {
               />
 	              <RunsPreview runs={syncRuns} />
             </div>
-            <ReportPanel report={activeReport} />
+            <ReportPanel report={activeReport} comparison={activeReportComparison} />
           </div>
         ) : null}
 
         {activePage === "reports" ? (
           <div className="grid gap-4 xl:grid-cols-2">
             <ReportHistory reports={reports} runs={analysisRuns} onSelectReport={handleSelectReport} />
-            <ReportPanel report={activeReport} />
+            <ReportPanel report={activeReport} comparison={activeReportComparison} />
           </div>
         ) : null}
 
@@ -772,6 +801,7 @@ export function App() {
             error={syncError}
             onRefresh={() => void handleRefreshTaskCenter()}
             onOpenReport={(reportId) => void handleOpenReportFromRun(reportId)}
+            onRetryAnalysis={(analysisId) => void handleRetryAnalysisRun(analysisId)}
           />
         ) : null}
 
@@ -1711,6 +1741,7 @@ function RunsPage({
   error,
   onRefresh,
   onOpenReport,
+  onRetryAnalysis,
 }: {
   analysisRuns: AnalysisRunItem[];
   runs: ProviderSyncRunItem[];
@@ -1720,6 +1751,7 @@ function RunsPage({
   error: string | null;
   onRefresh: () => void;
   onOpenReport: (reportId: string) => void;
+  onRetryAnalysis: (analysisId: string) => void;
 }) {
   const { t } = useTranslation();
   const [analysisStatusFilter, setAnalysisStatusFilter] = useState("all");
@@ -1791,7 +1823,12 @@ function RunsPage({
             <TabsTrigger value="failed">{t("runs.failed")}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <AnalysisRunTable runs={filteredAnalysisRuns} onOpenReport={onOpenReport} onInspectRun={(run) => void handleInspectRun(run)} />
+        <AnalysisRunTable
+          runs={filteredAnalysisRuns}
+          onOpenReport={onOpenReport}
+          onRetryAnalysis={onRetryAnalysis}
+          onInspectRun={(run) => void handleInspectRun(run)}
+        />
         <AnalysisRunDetailPanel status={selectedRunStatus} loading={selectedRunLoading} error={selectedRunError} />
         <Separator />
         {summary ? (
@@ -1852,7 +1889,7 @@ function SettingsPage({
   optionsHealth: ProviderSyncHealth | null;
   backendHealth: BackendHealth | null;
   backendHealthError: string | null;
-  analysisConfig: Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet">;
+  analysisConfig: Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet" | "researchTemplate">;
   syncRuns: ProviderSyncRunItem[];
   onRefresh: () => void | Promise<void>;
 }) {
@@ -2404,7 +2441,7 @@ function ResearchContextCard({
   optionContracts: OptionContract[];
   providerReadiness: ProviderReadiness | null;
   optionsProviderReadiness: ProviderReadiness | null;
-  analysisConfig: Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet">;
+  analysisConfig: Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet" | "researchTemplate">;
   latestReport: ReportListItem | null;
   onNavigate: (page: PageKey) => void;
 }) {
@@ -2478,6 +2515,7 @@ function ResearchContextCard({
                 <Badge variant={briefTone}>{t("analysis.brief.phase")}</Badge>
                 <Badge variant="outline">{analysisConfig.depth}</Badge>
                 <Badge variant="outline">{analysisConfig.analystSet}</Badge>
+                <Badge variant="outline">{t(`analysis.templates.${analysisConfig.researchTemplate}`)}</Badge>
               </div>
               <h3 className="mt-3 text-sm font-semibold">{t("analysis.brief.title", { symbol })}</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -2658,10 +2696,12 @@ function RunOperationsStrip({
 function AnalysisRunTable({
   runs,
   onOpenReport,
+  onRetryAnalysis,
   onInspectRun,
 }: {
   runs: AnalysisRunItem[];
   onOpenReport: (reportId: string) => void;
+  onRetryAnalysis: (analysisId: string) => void;
   onInspectRun: (run: AnalysisRunItem) => void;
 }) {
   const { t } = useTranslation();
@@ -2725,9 +2765,14 @@ function AnalysisRunTable({
           const status = normalizeRunStatus(row.original.status);
           if (status === "failed") {
             return (
-              <Button type="button" variant="ghost" size="sm" onClick={() => onInspectRun(row.original)}>
-                {t("runs.errorDetail")}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => onRetryAnalysis(row.original.analysis_id)}>
+                  {t("runs.retry")}
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => onInspectRun(row.original)}>
+                  {t("runs.errorDetail")}
+                </Button>
+              </div>
             );
           }
           if (status === "running") {
@@ -2745,7 +2790,7 @@ function AnalysisRunTable({
         },
       },
     ],
-    [onOpenReport, onInspectRun, t],
+    [onOpenReport, onRetryAnalysis, onInspectRun, t],
   );
   const table = useReactTable({
     data: runs,

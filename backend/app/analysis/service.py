@@ -22,12 +22,20 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
             f"# {symbol} AI 投研报告",
             "",
             f"研究团队：{request.analyst_set}",
+            f"研究模板：{request.research_template.value}",
             "",
             "## 摘要",
-            f"{symbol} 当前适合进入研究跟踪状态，短期需要同时观察价格趋势、波动率和期权成交结构。",
+            f"{symbol} 当前适合进入 {research_template_label(request.research_template.value)} 研究跟踪状态，短期需要同时观察价格趋势、波动率和期权成交结构。",
             "",
             "## 风险提示",
             "本报告仅用于研究，不构成投资建议，也不会触发实盘下单。",
+            "",
+            "## 证据标签",
+            "",
+            "- market-bars",
+            "- options-chain",
+            "- provider-readiness",
+            "- tradingagents-debate",
         ]
     )
     return ResearchReport(
@@ -36,6 +44,7 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
         symbol=symbol,
         language=request.language,
         analyst_set=request.analyst_set,
+        research_template=request.research_template.value,
         summary=f"{symbol} 当前趋势中性偏强，但需要结合 IV、成交量和宏观事件确认方向。",
         market_background="美股市场处于事件和流动性共同驱动阶段，指数波动可能受利率、财报和风险偏好影响。",
         fundamental_analysis="第一阶段聚焦 ETF、指数和高流动性标的，基本面部分先使用成分股、估值和宏观背景做研究注释。",
@@ -45,12 +54,23 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
         bull_case="若价格站稳关键均线且 IV 未异常抬升，多头情景更有优势。",
         bear_case="若波动率快速上升、成交量背离或宏观事件冲击，需防范快速回撤。",
         risk_factors=["FOMC", "earnings risk", "VIX spike", "0DTE gamma risk"],
+        evidence_labels=["market-bars", "options-chain", "provider-readiness", "tradingagents-debate"],
         trade_plan="第一阶段仅生成研究计划：等待关键价位确认后再进入策略评估，不直接生成实盘订单。",
         position_sizing="研究阶段不生成实盘仓位；后续必须经过 risk engine 和 paper trading 验证。",
         take_profit_stop_loss="以关键支撑/阻力、IV 变化和最大可承受亏损作为止盈止损研究参考。",
         confidence=0.62,
         markdown=markdown,
     )
+
+
+def research_template_label(template: str) -> str:
+    labels = {
+        "general": "通用",
+        "earnings-preview": "财报预览",
+        "macro-options-readthrough": "宏观与期权联读",
+        "technical-setup": "技术形态",
+    }
+    return labels.get(template, template)
 
 
 def start_analysis(request: AnalysisRequest, repository: AnalysisRepository | None = None) -> AnalysisRun:

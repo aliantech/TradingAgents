@@ -30,6 +30,7 @@ export type AnalysisStartPayload = {
   model: string;
   depth: "quick" | "standard" | "deep";
   analystSet: string;
+  researchTemplate: "general" | "earnings-preview" | "macro-options-readthrough" | "technical-setup";
 };
 
 export type AnalysisRunItem = {
@@ -43,6 +44,7 @@ export type AnalysisRunItem = {
   model: string;
   depth: string;
   analyst_set: string;
+  research_template: string;
   created_at: string;
   updated_at: string;
   report_id: string | null;
@@ -58,6 +60,7 @@ export type ReportListItem = {
   symbol: string;
   language: string;
   analyst_set: string;
+  research_template: string;
   summary: string;
   confidence: number;
 };
@@ -71,10 +74,29 @@ export type ResearchReport = ReportListItem & {
   bull_case: string;
   bear_case: string;
   risk_factors: string[];
+  evidence_labels: string[];
   trade_plan: string;
   position_sizing: string;
   take_profit_stop_loss: string;
   markdown: string | null;
+};
+
+export type ReportComparisonSection = {
+  current: string;
+  previous: string;
+  changed: boolean;
+};
+
+export type ReportComparison = {
+  symbol: string;
+  current: ReportListItem;
+  previous: ReportListItem;
+  confidence_delta: number;
+  risk_factor_changes: {
+    added: string[];
+    removed: string[];
+  };
+  section_changes: Record<string, ReportComparisonSection>;
 };
 
 export type MarketBar = {
@@ -294,6 +316,7 @@ export async function startAnalysis(payload: AnalysisStartPayload): Promise<Anal
       model: payload.model,
       depth: payload.depth,
       analyst_set: payload.analystSet,
+      research_template: payload.researchTemplate,
     }),
   });
 
@@ -316,8 +339,19 @@ export function getAnalysisStatus(analysisId: string): Promise<AnalysisStatus> {
   return requestJson<AnalysisStatus>(`/api/analysis/${analysisId}`);
 }
 
+export async function retryAnalysis(analysisId: string): Promise<AnalysisStatus> {
+  const queued = await requestJson<{ analysis_id: string }>(`/api/analysis/${analysisId}/retry`, {
+    method: "POST",
+  });
+  return requestJson<AnalysisStatus>(`/api/analysis/${queued.analysis_id}`);
+}
+
 export function getReport(reportId: string): Promise<ResearchReport> {
   return requestJson<ResearchReport>(`/api/reports/${reportId}`);
+}
+
+export function getReportComparison(reportId: string): Promise<ReportComparison> {
+  return requestJson<ReportComparison>(`/api/reports/${reportId}/comparison`);
 }
 
 export function getMarketBars(symbol: string, timeframe: MarketTimeframe = "1m"): Promise<MarketBarsResponse> {

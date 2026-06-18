@@ -23,6 +23,7 @@ class AnalysisRunModel(Base):
     model: Mapped[str] = mapped_column(String(128))
     depth: Mapped[str] = mapped_column(String(32))
     analyst_set: Mapped[str] = mapped_column(String(64), default="macro-options")
+    research_template: Mapped[str] = mapped_column(String(64), default="general")
     status: Mapped[str] = mapped_column(String(32))
     progress: Mapped[list[dict]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

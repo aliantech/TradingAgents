@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 2D Slice 2 Persistent Watchlist Implemented and Validated
+Status: Phase 2D Complete and Phase 3 Ready
 Last Reviewed: 2026-06-19
 Owner: Yasin
 
@@ -60,7 +60,7 @@ As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
 - Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
-- Current Phase 2D state: the Analysis workflow includes a research brief, and the Dashboard now uses a database-backed `research.watchlist` setting so the research cockpit can persist the user's default symbol list.
+- Current Phase 2D state: the Analysis workflow includes a research brief, research templates, and a safe retry path for failed runs. The Dashboard persists the user's default symbol list through database-backed settings, and Reports can compare a selected report against the prior report for the same symbol. Reports now include evidence labels in both JSON and Markdown output.
 
 Current code shape:
 
@@ -116,6 +116,7 @@ Initial storage scope:
 
 - `docs/roadmap/phase-1-roadmap.md`
 - `docs/architecture/phase-1-architecture.md`
+- `docs/architecture/agent-gateway-and-strategy-lab.md`
 - `docs/roadmap/phase-2a-roadmap.md`
 - `docs/roadmap/phase-2a-verification.md`
 - `docs/roadmap/phase-2b-roadmap.md`
@@ -123,5 +124,6 @@ Initial storage scope:
 - `docs/roadmap/phase-2c-roadmap.md`
 - `docs/roadmap/phase-2c-completion-audit.md`
 - `docs/roadmap/phase-2d-roadmap.md`
+- `docs/roadmap/phase-2d-completion-audit.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`

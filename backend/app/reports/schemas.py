@@ -9,6 +9,7 @@ class ResearchReport(BaseModel):
     symbol: str
     language: str = "zh"
     analyst_set: str = "macro-options"
+    research_template: str = "general"
     summary: str
     market_background: str
     fundamental_analysis: str
@@ -18,6 +19,7 @@ class ResearchReport(BaseModel):
     bull_case: str
     bear_case: str
     risk_factors: list[str]
+    evidence_labels: list[str] = Field(default_factory=list)
     trade_plan: str
     position_sizing: str
     take_profit_stop_loss: str
@@ -31,5 +33,26 @@ class ReportListItem(BaseModel):
     symbol: str
     language: str
     analyst_set: str = "macro-options"
+    research_template: str = "general"
     summary: str
     confidence: float
+
+
+class ReportComparisonSection(BaseModel):
+    current: str
+    previous: str
+    changed: bool
+
+
+class ReportRiskFactorChanges(BaseModel):
+    added: list[str]
+    removed: list[str]
+
+
+class ReportComparison(BaseModel):
+    symbol: str
+    current: ReportListItem
+    previous: ReportListItem
+    confidence_delta: float
+    risk_factor_changes: ReportRiskFactorChanges
+    section_changes: dict[str, ReportComparisonSection]

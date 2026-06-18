@@ -53,12 +53,33 @@ def list_analysis_runs(
                 model=run.request.model,
                 depth=run.request.depth,
                 analyst_set=run.request.analyst_set,
+                research_template=run.request.research_template,
                 created_at=run.created_at,
                 updated_at=run.updated_at,
                 report_id=run.report.report_id if run.report else None,
             )
             for run in runs
         ]
+    )
+
+
+@router.post("/{analysis_id}/retry", response_model=AnalysisQueuedResponse, status_code=status.HTTP_202_ACCEPTED)
+def retry_analysis(
+    analysis_id: UUID,
+    repository: AnalysisRepository = Depends(get_analysis_repository),
+) -> AnalysisQueuedResponse:
+    run = repository.get_run(analysis_id) or analysis_store.get(analysis_id)
+    if run is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="analysis not found")
+    if run.status != "failed":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="only failed analysis runs can be retried")
+
+    retry_run = start_analysis_job(run.request, repository=repository)
+    return AnalysisQueuedResponse(
+        analysis_id=retry_run.analysis_id,
+        symbol=retry_run.request.symbol,
+        status="queued",
+        language=retry_run.request.language,
     )
 
 

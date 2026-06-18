@@ -3,10 +3,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.analysis.repository import AnalysisRepository
+from app.analysis.repository import AnalysisRepository, build_report_comparison
 from app.analysis.store import analysis_store
 from app.db.session import get_db_session
-from app.reports.schemas import ReportListItem, ResearchReport
+from app.reports.schemas import ReportComparison, ReportListItem, ResearchReport
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -51,3 +51,37 @@ def get_report(
         if run.report and run.report.report_id == report_id:
             return run.report
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+
+
+@router.get("/{report_id}/comparison", response_model=ReportComparison)
+def get_report_comparison(
+    report_id: UUID,
+    repository: AnalysisRepository = Depends(get_analysis_repository),
+) -> ReportComparison:
+    persisted_comparison = repository.get_report_comparison(report_id)
+    if persisted_comparison is not None:
+        return persisted_comparison
+    if repository.get_report(report_id) is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="previous report not found")
+
+    current = None
+    previous = None
+    for run in analysis_store.list_runs():
+        if run.report and run.report.report_id == report_id:
+            current = run
+            break
+    if current is None or current.report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+
+    for run in analysis_store.list_runs():
+        if (
+            run.report
+            and run.report.report_id != report_id
+            and run.report.symbol == current.report.symbol
+            and run.request.analysis_date < current.request.analysis_date
+        ):
+            if previous is None or run.request.analysis_date > previous.request.analysis_date:
+                previous = run
+    if previous is None or previous.report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="previous report not found")
+    return build_report_comparison(current=current.report, previous=previous.report)

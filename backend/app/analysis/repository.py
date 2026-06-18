@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.analysis.schemas import AnalysisDepth, AnalysisProgressEvent, AnalysisRequest, AssetType, ReportLanguage
 from app.analysis.store import AnalysisRun
 from app.db.models import AnalysisReportModel, AnalysisRunModel
-from app.reports.schemas import ReportListItem, ResearchReport
+from app.reports.schemas import ReportComparison, ReportComparisonSection, ReportListItem, ReportRiskFactorChanges, ResearchReport
 
 
 class AnalysisRepository:
@@ -24,6 +24,7 @@ class AnalysisRepository:
             model=run.request.model,
             depth=run.request.depth.value,
             analyst_set=run.request.analyst_set,
+            research_template=run.request.research_template.value,
             status=run.status,
             progress=[event.model_dump() for event in run.progress],
             created_at=run.created_at,
@@ -63,6 +64,7 @@ class AnalysisRepository:
                 symbol=model.symbol,
                 language=model.language,
                 analyst_set=model.report_json.get("analyst_set", "macro-options"),
+                research_template=model.report_json.get("research_template", "general"),
                 summary=model.report_json["summary"],
                 confidence=model.confidence,
             )
@@ -75,6 +77,28 @@ class AnalysisRepository:
             return None
         return ResearchReport(**model.report_json)
 
+    def get_report_comparison(self, report_id: UUID) -> ReportComparison | None:
+        current = self.session.get(AnalysisReportModel, report_id)
+        if current is None:
+            return None
+
+        previous = self.session.scalars(
+            select(AnalysisReportModel)
+            .join(AnalysisRunModel)
+            .where(AnalysisReportModel.id != current.id)
+            .where(AnalysisReportModel.symbol == current.symbol)
+            .where(AnalysisRunModel.analysis_date < current.run.analysis_date)
+            .order_by(AnalysisRunModel.analysis_date.desc(), AnalysisReportModel.created_at.desc())
+            .limit(1)
+        ).first()
+        if previous is None:
+            return None
+
+        return build_report_comparison(
+            current=ResearchReport(**current.report_json),
+            previous=ResearchReport(**previous.report_json),
+        )
+
     def _to_run(self, model: AnalysisRunModel) -> AnalysisRun:
         request = AnalysisRequest(
             symbol=model.symbol,
@@ -85,6 +109,7 @@ class AnalysisRepository:
             model=model.model,
             depth=AnalysisDepth(model.depth),
             analyst_set=model.analyst_set,
+            research_template=getattr(model, "research_template", "general"),
         )
         report = ResearchReport(**model.report.report_json) if model.report else None
         return AnalysisRun(
@@ -96,3 +121,55 @@ class AnalysisRepository:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
+
+
+COMPARISON_SECTION_FIELDS = (
+    "summary",
+    "market_background",
+    "fundamental_analysis",
+    "technical_analysis",
+    "sentiment_analysis",
+    "options_observation",
+    "bull_case",
+    "bear_case",
+    "trade_plan",
+    "position_sizing",
+    "take_profit_stop_loss",
+)
+
+
+def build_report_comparison(*, current: ResearchReport, previous: ResearchReport) -> ReportComparison:
+    current_risks = set(current.risk_factors)
+    previous_risks = set(previous.risk_factors)
+    section_changes = {
+        field: ReportComparisonSection(
+            current=str(getattr(current, field)),
+            previous=str(getattr(previous, field)),
+            changed=getattr(current, field) != getattr(previous, field),
+        )
+        for field in COMPARISON_SECTION_FIELDS
+    }
+    return ReportComparison(
+        symbol=current.symbol,
+        current=_report_list_item(current),
+        previous=_report_list_item(previous),
+        confidence_delta=round(current.confidence - previous.confidence, 4),
+        risk_factor_changes=ReportRiskFactorChanges(
+            added=sorted(current_risks - previous_risks),
+            removed=sorted(previous_risks - current_risks),
+        ),
+        section_changes=section_changes,
+    )
+
+
+def _report_list_item(report: ResearchReport) -> ReportListItem:
+    return ReportListItem(
+        report_id=report.report_id,
+        analysis_id=report.analysis_id,
+        symbol=report.symbol,
+        language=report.language,
+        analyst_set=report.analyst_set,
+        research_template=report.research_template,
+        summary=report.summary,
+        confidence=report.confidence,
+    )

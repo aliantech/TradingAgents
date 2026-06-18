@@ -12,7 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type AnalysisConfig = Pick<
   AnalysisStartPayload,
-  "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet"
+  "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet" | "researchTemplate"
 >;
 
 type AnalysisPanelProps = {
@@ -157,6 +157,35 @@ export function AnalysisPanel({
             </div>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-muted-foreground">{t("analysis.template")}</span>
+                <Select
+                  value={config.researchTemplate}
+                  onValueChange={(researchTemplate) => {
+                    if (
+                      researchTemplate === "general" ||
+                      researchTemplate === "earnings-preview" ||
+                      researchTemplate === "macro-options-readthrough" ||
+                      researchTemplate === "technical-setup"
+                    ) {
+                      updateConfig({ researchTemplate });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="general">{t("analysis.templates.general")}</SelectItem>
+                      <SelectItem value="earnings-preview">{t("analysis.templates.earnings-preview")}</SelectItem>
+                      <SelectItem value="macro-options-readthrough">{t("analysis.templates.macro-options-readthrough")}</SelectItem>
+                      <SelectItem value="technical-setup">{t("analysis.templates.technical-setup")}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
                 <span className="text-xs font-medium text-muted-foreground">{t("analysis.depth")}</span>
                 <ToggleGroup
                   type="single"
@@ -207,7 +236,7 @@ export function AnalysisPanel({
         <div className="grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
           <AnalysisFact icon={<CalendarDays />} label={t("analysis.runDate")} value={config.analysisDate} />
           <AnalysisFact icon={<Bot />} label={t("analysis.runModel")} value={`${config.llmProvider} · ${config.model}`} />
-          <AnalysisFact icon={<ShieldCheck />} label={t("analysis.outputMode")} value={t("analysis.chineseFirst")} />
+          <AnalysisFact icon={<ShieldCheck />} label={t("analysis.template")} value={t(`analysis.templates.${config.researchTemplate}`)} />
           <AnalysisFact icon={<Workflow />} label={t("analysis.runTeam")} value={teamAgents.join(" / ")} />
         </div>
 

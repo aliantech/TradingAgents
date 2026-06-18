@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
   model text NOT NULL,
   depth text NOT NULL,
   analyst_set text NOT NULL DEFAULT 'macro-options',
+  research_template text NOT NULL DEFAULT 'general',
   status text NOT NULL,
   progress jsonb NOT NULL DEFAULT '[]'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),

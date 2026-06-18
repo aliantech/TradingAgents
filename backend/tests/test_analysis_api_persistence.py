@@ -104,3 +104,72 @@ def test_analysis_api_persists_analyst_set_into_report_metadata():
     report = report_response.json()
     assert report["analyst_set"] == "full"
     assert "研究团队：full" in report["markdown"]
+
+
+def test_analysis_api_persists_research_template_into_run_and_report():
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/analysis",
+        json={
+            "symbol": "NVDA",
+            "asset_type": "equity",
+            "analysis_date": "2026-06-19",
+            "language": "zh",
+            "llm_provider": "openai",
+            "model": "gpt-5.5",
+            "depth": "standard",
+            "analyst_set": "macro-options",
+            "research_template": "earnings-preview",
+        },
+    )
+
+    assert response.status_code == 202
+    analysis_id = response.json()["analysis_id"]
+    status_response = client.get(f"/api/analysis/{analysis_id}")
+    report_id = status_response.json()["report_id"]
+
+    analysis_store._runs.clear()
+    runs_response = client.get("/api/analysis/runs")
+    run = next(item for item in runs_response.json()["runs"] if item["analysis_id"] == analysis_id)
+    assert run["research_template"] == "earnings-preview"
+
+    report_response = client.get(f"/api/reports/{report_id}")
+    assert report_response.status_code == 200
+    report = report_response.json()
+    assert report["research_template"] == "earnings-preview"
+    assert "研究模板：earnings-preview" in report["markdown"]
+
+
+def test_analysis_report_includes_evidence_labels_for_quality_review():
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/analysis",
+        json={
+            "symbol": "SPY",
+            "asset_type": "etf",
+            "analysis_date": "2026-06-19",
+            "language": "zh",
+            "llm_provider": "openai",
+            "model": "gpt-5.5",
+            "depth": "standard",
+            "analyst_set": "macro-options",
+            "research_template": "macro-options-readthrough",
+        },
+    )
+
+    assert response.status_code == 202
+    status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
+    report_response = client.get(f"/api/reports/{status_response.json()['report_id']}")
+
+    assert report_response.status_code == 200
+    report = report_response.json()
+    assert report["evidence_labels"] == [
+        "market-bars",
+        "options-chain",
+        "provider-readiness",
+        "tradingagents-debate",
+    ]
+    assert "## 证据标签" in report["markdown"]
+    assert "- options-chain" in report["markdown"]

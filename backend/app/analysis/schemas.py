@@ -23,6 +23,13 @@ class AnalysisDepth(StrEnum):
     deep = "deep"
 
 
+class ResearchTemplate(StrEnum):
+    general = "general"
+    earnings_preview = "earnings-preview"
+    macro_options_readthrough = "macro-options-readthrough"
+    technical_setup = "technical-setup"
+
+
 class AnalysisRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=64)
     asset_type: AssetType
@@ -32,6 +39,7 @@ class AnalysisRequest(BaseModel):
     model: str = Field(min_length=1, max_length=128)
     depth: AnalysisDepth = AnalysisDepth.standard
     analyst_set: str = Field(default="macro-options", min_length=1, max_length=64)
+    research_template: ResearchTemplate = ResearchTemplate.general
 
 
 class AnalysisQueuedResponse(BaseModel):
@@ -68,6 +76,7 @@ class AnalysisRunListItem(BaseModel):
     model: str
     depth: AnalysisDepth
     analyst_set: str
+    research_template: ResearchTemplate = ResearchTemplate.general
     created_at: datetime
     updated_at: datetime
     report_id: UUID | None = None

@@ -1,4 +1,4 @@
-import type { ResearchReport } from "../../lib/api";
+import type { ReportComparison, ResearchReport } from "../../lib/api";
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import { Download, FileJson, Layers3, ShieldAlert, Target, Workflow } from "lucide-react";
@@ -12,9 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ReportPanelProps = {
   report: ResearchReport | null;
+  comparison?: ReportComparison | null;
 };
 
-export function ReportPanel({ report }: ReportPanelProps) {
+export function ReportPanel({ report, comparison }: ReportPanelProps) {
   const { t } = useTranslation();
   if (!report) {
     return (
@@ -87,6 +88,8 @@ export function ReportPanel({ report }: ReportPanelProps) {
           ))}
         </div>
 
+        <ReportComparisonCard comparison={comparison} />
+
         <Tabs defaultValue="structured">
           <TabsList className="flex-wrap">
             <TabsTrigger value="structured">{t("reports.structured")}</TabsTrigger>
@@ -134,8 +137,55 @@ export function ReportPanel({ report }: ReportPanelProps) {
             )) : <span className="text-sm text-muted-foreground">{t("reports.noRiskTags")}</span>}
           </div>
         </div>
+
+        <div className="rounded-lg border bg-background p-3">
+          <div className="mb-3 flex items-center gap-2">
+            <Layers3 className="text-muted-foreground" />
+            <h3 className="text-sm font-semibold">{t("reports.evidenceLabels")}</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {report.evidence_labels.length ? report.evidence_labels.map((label) => (
+              <Badge key={label} variant="secondary">{label}</Badge>
+            )) : <span className="text-sm text-muted-foreground">{t("reports.noEvidenceLabels")}</span>}
+          </div>
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ReportComparisonCard({ comparison }: { comparison?: ReportComparison | null }) {
+  const { t } = useTranslation();
+  if (!comparison) {
+    return (
+      <div className="rounded-lg border border-dashed bg-background p-3">
+        <p className="text-sm font-semibold">{t("reports.comparisonTitle")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("reports.comparisonEmpty")}</p>
+      </div>
+    );
+  }
+
+  const changedSections = Object.values(comparison.section_changes).filter((section) => section.changed).length;
+  const confidenceDelta = `${comparison.confidence_delta >= 0 ? "+" : ""}${(comparison.confidence_delta * 100).toFixed(0)}%`;
+
+  return (
+    <div className="grid gap-3 rounded-lg border bg-background p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">{t("reports.comparisonTitle")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("reports.comparisonPrevious", { symbol: comparison.previous.symbol, reportId: comparison.previous.report_id.slice(0, 8) })}
+          </p>
+        </div>
+        <Badge variant="secondary">{t("reports.comparisonChangedSections", { count: changedSections })}</Badge>
+      </div>
+      <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
+        <ReportFact icon={<Target />} label={t("reports.comparisonConfidenceDelta")} value={confidenceDelta} />
+        <ReportFact icon={<ShieldAlert />} label={t("reports.comparisonAddedRisks")} value={comparison.risk_factor_changes.added.length.toLocaleString()} />
+        <ReportFact icon={<Layers3 />} label={t("reports.comparisonRemovedRisks")} value={comparison.risk_factor_changes.removed.length.toLocaleString()} />
+      </div>
+      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{comparison.previous.summary}</p>
+    </div>
   );
 }
 
@@ -206,7 +256,8 @@ function reportMarkdown(report: ResearchReport) {
   if (report.markdown?.trim()) return report.markdown;
   const sections = reportMarkdownSections(report).map((section) => `## ${section.title}\n\n${section.body}`).join("\n\n");
   const risks = report.risk_factors.length ? `\n\n## 风险标签\n\n${report.risk_factors.map((risk) => `- ${risk}`).join("\n")}` : "";
-  return `# ${report.symbol} 中文报告\n\n${sections}${risks}`;
+  const evidence = report.evidence_labels.length ? `\n\n## 证据标签\n\n${report.evidence_labels.map((label) => `- ${label}`).join("\n")}` : "";
+  return `# ${report.symbol} 中文报告\n\n${sections}${risks}${evidence}`;
 }
 
 function reportMarkdownSections(report: ResearchReport) {

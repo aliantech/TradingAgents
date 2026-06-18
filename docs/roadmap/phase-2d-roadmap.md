@@ -15,6 +15,8 @@ Select symbol
 
 Phase 2D remains research-only. It does not add broker order placement, AI trading authority, live execution, or public investment-advice positioning.
 
+Completion audit: `docs/roadmap/phase-2d-completion-audit.md`.
+
 ## Entry State
 
 Phase 2C delivered the data and UI foundation:
@@ -59,12 +61,87 @@ Implemented surface:
 - Settings catalog now exposes `research.watchlist` under user/workspace preferences.
 - Watchlist actions are constrained to the currently supported U.S./index/ETF symbol universe.
 
+## Slice 3: Report Comparison
+
+Status: implemented and validated on 2026-06-19.
+
+Purpose:
+
+- Let the research workflow compare the selected report against the prior report for the same symbol.
+- Keep the comparison backend-owned so the frontend does not guess history order or diff semantics.
+- Surface a compact report delta before future deeper report quality work.
+
+Implemented surface:
+
+- `GET /api/reports/{report_id}/comparison` returns the current report, previous same-symbol report, confidence delta, risk-factor additions/removals, and section-level changed flags.
+- Missing prior same-symbol reports return `404` with `previous report not found`.
+- Reports UI loads comparison data when a report is selected and shows a compact comparison card with prior summary, confidence delta, changed section count, and risk-factor change counts.
+
+## Slice 4: Research Templates
+
+Status: implemented and validated on 2026-06-19.
+
+Purpose:
+
+- Add task-type intent to the TradingAgents launch contract instead of treating every analysis run as a generic report.
+- Support first research templates for general research, earnings preview, macro/options read-through, and technical setup.
+- Persist the selected template into run and report metadata so reports can be filtered, compared, and improved by task type later.
+
+Implemented surface:
+
+- `AnalysisRequest` accepts `research_template` with values `general`, `earnings-preview`, `macro-options-readthrough`, and `technical-setup`.
+- `analysis_runs` persists `research_template` with lightweight auto-migration for existing local databases.
+- `ResearchReport`, report list items, and analysis run list items include `research_template`.
+- Generated report Markdown records the selected template.
+- Analysis UI exposes a research-template selector and Research Brief displays the selected task type.
+
+## Slice 5: Report Evidence Labels
+
+Status: implemented and validated on 2026-06-19.
+
+Purpose:
+
+- Start the report quality pass by making the evidence basis visible in report JSON, Markdown, and UI.
+- Prepare later report improvements such as source confidence, options-specific evidence grouping, and report comparison by evidence class.
+
+Implemented surface:
+
+- `ResearchReport` includes `evidence_labels`.
+- Generated reports include `market-bars`, `options-chain`, `provider-readiness`, and `tradingagents-debate` labels.
+- Generated Markdown includes a `证据标签` section.
+- Reports UI displays evidence labels as badges below risk tags.
+
+## Slice 6: Safe Retry Flow
+
+Status: implemented and validated on 2026-06-19.
+
+Purpose:
+
+- Add an explicit retry mutation for failed analysis runs.
+- Preserve the original failed run as an audit trail instead of mutating it into a new status.
+- Let the Runs page restart a failed research task from the original analysis contract.
+
+Implemented surface:
+
+- `POST /api/analysis/{analysis_id}/retry` creates a new analysis run from the original failed run request.
+- Retry returns `409` for non-failed runs.
+- Retry returns `404` for unknown analysis IDs.
+- Runs UI displays a `Retry` action for failed analysis runs and refreshes analysis/report state after retry.
+
 ## Next Slices
 
-- Report comparison: compare latest report against prior report for the same symbol.
-- Research templates: add task types such as earnings preview, macro/options read-through, and technical setup.
-- Report quality pass: improve generated Chinese report structure, evidence labels, and options-specific language.
-- Safe retry flow: add retry mutation for failed analysis runs after the backend contract is explicit.
+- Report quality pass: improve source confidence, options-specific evidence grouping, and Chinese report phrasing.
+- Phase 3 planning: research Agent Gateway, async job contract, and SignalStrategy research lab.
+
+## Follow-On Architecture Track
+
+The QuantDinger review produced a separate adoption boundary for future agent and strategy work:
+
+- Reference document: `docs/architecture/agent-gateway-and-strategy-lab.md`.
+- Phase 2D remains research-only and should not add broker execution or AI trading authority.
+- The first future Agent Gateway should expose only read/research endpoints for market context, options summaries, reports, analysis runs, and async job status.
+- The first future MCP server should be a thin wrapper over `/api/agent/v1`, not a direct database or service bypass.
+- Strategy Lab should start with dataframe-based signal research before any event-driven paper runtime or broker adapter work.
 
 ## Verification Targets
 
@@ -125,4 +202,108 @@ Result:
 
 ```text
 1 passed in 0.59s
+```
+
+Slice 3 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_report_comparison_api.py tests/test_analysis_api_persistence.py tests/test_analysis_repository.py
+```
+
+Result:
+
+```text
+7 passed in 0.98s
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 399ms
+```
+
+Slice 4 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_analysis_api_persistence.py tests/test_report_comparison_api.py tests/test_analysis_repository.py
+```
+
+Result:
+
+```text
+8 passed in 0.88s
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 522ms
+```
+
+Slice 5 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_analysis_api_persistence.py tests/test_report_comparison_api.py tests/test_analysis_repository.py
+```
+
+Result:
+
+```text
+9 passed in 0.94s
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 570ms
+```
+
+Slice 6 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_analysis_retry_api.py tests/test_analysis_api_persistence.py tests/test_report_comparison_api.py tests/test_analysis_repository.py
+```
+
+Result:
+
+```text
+11 passed in 1.12s
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 484ms
 ```

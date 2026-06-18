@@ -29,11 +29,21 @@ def _ensure_analysis_run_columns() -> None:
         return
     columns = {column["name"] for column in inspector.get_columns("analysis_runs")}
     if "analyst_set" in columns:
+        needs_analyst_set = False
+    else:
+        needs_analyst_set = True
+    needs_research_template = "research_template" not in columns
+    if not needs_analyst_set and not needs_research_template:
         return
     with engine.begin() as connection:
-        connection.execute(
-            text("ALTER TABLE analysis_runs ADD COLUMN analyst_set VARCHAR(64) NOT NULL DEFAULT 'macro-options'")
-        )
+        if needs_analyst_set:
+            connection.execute(
+                text("ALTER TABLE analysis_runs ADD COLUMN analyst_set VARCHAR(64) NOT NULL DEFAULT 'macro-options'")
+            )
+        if needs_research_template:
+            connection.execute(
+                text("ALTER TABLE analysis_runs ADD COLUMN research_template VARCHAR(64) NOT NULL DEFAULT 'general'")
+            )
 
 
 def _seed_default_settings() -> None:
