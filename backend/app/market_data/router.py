@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -22,30 +22,9 @@ from app.market_data.schemas import (
 )
 from app.market_data.provider_readiness import check_market_data_provider_readiness
 from app.market_data.sync_repository import ProviderSyncRepository
+from app.settings.runtime import resolve_runtime_settings
 
 router = APIRouter(prefix="/api/market-data", tags=["market-data"])
-
-
-def _sample_bars(symbol: str, timeframe: str) -> list[MarketBar]:
-    start = datetime(2026, 6, 17, 13, 30, tzinfo=timezone.utc)
-    prices = [550.0, 551.2, 550.7, 552.1, 553.0, 552.4, 554.2, 555.0]
-    bars: list[MarketBar] = []
-    for index, price in enumerate(prices):
-        open_price = prices[index - 1] if index else price - 0.5
-        bars.append(
-            MarketBar(
-                symbol=symbol.upper(),
-                timeframe=timeframe,
-                timestamp=start + timedelta(minutes=index),
-                open=open_price,
-                high=max(open_price, price) + 0.4,
-                low=min(open_price, price) - 0.3,
-                close=price,
-                volume=900000 + index * 75000,
-                source="sample",
-            )
-        )
-    return bars
 
 
 @router.get("/bars", response_model=MarketBarsResponse)
@@ -60,7 +39,7 @@ def get_market_bars(
     return MarketBarsResponse(
         symbol=normalized_symbol,
         timeframe=timeframe,
-        bars=persisted_bars or _sample_bars(normalized_symbol, timeframe),
+        bars=persisted_bars,
     )
 
 
@@ -188,8 +167,10 @@ def get_sync_health(
 @router.get("/provider-readiness", response_model=ProviderReadinessResponse)
 def get_provider_readiness(
     provider: str | None = Query(default=None, min_length=1, max_length=64),
+    session: Session = Depends(get_db_session),
 ) -> ProviderReadinessResponse:
-    readiness = check_market_data_provider_readiness(settings, provider=provider)
+    runtime_settings = resolve_runtime_settings(session)
+    readiness = check_market_data_provider_readiness(runtime_settings, provider=provider)
     return ProviderReadinessResponse(
         provider=readiness.provider,
         ready=readiness.ready,
@@ -203,16 +184,18 @@ def sync_daily_bars(
     request: DailyBarSyncRequest,
     session: Session = Depends(get_db_session),
 ) -> DailyBarSyncResponse:
-    if not settings.manual_market_sync_enabled:
+    runtime_settings = resolve_runtime_settings(session)
+    if not runtime_settings.manual_market_sync_enabled:
         raise HTTPException(status_code=403, detail="Manual market data sync is disabled.")
     try:
         result = run_sync_bars(
             session=session,
-            provider_name=request.provider or settings.market_data_provider,
+            provider_name=request.provider or runtime_settings.market_data_provider,
             symbol=request.symbol,
             timeframe=request.timeframe,
             start=request.start,
             end=request.end,
+            runtime_settings=runtime_settings,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

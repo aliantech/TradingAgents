@@ -14,13 +14,6 @@ class ProviderReadiness:
 
 def check_market_data_provider_readiness(settings: Settings, provider: str | None = None) -> ProviderReadiness:
     provider_name = (provider or settings.market_data_provider).lower().strip()
-    if provider_name == "sample":
-        return ProviderReadiness(
-            provider="sample",
-            ready=True,
-            missing=[],
-            message="Sample provider is ready for local smoke runs.",
-        )
     if provider_name == "polygon":
         missing = []
         if not runtime_config.polygon_api_key(settings):

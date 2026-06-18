@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
@@ -18,7 +18,32 @@ def initialize_database() -> None:
     if _initialized:
         return
     Base.metadata.create_all(bind=engine)
+    _ensure_analysis_run_columns()
+    _seed_default_settings()
     _initialized = True
+
+
+def _ensure_analysis_run_columns() -> None:
+    inspector = inspect(engine)
+    if "analysis_runs" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("analysis_runs")}
+    if "analyst_set" in columns:
+        return
+    with engine.begin() as connection:
+        connection.execute(
+            text("ALTER TABLE analysis_runs ADD COLUMN analyst_set VARCHAR(64) NOT NULL DEFAULT 'macro-options'")
+        )
+
+
+def _seed_default_settings() -> None:
+    from app.settings.runtime import seed_default_database_settings
+
+    session = SessionLocal()
+    try:
+        seed_default_database_settings(session)
+    finally:
+        session.close()
 
 
 def get_db_session() -> Generator[Session, None, None]:

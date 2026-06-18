@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.analysis.repository import AnalysisRepository
-from app.analysis.schemas import AnalysisQueuedResponse, AnalysisRequest, AnalysisStatusResponse
+from app.analysis.schemas import AnalysisQueuedResponse, AnalysisRequest, AnalysisRunListItem, AnalysisRunsResponse, AnalysisStatusResponse
 from app.analysis.service import start_analysis as start_analysis_job
 from app.analysis.store import analysis_store
 from app.db.session import get_db_session
@@ -29,6 +29,36 @@ def start_analysis(
         symbol=run.request.symbol,
         status="queued",
         language=run.request.language,
+    )
+
+
+@router.get("/runs", response_model=AnalysisRunsResponse)
+def list_analysis_runs(
+    repository: AnalysisRepository = Depends(get_analysis_repository),
+) -> AnalysisRunsResponse:
+    runs = repository.list_runs()
+    persisted_ids = {run.analysis_id for run in runs}
+    runs.extend(run for run in analysis_store.list_runs() if run.analysis_id not in persisted_ids)
+
+    return AnalysisRunsResponse(
+        runs=[
+            AnalysisRunListItem(
+                analysis_id=run.analysis_id,
+                symbol=run.request.symbol,
+                asset_type=run.request.asset_type,
+                status=run.status,
+                language=run.request.language,
+                analysis_date=run.request.analysis_date,
+                llm_provider=run.request.llm_provider,
+                model=run.request.model,
+                depth=run.request.depth,
+                analyst_set=run.request.analyst_set,
+                created_at=run.created_at,
+                updated_at=run.updated_at,
+                report_id=run.report.report_id if run.report else None,
+            )
+            for run in runs
+        ]
     )
 
 

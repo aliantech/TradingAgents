@@ -6,7 +6,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.db.session import SessionLocal, initialize_database
 from app.market_data.ingestion import MarketDataIngestionService
 from app.market_data.provider_readiness import check_market_data_provider_readiness
@@ -16,7 +16,6 @@ from app.market_data.scheduler import run_configured_sync_targets_once, run_sche
 from app.market_data.sync import MarketDataSyncResult, MarketDataSyncService
 from app.market_data.sync_repository import ProviderSyncRepository
 from app.realtime.publisher_factory import create_market_data_publisher
-from app.runtime_config import runtime_config
 
 
 SECRET_LIKE_PATTERN = re.compile(r"(?i)(api[-_]?key|token|secret|password)=([^&\s]+)")
@@ -85,18 +84,19 @@ def run_sync_bars(
     timeframe: str,
     start: date,
     end: date,
+    runtime_settings: Settings = settings,
 ) -> MarketDataSyncResult:
     provider = get_market_data_provider(
         provider_name,
-        polygon_api_key=runtime_config.polygon_api_key(settings),
-        polygon_base_url=runtime_config.polygon_base_url(settings),
-        max_retries=settings.provider_max_retries,
-        retry_backoff_seconds=settings.provider_retry_backoff_seconds,
+        polygon_api_key=runtime_settings.polygon_api_key,
+        polygon_base_url=runtime_settings.polygon_base_url,
+        max_retries=runtime_settings.provider_max_retries,
+        retry_backoff_seconds=runtime_settings.provider_retry_backoff_seconds,
     )
     publisher = create_market_data_publisher(
-        enabled=settings.realtime_market_publish_enabled,
-        redis_url=settings.redis_url,
-        ttl_seconds=settings.realtime_market_ttl_seconds,
+        enabled=runtime_settings.realtime_market_publish_enabled,
+        redis_url=runtime_settings.redis_url,
+        ttl_seconds=runtime_settings.realtime_market_ttl_seconds,
     )
     service = MarketDataSyncService(
         provider=provider,

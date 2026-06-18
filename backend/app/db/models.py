@@ -22,6 +22,7 @@ class AnalysisRunModel(Base):
     llm_provider: Mapped[str] = mapped_column(String(64))
     model: Mapped[str] = mapped_column(String(128))
     depth: Mapped[str] = mapped_column(String(32))
+    analyst_set: Mapped[str] = mapped_column(String(64), default="macro-options")
     status: Mapped[str] = mapped_column(String(32))
     progress: Mapped[list[dict]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -95,6 +96,16 @@ class ProviderSyncRunModel(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     rows_written: Mapped[int] = mapped_column(default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class AppSettingModel(Base):
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(64), index=True)
+    is_secret: Mapped[bool] = mapped_column(default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class OptionContractModel(Base):

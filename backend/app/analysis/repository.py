@@ -23,8 +23,11 @@ class AnalysisRepository:
             llm_provider=run.request.llm_provider,
             model=run.request.model,
             depth=run.request.depth.value,
+            analyst_set=run.request.analyst_set,
             status=run.status,
             progress=[event.model_dump() for event in run.progress],
+            created_at=run.created_at,
+            updated_at=run.updated_at,
         )
         if run.report is not None:
             report_id = run.report.report_id
@@ -59,6 +62,7 @@ class AnalysisRepository:
                 analysis_id=model.analysis_run_id,
                 symbol=model.symbol,
                 language=model.language,
+                analyst_set=model.report_json.get("analyst_set", "macro-options"),
                 summary=model.report_json["summary"],
                 confidence=model.confidence,
             )
@@ -80,6 +84,7 @@ class AnalysisRepository:
             llm_provider=model.llm_provider,
             model=model.model,
             depth=AnalysisDepth(model.depth),
+            analyst_set=model.analyst_set,
         )
         report = ResearchReport(**model.report.report_json) if model.report else None
         return AnalysisRun(
@@ -88,4 +93,6 @@ class AnalysisRepository:
             status=model.status,
             progress=[AnalysisProgressEvent(**event) for event in model.progress],
             report=report,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
         )

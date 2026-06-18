@@ -1,47 +1,78 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.runtime_config import runtime_config
+from app.db.session import get_db_session
+from app.settings.repository import SettingsRepository
+from app.settings.schemas import (
+    ProviderSettingsRequest,
+    ProviderSettingsResponse,
+    SettingWriteItem,
+    SettingsResponse,
+    SettingsUpsertRequest,
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
-class ProviderSettingsRequest(BaseModel):
-    provider: str = Field(default="polygon", min_length=1, max_length=64)
-    polygon_api_key: str | None = Field(default=None, min_length=1)
-    polygon_base_url: str | None = Field(default=None, min_length=1, max_length=256)
+def get_settings_repository(session: Session = Depends(get_db_session)) -> SettingsRepository:
+    return SettingsRepository(session)
 
 
-class ProviderSettingsResponse(BaseModel):
-    provider: str
-    polygon_configured: bool
-    polygon_base_url: str
-    message: str
+@router.get("", response_model=SettingsResponse)
+def list_settings(repository: SettingsRepository = Depends(get_settings_repository)) -> SettingsResponse:
+    return SettingsResponse(items=repository.list_settings())
 
 
 @router.get("/provider", response_model=ProviderSettingsResponse)
-def get_provider_settings() -> ProviderSettingsResponse:
-    snapshot = runtime_config.snapshot(settings)
+def get_provider_settings(
+    repository: SettingsRepository = Depends(get_settings_repository),
+) -> ProviderSettingsResponse:
+    polygon_api_key = repository.get_raw_value("AQUANTLENS_POLYGON_API_KEY") or ""
+    polygon_base_url = repository.get_raw_value("AQUANTLENS_POLYGON_BASE_URL") or ""
     return ProviderSettingsResponse(
-        provider=snapshot.provider,
-        polygon_configured=snapshot.polygon_configured,
-        polygon_base_url=snapshot.polygon_base_url,
-        message="Runtime provider settings loaded.",
+        provider="polygon",
+        polygon_configured=bool(polygon_api_key),
+        polygon_base_url=polygon_base_url,
     )
 
 
 @router.put("/provider", response_model=ProviderSettingsResponse)
-def update_provider_settings(request: ProviderSettingsRequest) -> ProviderSettingsResponse:
-    if request.provider.lower() != "polygon":
+def upsert_provider_settings(
+    request: ProviderSettingsRequest,
+    repository: SettingsRepository = Depends(get_settings_repository),
+) -> ProviderSettingsResponse:
+    provider = request.provider.lower()
+    if provider != "polygon":
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {request.provider}.")
-    snapshot = runtime_config.update_polygon(
-        api_key=request.polygon_api_key,
-        base_url=request.polygon_base_url,
-    )
-    return ProviderSettingsResponse(
-        provider=snapshot.provider,
-        polygon_configured=snapshot.polygon_configured,
-        polygon_base_url=snapshot.polygon_base_url,
-        message="Polygon runtime settings updated for this backend process.",
-    )
+
+    items: list[SettingWriteItem] = []
+    if request.polygon_api_key is not None:
+        items.append(
+            SettingWriteItem(
+                key="AQUANTLENS_POLYGON_API_KEY",
+                value=request.polygon_api_key,
+                category="api",
+                is_secret=True,
+            )
+        )
+    if request.polygon_base_url is not None:
+        items.append(
+            SettingWriteItem(
+                key="AQUANTLENS_POLYGON_BASE_URL",
+                value=request.polygon_base_url,
+                category="api",
+                is_secret=False,
+            )
+        )
+    if items:
+        repository.upsert_many(items)
+
+    return get_provider_settings(repository)
+
+
+@router.put("", response_model=SettingsResponse)
+def upsert_settings(
+    request: SettingsUpsertRequest,
+    repository: SettingsRepository = Depends(get_settings_repository),
+) -> SettingsResponse:
+    return SettingsResponse(items=repository.upsert_many(request.items))

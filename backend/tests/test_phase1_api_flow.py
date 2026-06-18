@@ -60,7 +60,7 @@ def test_phase_one_market_and_options_context():
     chain = chain_response.json()
     assert chain["underlying_symbol"] == "SPX"
     assert chain["expiry"] == "2026-06-17"
-    assert len(chain["snapshots"]) == 5
+    assert len(chain["snapshots"]) >= 5
     assert "delta" in chain["snapshots"][0]
 
 

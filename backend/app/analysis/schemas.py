@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID
 
@@ -31,6 +31,7 @@ class AnalysisRequest(BaseModel):
     llm_provider: str = Field(min_length=1, max_length=64)
     model: str = Field(min_length=1, max_length=128)
     depth: AnalysisDepth = AnalysisDepth.standard
+    analyst_set: str = Field(default="macro-options", min_length=1, max_length=64)
 
 
 class AnalysisQueuedResponse(BaseModel):
@@ -54,3 +55,23 @@ class AnalysisStatusResponse(BaseModel):
     language: ReportLanguage
     progress: list[AnalysisProgressEvent]
     report_id: UUID | None = None
+
+
+class AnalysisRunListItem(BaseModel):
+    analysis_id: UUID
+    symbol: str
+    asset_type: AssetType
+    status: str
+    language: ReportLanguage
+    analysis_date: date
+    llm_provider: str
+    model: str
+    depth: AnalysisDepth
+    analyst_set: str
+    created_at: datetime
+    updated_at: datetime
+    report_id: UUID | None = None
+
+
+class AnalysisRunsResponse(BaseModel):
+    runs: list[AnalysisRunListItem]

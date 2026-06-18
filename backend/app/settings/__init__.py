@@ -1,1 +1,1 @@
-
+"""Settings persistence API."""

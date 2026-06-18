@@ -9,6 +9,7 @@ from app.market_data.cli import run_sync_bars, run_sync_daily_bars
 from app.market_data.repository import MarketDataRepository
 from app.market_data.sync_repository import ProviderSyncRepository
 from app.market_data.cli import LiveProviderSmokeResult
+from app.market_data.schemas import MarketBar
 
 
 def _session():
@@ -17,12 +18,51 @@ def _session():
     return sessionmaker(bind=engine)()
 
 
-def test_run_sync_daily_bars_uses_configured_provider_and_records_audit():
+class FixtureMarketDataProvider:
+    def fetch_bars(self, symbol: str, timeframe: str, start: date, end: date) -> list[MarketBar]:
+        return self.fetch_daily_bars(symbol, start, end) if timeframe == "1d" else [
+            MarketBar(
+                symbol=symbol.upper(),
+                timeframe=timeframe,
+                timestamp=datetime(2026, 6, 17, 13, 30, tzinfo=UTC),
+                open=550.0,
+                high=551.0,
+                low=549.5,
+                close=550.5,
+                volume=1000,
+                source="fixture",
+            )
+        ]
+
+    def fetch_daily_bars(self, symbol: str, start: date, end: date) -> list[MarketBar]:
+        days = (end - start).days + 1
+        return [
+            MarketBar(
+                symbol=symbol.upper(),
+                timeframe="1d",
+                timestamp=datetime.combine(start + timedelta(days=index), datetime.min.time(), tzinfo=UTC),
+                open=550.0 + index,
+                high=551.0 + index,
+                low=549.5 + index,
+                close=550.5 + index,
+                volume=1000 + index,
+                source="fixture",
+            )
+            for index in range(days)
+        ]
+
+
+def use_fixture_provider(monkeypatch):
+    monkeypatch.setattr(cli, "get_market_data_provider", lambda *args, **kwargs: FixtureMarketDataProvider())
+
+
+def test_run_sync_daily_bars_uses_configured_provider_and_records_audit(monkeypatch):
     session = _session()
+    use_fixture_provider(monkeypatch)
 
     result = run_sync_daily_bars(
         session=session,
-        provider_name="sample",
+        provider_name="fixture",
         symbol="spy",
         start=date(2026, 6, 16),
         end=date(2026, 6, 17),
@@ -34,15 +74,16 @@ def test_run_sync_daily_bars_uses_configured_provider_and_records_audit():
     assert result.rows_written == 2
     assert len(bars) == 2
     assert bars[0].symbol == "SPY"
-    assert bars[0].source == "sample"
+    assert bars[0].source == "fixture"
     assert len(runs) == 1
-    assert runs[0].provider == "sample"
+    assert runs[0].provider == "fixture"
     assert runs[0].status == "succeeded"
 
 
 def test_run_sync_daily_bars_publishes_when_realtime_enabled(monkeypatch):
     session = _session()
     published = []
+    use_fixture_provider(monkeypatch)
 
     class FakePublisher:
         def publish_bar(self, bar):
@@ -53,7 +94,7 @@ def test_run_sync_daily_bars_publishes_when_realtime_enabled(monkeypatch):
 
     result = run_sync_daily_bars(
         session=session,
-        provider_name="sample",
+        provider_name="fixture",
         symbol="SPY",
         start=date(2026, 6, 17),
         end=date(2026, 6, 17),
@@ -64,12 +105,13 @@ def test_run_sync_daily_bars_publishes_when_realtime_enabled(monkeypatch):
     assert published[0].symbol == "SPY"
 
 
-def test_run_sync_bars_supports_intraday_timeframe():
+def test_run_sync_bars_supports_intraday_timeframe(monkeypatch):
     session = _session()
+    use_fixture_provider(monkeypatch)
 
     result = run_sync_bars(
         session=session,
-        provider_name="sample",
+        provider_name="fixture",
         symbol="SPY",
         timeframe="5m",
         start=date(2026, 6, 17),
@@ -84,6 +126,7 @@ def test_run_sync_bars_supports_intraday_timeframe():
 
 def test_cli_run_scheduler_once_outputs_each_target(monkeypatch, capsys):
     session = _session()
+    use_fixture_provider(monkeypatch)
     monkeypatch.setattr(cli, "initialize_database", lambda: None)
     monkeypatch.setattr(cli, "SessionLocal", lambda: session)
 
@@ -91,7 +134,7 @@ def test_cli_run_scheduler_once_outputs_each_target(monkeypatch, capsys):
         [
             "run-scheduler-once",
             "--provider",
-            "sample",
+            "fixture",
             "--targets",
             "SPY:1d:2,QQQ:5m:1",
             "--today",
@@ -108,6 +151,7 @@ def test_cli_run_scheduler_once_outputs_each_target(monkeypatch, capsys):
 
 def test_cli_run_scheduler_loop_supports_limited_iterations(monkeypatch, capsys):
     session = _session()
+    use_fixture_provider(monkeypatch)
     monkeypatch.setattr(cli, "initialize_database", lambda: None)
     monkeypatch.setattr(cli, "SessionLocal", lambda: session)
 
@@ -115,7 +159,7 @@ def test_cli_run_scheduler_loop_supports_limited_iterations(monkeypatch, capsys)
         [
             "run-scheduler-loop",
             "--provider",
-            "sample",
+            "fixture",
             "--targets",
             "SPY:1d:2",
             "--today",
@@ -147,13 +191,13 @@ def test_cli_list_sync_runs_outputs_sanitized_audit_rows(monkeypatch, capsys):
         rows_written=1,
     )
     repository.record_run(
-        provider="sample",
+        provider="fixture",
         sync_type="bars_1m",
         status="failed",
         started_at=started_at + timedelta(minutes=1),
         finished_at=started_at + timedelta(minutes=1, seconds=3),
         rows_written=0,
-        error_message="sample timeout",
+        error_message="fixture timeout",
     )
     monkeypatch.setattr(cli, "initialize_database", lambda: None)
     monkeypatch.setattr(cli, "SessionLocal", lambda: session)
@@ -166,7 +210,7 @@ def test_cli_list_sync_runs_outputs_sanitized_audit_rows(monkeypatch, capsys):
     assert '"sync_type": "daily_bars"' in output
     assert '"status": "succeeded"' in output
     assert '"rows_written": 1' in output
-    assert '"sample timeout"' not in output
+    assert '"fixture timeout"' not in output
     assert "apiKey" not in output
 
 

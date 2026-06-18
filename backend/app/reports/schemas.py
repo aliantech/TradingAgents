@@ -8,6 +8,7 @@ class ResearchReport(BaseModel):
     report_id: UUID | None = None
     symbol: str
     language: str = "zh"
+    analyst_set: str = "macro-options"
     summary: str
     market_background: str
     fundamental_analysis: str
@@ -29,5 +30,6 @@ class ReportListItem(BaseModel):
     analysis_id: UUID
     symbol: str
     language: str
+    analyst_set: str = "macro-options"
     summary: str
     confidence: float

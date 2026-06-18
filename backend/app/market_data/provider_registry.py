@@ -1,6 +1,5 @@
 from app.market_data.provider import MarketDataProvider
 from app.market_data.polygon_provider import PolygonMarketDataProvider
-from app.market_data.sample_provider import SampleMarketDataProvider
 
 
 def get_market_data_provider(
@@ -12,8 +11,6 @@ def get_market_data_provider(
     retry_backoff_seconds: float = 1.0,
 ) -> MarketDataProvider:
     normalized_name = name.lower().strip()
-    if normalized_name == "sample":
-        return SampleMarketDataProvider()
     if normalized_name == "polygon":
         return PolygonMarketDataProvider(
             api_key=polygon_api_key,
@@ -21,5 +18,5 @@ def get_market_data_provider(
             max_retries=max_retries,
             retry_backoff_seconds=retry_backoff_seconds,
         )
-    supported = "sample, polygon"
+    supported = "polygon"
     raise ValueError(f"Unsupported market data provider: {name}. Supported providers: {supported}.")

@@ -21,6 +21,8 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
         [
             f"# {symbol} AI 投研报告",
             "",
+            f"研究团队：{request.analyst_set}",
+            "",
             "## 摘要",
             f"{symbol} 当前适合进入研究跟踪状态，短期需要同时观察价格趋势、波动率和期权成交结构。",
             "",
@@ -33,6 +35,7 @@ def _build_report(analysis_id: UUID, report_id: UUID, request: AnalysisRequest) 
         analysis_id=analysis_id,
         symbol=symbol,
         language=request.language,
+        analyst_set=request.analyst_set,
         summary=f"{symbol} 当前趋势中性偏强，但需要结合 IV、成交量和宏观事件确认方向。",
         market_background="美股市场处于事件和流动性共同驱动阶段，指数波动可能受利率、财报和风险偏好影响。",
         fundamental_analysis="第一阶段聚焦 ETF、指数和高流动性标的，基本面部分先使用成分股、估值和宏观背景做研究注释。",

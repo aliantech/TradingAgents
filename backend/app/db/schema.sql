@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
   llm_provider text NOT NULL,
   model text NOT NULL,
   depth text NOT NULL,
+  analyst_set text NOT NULL DEFAULT 'macro-options',
   status text NOT NULL,
   progress jsonb NOT NULL DEFAULT '[]'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -105,6 +106,14 @@ CREATE TABLE IF NOT EXISTS provider_sync_runs (
   finished_at timestamptz,
   rows_written integer NOT NULL DEFAULT 0,
   error_message text
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key text PRIMARY KEY,
+  value text NOT NULL DEFAULT '',
+  category text NOT NULL DEFAULT 'general',
+  is_secret boolean NOT NULL DEFAULT false,
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_instruments_symbol ON instruments(symbol);

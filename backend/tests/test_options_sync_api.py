@@ -70,7 +70,7 @@ def test_options_sync_chain_api_persists_chain_and_records_audit(monkeypatch):
     def override_session():
         yield session
 
-    monkeypatch.setattr(router, "create_options_provider", lambda provider_name: FakeOptionChainProvider())
+    monkeypatch.setattr(router, "create_options_provider", lambda provider_name, session: FakeOptionChainProvider())
     app.dependency_overrides[get_db_session] = override_session
     try:
         response = TestClient(app).post(
@@ -96,7 +96,13 @@ def test_options_sync_chain_api_persists_chain_and_records_audit(monkeypatch):
 
 
 def test_options_sync_chain_api_rejects_when_disabled(monkeypatch):
-    monkeypatch.setattr(router.settings, "manual_market_sync_enabled", False)
+    from app.core.config import settings
+
+    monkeypatch.setattr(
+        router,
+        "resolve_runtime_settings",
+        lambda session: settings.model_copy(update={"manual_market_sync_enabled": False}),
+    )
 
     response = TestClient(app).post(
         "/api/options/sync-chain",

@@ -9,6 +9,8 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db_session
 from app.main import app
+from app.market_data.repository import MarketDataRepository
+from app.market_data.schemas import MarketBar
 from app.options.repository import OptionContractRecord, OptionRepository, OptionSnapshotRecord
 
 
@@ -80,7 +82,7 @@ def test_options_chain_api_reads_persisted_snapshots():
     assert payload["snapshots"][0]["bid"] == 4.2
 
 
-def test_options_chain_api_seeds_deterministic_spx_sample_when_empty():
+def test_options_chain_api_returns_empty_snapshots_when_no_provider_data():
     session = _session()
     client = _client_with_session(session)
     try:
@@ -92,6 +94,106 @@ def test_options_chain_api_seeds_deterministic_spx_sample_when_empty():
     payload = response.json()
     assert payload["underlying_symbol"] == "SPX"
     assert payload["expiry"] == "2026-06-17"
-    assert len(payload["snapshots"]) >= 4
-    assert {snapshot["source"] for snapshot in payload["snapshots"]} == {"sample"}
-    assert all(snapshot["option_symbol"].startswith("SPX") for snapshot in payload["snapshots"])
+    assert payload["snapshots"] == []
+
+
+def test_options_contracts_api_reads_persisted_contracts():
+    session = _session()
+    repository = OptionRepository(session)
+    repository.upsert_contract(
+        OptionContractRecord(
+            option_symbol="SPY240621P00550000",
+            underlying_symbol="SPY",
+            expiry=date(2024, 6, 21),
+            strike=550.0,
+            option_type="put",
+            exercise_style="american",
+            expiration_type="weekly",
+            source="polygon",
+        )
+    )
+
+    client = _client_with_session(session)
+    try:
+        response = client.get("/api/options/contracts?underlying=spy&expiry=2024-06-21")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["underlying_symbol"] == "SPY"
+    assert payload["expiry"] == "2024-06-21"
+    assert payload["contracts"] == [
+        {
+            "option_symbol": "SPY240621P00550000",
+            "underlying_symbol": "SPY",
+            "expiry": "2024-06-21",
+            "strike": 550.0,
+            "option_type": "put",
+            "exercise_style": "american",
+            "expiration_type": "weekly",
+            "source": "polygon",
+        }
+    ]
+
+
+def test_options_contracts_api_returns_empty_contracts_when_no_provider_data():
+    session = _session()
+    client = _client_with_session(session)
+    try:
+        response = client.get("/api/options/contracts?underlying=spx&expiry=2026-06-17")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["underlying_symbol"] == "SPX"
+    assert payload["expiry"] == "2026-06-17"
+    assert payload["contracts"] == []
+
+
+def test_options_bars_api_reads_persisted_option_bars():
+    session = _session()
+    MarketDataRepository(session).save_bars(
+        [
+            MarketBar(
+                symbol="SPY240621C00550000",
+                timeframe="1m",
+                timestamp=datetime(2024, 6, 17, 13, 30, tzinfo=UTC),
+                open=4.1,
+                high=4.4,
+                low=4.0,
+                close=4.3,
+                volume=120,
+                source="polygon",
+            )
+        ],
+        asset_type="option",
+    )
+    client = _client_with_session(session)
+    try:
+        response = client.get("/api/options/bars?option_symbol=spy240621c00550000&timeframe=1m")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["option_symbol"] == "SPY240621C00550000"
+    assert payload["timeframe"] == "1m"
+    assert payload["bars"][0]["close"] == 4.3
+    assert payload["bars"][0]["source"] == "polygon"
+
+
+def test_options_bars_api_returns_empty_bars_when_no_provider_data():
+    session = _session()
+    client = _client_with_session(session)
+    try:
+        response = client.get("/api/options/bars?option_symbol=SPXW260617C05900000&timeframe=5m")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["option_symbol"] == "SPXW260617C05900000"
+    assert payload["timeframe"] == "5m"
+    assert payload["bars"] == []
