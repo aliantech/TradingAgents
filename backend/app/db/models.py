@@ -109,6 +109,23 @@ class AppSettingModel(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class AgentTokenModel(Base):
+    __tablename__ = "agent_tokens"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(80))
+    token_prefix: Mapped[str] = mapped_column(String(32), index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    scopes: Mapped[str] = mapped_column(String(64), default="R")
+    markets: Mapped[str] = mapped_column(String(255), default="US")
+    instruments: Mapped[str] = mapped_column(String(512), default="*")
+    rate_limit_per_min: Mapped[int] = mapped_column(default=60)
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class OptionContractModel(Base):
     __tablename__ = "option_contracts"
     __table_args__ = (

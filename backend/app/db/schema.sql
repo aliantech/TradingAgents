@@ -117,6 +117,22 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS agent_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  token_prefix text NOT NULL,
+  token_hash text NOT NULL UNIQUE,
+  scopes text NOT NULL DEFAULT 'R',
+  markets text NOT NULL DEFAULT 'US',
+  instruments text NOT NULL DEFAULT '*',
+  rate_limit_per_min integer NOT NULL DEFAULT 60,
+  status text NOT NULL DEFAULT 'active',
+  expires_at timestamptz,
+  last_used_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_instruments_symbol ON instruments(symbol);
 CREATE INDEX IF NOT EXISTS idx_option_contracts_underlying_expiry ON option_contracts(underlying_instrument_id, expiry_date);
 CREATE INDEX IF NOT EXISTS idx_analysis_reports_symbol_created ON analysis_reports(symbol, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash);

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agent_gateway.router import router as agent_gateway_router
 from app.analysis.router import router as analysis_router
 from app.api.health import router as health_router
 from app.db.session import initialize_database
@@ -28,6 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(agent_gateway_router)
 app.include_router(analysis_router)
 app.include_router(reports_router)
 app.include_router(market_data_router)

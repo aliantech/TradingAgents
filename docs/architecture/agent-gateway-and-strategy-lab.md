@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Draft adoption boundary
+Status: Active adoption boundary
 Last Reviewed: 2026-06-19
 Owner: Yasin
 
