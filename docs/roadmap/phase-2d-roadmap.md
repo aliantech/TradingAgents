@@ -27,7 +27,7 @@ Phase 2C delivered the data and UI foundation:
 
 ## Slice 1: Research Brief
 
-Status: implemented in the working tree.
+Status: implemented and validated on 2026-06-19.
 
 Purpose:
 
@@ -56,3 +56,31 @@ Implemented surface:
 - Backend analysis/report tests remain green.
 - No secret values are displayed, logged, or written into docs.
 - UI copy stays research-oriented and does not imply broker execution or investment advice.
+
+## Validation Evidence
+
+Ubuntu runtime validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 467ms
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_analysis_api_persistence.py tests/test_analysis_repository.py
+```
+
+Result:
+
+```text
+5 passed in 1.07s
+```
