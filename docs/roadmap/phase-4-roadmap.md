@@ -64,11 +64,24 @@ Out of scope:
 
 ### Slice 3: Strategy Catalog Boundary
 
-Planned:
+Status: implemented and validated on 2026-06-19.
 
-- Register Strategy Lab strategies through a typed catalog rather than hard-coding SignalStrategy-only frontend assumptions.
-- Keep each strategy contract deterministic and research-only.
-- Prepare a boundary for future event-driven strategies without exposing execution.
+Implemented:
+
+- Added `backend/app/strategy_lab/catalog.py` as the typed research-only strategy registry.
+- Registered `ma-cross-research` with name, description, default parameters, and parameter schema.
+- Added `GET /api/strategy-lab/strategies` for frontend catalog discovery.
+- Preview requests now validate `strategy_id` against the catalog and reject unknown strategies.
+- Frontend Strategy Lab loads the catalog and renders strategy name, id, description, and default parameters from the catalog.
+- Saved experiment titles now use the catalog strategy name instead of a hard-coded SignalStrategy label.
+
+Out of scope:
+
+- Multiple strategy implementations.
+- Event-driven strategy runtime.
+- Strategy plugin loading.
+- Paper or live execution.
+- Broker adapters.
 
 ## Validation Evidence
 
@@ -141,4 +154,40 @@ Rendered comparison check:
 - Selected `SPY MA baseline` as comparison A and `SPY MA flat` as comparison B.
 - Confirmed the comparison panel displayed `Final Delta +$3`, `Return Delta +0.03%`, `Trades Delta -1`, `Markers Delta -2`, and `Signals Delta 0`.
 - Confirmed parameter rows showed `fast_window 2 -> 5 Changed` and `slow_window 3 -> 5 Changed`.
+- Browser console had no errors during the rendered check.
+
+Slice 3 backend validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_strategy_lab_contracts.py tests/test_strategy_lab_api.py tests/test_strategy_lab_experiments_api.py --tb=short
+```
+
+Result:
+
+```text
+10 passed in 0.65s
+```
+
+Slice 3 frontend validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+✓ built in 422ms
+```
+
+Rendered catalog check:
+
+- Opened `http://127.0.0.1:5173/#strategy` against the updated backend catalog API.
+- Confirmed Strategy Lab rendered `MA Cross Research`, `ma-cross-research`, and `Research-only moving average signal contract.` from the catalog.
+- Confirmed default parameter inputs loaded as Fast Window `2`, Slow Window `3`, Initial Equity `10000`.
+- Confirmed the right-side live preview still rendered `Markers 34 / Trades 17 / Final $10,040.95`.
+- Saved the current experiment and confirmed the opened/history title used `SPY 2/3 MA Cross Research`.
 - Browser console had no errors during the rendered check.

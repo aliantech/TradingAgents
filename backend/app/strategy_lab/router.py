@@ -14,6 +14,11 @@ from app.strategy_lab.contracts import (
     create_report_linked_note,
     run_deterministic_backtest,
 )
+from app.strategy_lab.catalog import (
+    StrategyCatalogEntry,
+    get_strategy_catalog_entry,
+    list_strategy_catalog,
+)
 
 router = APIRouter(prefix="/api/strategy-lab", tags=["strategy-lab"])
 
@@ -37,6 +42,20 @@ class SignalStrategyPreviewResponse(BaseModel):
     overlay: dict
     note: dict | None = None
     scope: str = "research_only"
+
+
+class StrategyCatalogItem(BaseModel):
+    strategy_id: str
+    name: str
+    description: str
+    scope: str
+    default_parameters: dict
+    parameter_schema: dict
+
+
+class StrategyCatalogResponse(BaseModel):
+    scope: str = "research_only"
+    strategies: list[StrategyCatalogItem]
 
 
 class StrategyExperimentCreateRequest(BaseModel):
@@ -85,12 +104,22 @@ class StrategyExperimentComparisonResponse(BaseModel):
     parameter_deltas: dict
 
 
+@router.get("/strategies", response_model=StrategyCatalogResponse)
+def list_strategies() -> StrategyCatalogResponse:
+    return StrategyCatalogResponse(
+        strategies=[to_catalog_item(entry) for entry in list_strategy_catalog()]
+    )
+
+
 @router.post("/signal-strategy/preview", response_model=SignalStrategyPreviewResponse)
 def preview_signal_strategy(request: SignalStrategyPreviewRequest) -> SignalStrategyPreviewResponse:
+    catalog_entry = get_strategy_catalog_entry(request.strategy_id)
+    if catalog_entry is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="strategy not found")
     strategy = SignalStrategy(
-        strategy_id=request.strategy_id,
-        name=request.name,
-        description=request.description,
+        strategy_id=catalog_entry.strategy_id,
+        name=catalog_entry.name,
+        description=catalog_entry.description,
         parameters={
             "fast_window": request.fast_window,
             "slow_window": request.slow_window,
@@ -120,6 +149,17 @@ def preview_signal_strategy(request: SignalStrategyPreviewRequest) -> SignalStra
         backtest=backtest,
         overlay=overlay,
         note=note,
+    )
+
+
+def to_catalog_item(entry: StrategyCatalogEntry) -> StrategyCatalogItem:
+    return StrategyCatalogItem(
+        strategy_id=entry.strategy_id,
+        name=entry.name,
+        description=entry.description,
+        scope=entry.scope,
+        default_parameters=entry.default_parameters,
+        parameter_schema=entry.parameter_schema,
     )
 
 

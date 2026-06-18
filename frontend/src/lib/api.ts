@@ -330,11 +330,30 @@ export type StrategyPreviewResponse = {
 
 export type StrategyPreviewPayload = {
   symbol: string;
+  strategyId?: string;
   fastWindow: number;
   slowWindow: number;
   initialEquity: number;
   bars: MarketBar[];
   reportId?: string | null;
+};
+
+export type StrategyCatalogItem = {
+  strategy_id: string;
+  name: string;
+  description: string;
+  scope: "research_only";
+  default_parameters: {
+    fast_window: number;
+    slow_window: number;
+    [key: string]: unknown;
+  };
+  parameter_schema: Record<string, Record<string, unknown>>;
+};
+
+export type StrategyCatalogResponse = {
+  scope: "research_only";
+  strategies: StrategyCatalogItem[];
 };
 
 export type StrategyExperiment = {
@@ -583,6 +602,7 @@ export function previewSignalStrategy(payload: StrategyPreviewPayload): Promise<
   return requestJson<StrategyPreviewResponse>("/api/strategy-lab/signal-strategy/preview", {
     method: "POST",
     body: JSON.stringify({
+      strategy_id: payload.strategyId,
       symbol: payload.symbol,
       fast_window: payload.fastWindow,
       slow_window: payload.slowWindow,
@@ -599,6 +619,10 @@ export function previewSignalStrategy(payload: StrategyPreviewPayload): Promise<
       report_id: payload.reportId,
     }),
   });
+}
+
+export function listStrategyCatalog(): Promise<StrategyCatalogResponse> {
+  return requestJson<StrategyCatalogResponse>("/api/strategy-lab/strategies");
 }
 
 export function saveStrategyExperiment(payload: StrategyExperimentCreatePayload): Promise<StrategyExperiment> {

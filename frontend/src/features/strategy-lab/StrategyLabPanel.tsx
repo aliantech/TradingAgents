@@ -18,11 +18,13 @@ import {
   compareStrategyExperiments,
   duplicateStrategyExperiment,
   getStrategyExperiment,
+  listStrategyCatalog,
   listStrategyExperiments,
   previewSignalStrategy,
   saveStrategyExperiment,
   type MarketBar,
   type ReportListItem,
+  type StrategyCatalogItem,
   type StrategyExperimentComparison,
   type StrategyExperiment,
   type StrategyPreviewResponse,
@@ -41,6 +43,9 @@ export function StrategyLabPanel({
   latestReport,
   onRefreshMarket,
 }: StrategyLabPanelProps) {
+  const [strategies, setStrategies] = useState<StrategyCatalogItem[]>([]);
+  const [selectedStrategyId, setSelectedStrategyId] = useState("ma-cross-research");
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [fastWindow, setFastWindow] = useState(2);
   const [slowWindow, setSlowWindow] = useState(3);
   const [initialEquity, setInitialEquity] = useState(10_000);
@@ -59,6 +64,11 @@ export function StrategyLabPanel({
   const [comparisonError, setComparisonError] = useState<string | null>(null);
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
+  const selectedStrategy = strategies.find((strategy) => strategy.strategy_id === selectedStrategyId) ?? null;
+
+  useEffect(() => {
+    void loadCatalog();
+  }, []);
 
   useEffect(() => {
     void loadExperiments();
@@ -91,7 +101,7 @@ export function StrategyLabPanel({
       void loadPreview();
     }, 180);
     return () => window.clearTimeout(timeout);
-  }, [symbol, fastWindow, slowWindow, initialEquity, previewBars, canPreview]);
+  }, [symbol, selectedStrategyId, fastWindow, slowWindow, initialEquity, previewBars, canPreview]);
 
   async function loadPreview() {
     setLoading(true);
@@ -99,6 +109,7 @@ export function StrategyLabPanel({
     try {
       const response = await previewSignalStrategy({
         symbol,
+        strategyId: selectedStrategyId,
         fastWindow,
         slowWindow,
         initialEquity,
@@ -110,6 +121,22 @@ export function StrategyLabPanel({
       setError(caught instanceof Error ? caught.message : "SignalStrategy preview failed.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCatalog() {
+    setCatalogError(null);
+    try {
+      const response = await listStrategyCatalog();
+      setStrategies(response.strategies);
+      const defaultStrategy = response.strategies[0];
+      if (defaultStrategy) {
+        setSelectedStrategyId(defaultStrategy.strategy_id);
+        setFastWindow(Number(defaultStrategy.default_parameters.fast_window ?? 2));
+        setSlowWindow(Number(defaultStrategy.default_parameters.slow_window ?? 3));
+      }
+    } catch (caught) {
+      setCatalogError(caught instanceof Error ? caught.message : "Strategy catalog failed to load.");
     }
   }
 
@@ -135,7 +162,7 @@ export function StrategyLabPanel({
     setError(null);
     try {
       const saved = await saveStrategyExperiment({
-        title: `${symbol.toUpperCase()} ${fastWindow}/${slowWindow} SignalStrategy`,
+        title: `${symbol.toUpperCase()} ${fastWindow}/${slowWindow} ${selectedStrategy?.name ?? "Strategy"}`,
         symbol,
         strategyId: preview.strategy.strategy_id,
         parameters: preview.strategy.parameters,
@@ -206,12 +233,24 @@ export function StrategyLabPanel({
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <FlaskConical className="size-5" />
-                SignalStrategy
+                {selectedStrategy?.name ?? "Strategy Lab"}
               </CardTitle>
               <Badge variant="outline">research_only</Badge>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4">
+            <div className="rounded-md border bg-muted/20 p-3 text-sm">
+              <div className="text-xs text-muted-foreground">Strategy</div>
+              <div className="mt-1 font-medium">{selectedStrategy?.strategy_id ?? selectedStrategyId}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {selectedStrategy?.description ?? "Loading strategy catalog."}
+              </div>
+            </div>
+            {catalogError ? (
+              <Alert variant="destructive">
+                <AlertDescription>{catalogError}</AlertDescription>
+              </Alert>
+            ) : null}
             <label className="grid gap-1">
               <span className="text-xs text-muted-foreground">Fast Window</span>
               <Input
