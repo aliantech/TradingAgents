@@ -84,19 +84,25 @@ Do not introduce `T` trading scope in the first gateway implementation.
 
 ### Phase 3 Candidate: MCP Thin Wrapper
 
+Status: first thin wrapper implemented in Phase 3 Slice 4.
+
 The MCP server, if added, must call `/api/agent/v1` and rely on the Agent Gateway for authentication, scope checks, rate limits, and audit logging.
 
-Initial MCP tools should be limited to:
+Implemented MCP wrapper tools are limited to:
 
 - `whoami`
 - `check_health`
-- `get_market_context`
-- `get_options_summary`
 - `list_reports`
 - `get_report`
-- `list_analysis_runs`
 - `submit_analysis`
 - `get_job`
+- `get_job_result`
+
+Deferred research tools:
+
+- `get_market_context`
+- `get_options_summary`
+- `list_analysis_runs`
 
 MCP must not:
 

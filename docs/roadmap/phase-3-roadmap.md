@@ -87,12 +87,20 @@ Notes:
 
 ### Slice 4: MCP Thin Wrapper
 
-Planned:
+Status: implemented and validated on 2026-06-19.
 
-- MCP server wraps `/api/agent/v1` only.
-- MCP must not read the database directly.
-- MCP must not read local `.env` files or secret stores.
-- Initial tools: `whoami`, `check_health`, `list_reports`, `get_report`, and later job operations.
+Implemented:
+
+- `backend/app/agent_mcp` provides a thin MCP JSON-RPC/tool wrapper.
+- MCP tools forward to `/api/agent/v1` through an explicit Agent Gateway HTTP client.
+- Implemented tools: `whoami`, `check_health`, `list_reports`, `get_report`, `submit_analysis`, `get_job`, and `get_job_result`.
+- Tool calls preserve Agent Gateway token authentication and idempotency-key submission.
+- Boundary tests assert the MCP wrapper does not import database access, dotenv helpers, environment variable reads, or local secret-file reads.
+- Tool list excludes trading, broker, and order-placement tools.
+
+Notes:
+
+- The wrapper is intentionally thin. Authentication, scopes, rate limits, allowlists, and audit records remain owned by the Agent Gateway.
 
 ### Slice 5: SignalStrategy Research Lab Plan
 
@@ -153,4 +161,18 @@ Result:
 
 ```text
 12 passed in 0.85s
+```
+
+Slice 4 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_agent_mcp_wrapper.py
+```
+
+Result:
+
+```text
+5 passed in 0.03s
 ```
