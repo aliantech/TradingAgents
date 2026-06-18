@@ -44,7 +44,7 @@ Implemented surface:
 
 ## Slice 2: Persistent Watchlist
 
-Status: implemented in the working tree.
+Status: implemented and validated on 2026-06-19.
 
 Purpose:
 
@@ -99,4 +99,30 @@ Result:
 
 ```text
 5 passed in 1.07s
+```
+
+Slice 2 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 513ms
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_settings_api.py
+```
+
+Result:
+
+```text
+1 passed in 0.59s
 ```
