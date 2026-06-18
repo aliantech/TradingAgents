@@ -209,6 +209,11 @@ cython_debug/
 .ruff_cache/
 .playwright-mcp/
 
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
 # PyPI configuration file
 .pypirc
 

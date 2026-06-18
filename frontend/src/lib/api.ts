@@ -1,7 +1,14 @@
+import { resolveApiBaseUrl } from "./apiBaseUrl";
+
 export type AnalysisProgressEvent = {
   step: string;
   status: string;
   message: string;
+};
+
+export type BackendHealth = {
+  service: string;
+  status: string;
 };
 
 export type AnalysisStatus = {
@@ -14,11 +21,43 @@ export type AnalysisStatus = {
   report_id: string | null;
 };
 
+export type AnalysisStartPayload = {
+  symbol: string;
+  assetType: "equity" | "etf" | "index" | "option";
+  analysisDate: string;
+  language: "zh" | "en";
+  llmProvider: string;
+  model: string;
+  depth: "quick" | "standard" | "deep";
+  analystSet: string;
+};
+
+export type AnalysisRunItem = {
+  analysis_id: string;
+  symbol: string;
+  asset_type: string;
+  status: string;
+  language: string;
+  analysis_date: string;
+  llm_provider: string;
+  model: string;
+  depth: string;
+  analyst_set: string;
+  created_at: string;
+  updated_at: string;
+  report_id: string | null;
+};
+
+export type AnalysisRunsResponse = {
+  runs: AnalysisRunItem[];
+};
+
 export type ReportListItem = {
   report_id: string;
   analysis_id: string;
   symbol: string;
   language: string;
+  analyst_set: string;
   summary: string;
   confidence: number;
 };
@@ -55,6 +94,8 @@ export type MarketBarsResponse = {
   timeframe: string;
   bars: MarketBar[];
 };
+
+export type MarketTimeframe = "1m" | "5m" | "1d";
 
 export type ProviderSyncRunItem = {
   id: string;
@@ -141,10 +182,45 @@ export type OptionSnapshot = {
   source: string;
 };
 
+export type OptionBar = {
+  option_symbol: string;
+  timeframe: MarketTimeframe;
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  source: string;
+};
+
 export type OptionChainResponse = {
   underlying_symbol: string;
   expiry: string;
   snapshots: OptionSnapshot[];
+};
+
+export type OptionContract = {
+  option_symbol: string;
+  underlying_symbol: string;
+  expiry: string;
+  strike: number;
+  option_type: string;
+  exercise_style: string | null;
+  expiration_type: string | null;
+  source: string;
+};
+
+export type OptionContractsResponse = {
+  underlying_symbol: string;
+  expiry: string | null;
+  contracts: OptionContract[];
+};
+
+export type OptionBarsResponse = {
+  option_symbol: string;
+  timeframe: MarketTimeframe;
+  bars: OptionBar[];
 };
 
 export type OptionChainSyncResponse = {
@@ -156,14 +232,30 @@ export type OptionChainSyncResponse = {
   error_message: string | null;
 };
 
-export type ProviderRuntimeSettings = {
-  provider: string;
-  polygon_configured: boolean;
-  polygon_base_url: string;
-  message: string;
+export type SettingItem = {
+  key: string;
+  value: string | null;
+  category: string;
+  is_secret: boolean;
+  has_value: boolean;
+  updated_at: string;
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+export type SettingsResponse = {
+  items: SettingItem[];
+};
+
+export type SettingsUpsertItem = {
+  key: string;
+  value: string;
+  category: string;
+  is_secret: boolean;
+};
+
+const API_BASE_URL = resolveApiBaseUrl({
+  configuredBaseUrl: import.meta.env.VITE_API_BASE_URL,
+  pageHostname: globalThis.location?.hostname,
+});
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -178,20 +270,30 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(`API request failed: ${response.status} ${response.statusText}`);
   }
 
-  return response.json() as Promise<T>;
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error(`API response was not JSON for ${path}`);
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(`API response JSON parse failed for ${path}`);
+  }
 }
 
-export async function startAnalysis(symbol: string): Promise<AnalysisStatus> {
+export async function startAnalysis(payload: AnalysisStartPayload): Promise<AnalysisStatus> {
   const queued = await requestJson<{ analysis_id: string }>("/api/analysis", {
     method: "POST",
     body: JSON.stringify({
-      symbol,
-      asset_type: symbol.toUpperCase() === "SPX" ? "index" : "etf",
-      analysis_date: "2026-06-17",
-      language: "zh",
-      llm_provider: "openai",
-      model: "gpt-5.5",
-      depth: "standard",
+      symbol: payload.symbol,
+      asset_type: payload.assetType,
+      analysis_date: payload.analysisDate,
+      language: payload.language,
+      llm_provider: payload.llmProvider,
+      model: payload.model,
+      depth: payload.depth,
+      analyst_set: payload.analystSet,
     }),
   });
 
@@ -202,12 +304,25 @@ export function listReports(): Promise<ReportListItem[]> {
   return requestJson<ReportListItem[]>("/api/reports");
 }
 
+export function getBackendHealth(): Promise<BackendHealth> {
+  return requestJson<BackendHealth>("/api/health");
+}
+
+export function listAnalysisRuns(): Promise<AnalysisRunsResponse> {
+  return requestJson<AnalysisRunsResponse>("/api/analysis/runs");
+}
+
+export function getAnalysisStatus(analysisId: string): Promise<AnalysisStatus> {
+  return requestJson<AnalysisStatus>(`/api/analysis/${analysisId}`);
+}
+
 export function getReport(reportId: string): Promise<ResearchReport> {
   return requestJson<ResearchReport>(`/api/reports/${reportId}`);
 }
 
-export function getMarketBars(symbol: string): Promise<MarketBarsResponse> {
-  return requestJson<MarketBarsResponse>(`/api/market-data/bars?symbol=${encodeURIComponent(symbol)}&timeframe=1m`);
+export function getMarketBars(symbol: string, timeframe: MarketTimeframe = "1m"): Promise<MarketBarsResponse> {
+  const params = new URLSearchParams({ symbol, timeframe });
+  return requestJson<MarketBarsResponse>(`/api/market-data/bars?${params.toString()}`);
 }
 
 function providerSyncQuery(filters: ProviderSyncFilters = {}, includeLimit = false) {
@@ -261,7 +376,6 @@ export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {
       symbol,
       start: "2026-06-16",
       end: "2026-06-17",
-      provider: "sample",
     }),
   });
 }
@@ -270,6 +384,19 @@ export function getOptionChain(underlying: string, expiry = "2026-06-17"): Promi
   return requestJson<OptionChainResponse>(
     `/api/options/chain?underlying=${encodeURIComponent(underlying)}&expiry=${encodeURIComponent(expiry)}`,
   );
+}
+
+export function listOptionContracts(underlying: string, expiry?: string): Promise<OptionContractsResponse> {
+  const params = new URLSearchParams({ underlying });
+  if (expiry) {
+    params.set("expiry", expiry);
+  }
+  return requestJson<OptionContractsResponse>(`/api/options/contracts?${params.toString()}`);
+}
+
+export function getOptionBars(optionSymbol: string, timeframe: MarketTimeframe = "1m"): Promise<OptionBarsResponse> {
+  const params = new URLSearchParams({ option_symbol: optionSymbol, timeframe });
+  return requestJson<OptionBarsResponse>(`/api/options/bars?${params.toString()}`);
 }
 
 export function syncOptionChain(
@@ -288,20 +415,13 @@ export function syncOptionChain(
   });
 }
 
-export function getProviderRuntimeSettings(): Promise<ProviderRuntimeSettings> {
-  return requestJson<ProviderRuntimeSettings>("/api/settings/provider");
+export function listSettings(): Promise<SettingsResponse> {
+  return requestJson<SettingsResponse>("/api/settings");
 }
 
-export function updateProviderRuntimeSettings(input: {
-  polygonApiKey?: string;
-  polygonBaseUrl?: string;
-}): Promise<ProviderRuntimeSettings> {
-  return requestJson<ProviderRuntimeSettings>("/api/settings/provider", {
+export function upsertSettings(items: SettingsUpsertItem[]): Promise<SettingsResponse> {
+  return requestJson<SettingsResponse>("/api/settings", {
     method: "PUT",
-    body: JSON.stringify({
-      provider: "polygon",
-      polygon_api_key: input.polygonApiKey || undefined,
-      polygon_base_url: input.polygonBaseUrl || undefined,
-    }),
+    body: JSON.stringify({ items }),
   });
 }

@@ -5,6 +5,14 @@ import type {
   ProviderSyncSummary,
   ProviderSyncSummaryGroup,
 } from "../../lib/api";
+import { useTranslation } from "react-i18next";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MetricCard, StatusCard } from "@/components/workbench/metric-card";
 
 type DataSyncPanelProps = {
   runs: ProviderSyncRunItem[];
@@ -47,54 +55,65 @@ export function DataSyncPanel({
   onRefresh,
   onSyncSample,
 }: DataSyncPanelProps) {
+  const { t } = useTranslation();
   return (
-    <section className="panel sync-panel">
-      <div className="panel-header">
-        <div>
-          <h3>数据源同步</h3>
-          <p>行情写入和 provider 审计记录。</p>
-        </div>
-        <div className="sync-actions">
-          <button type="button" className="secondary-button" onClick={onSyncSample} disabled={syncing || loading}>
-            {syncing ? "同步中" : "同步 SPY"}
-          </button>
-          <button type="button" className="secondary-button" onClick={onRefresh} disabled={loading || syncing}>
-            {loading ? "刷新中" : "刷新"}
-          </button>
-        </div>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("market.syncTitle")}</CardTitle>
+        <CardAction className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onSyncSample} disabled={syncing || loading}>
+            {syncing ? t("market.syncing") : t("market.syncSample")}
+          </Button>
+          <Button type="button" variant="outline" onClick={onRefresh} disabled={loading || syncing}>
+            {loading ? t("market.refreshing") : t("market.refresh")}
+          </Button>
+        </CardAction>
+      </CardHeader>
 
-      {error ? <div className="alert">{error}</div> : null}
+      <CardContent className="flex flex-col gap-4">
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
 
-      <div className="sync-filters">
-        <label>
-          <span>Provider</span>
-          <input
+      <div className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Provider</span>
+          <Input
             value={providerFilter}
-            placeholder="sample / polygon"
+            placeholder="polygon"
             onChange={(event) => onProviderFilterChange(event.target.value)}
           />
         </label>
-        <label>
-          <span>类型</span>
-          <select value={syncTypeFilter} onChange={(event) => onSyncTypeFilterChange(event.target.value)}>
-            <option value="">全部</option>
-            <option value="daily_bars">daily_bars</option>
-            <option value="bars_1m">bars_1m</option>
-            <option value="bars_5m">bars_5m</option>
-          </select>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">{t("market.type")}</span>
+          <Select value={syncTypeFilter || "all"} onValueChange={(value) => onSyncTypeFilterChange(value === "all" ? "" : value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("market.all")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">{t("market.all")}</SelectItem>
+                <SelectItem value="daily_bars">daily_bars</SelectItem>
+                <SelectItem value="bars_1m">bars_1m</SelectItem>
+                <SelectItem value="bars_5m">bars_5m</SelectItem>
+                <SelectItem value="options_chain">options_chain</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </label>
-        <label>
-          <span>开始</span>
-          <input
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">{t("market.startedAfter")}</span>
+          <Input
             type="datetime-local"
             value={startedAfterFilter}
             onChange={(event) => onStartedAfterFilterChange(event.target.value)}
           />
         </label>
-        <label>
-          <span>结束</span>
-          <input
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">{t("market.startedBefore")}</span>
+          <Input
             type="datetime-local"
             value={startedBeforeFilter}
             onChange={(event) => onStartedBeforeFilterChange(event.target.value)}
@@ -103,56 +122,58 @@ export function DataSyncPanel({
       </div>
 
       {summary ? (
-        <div className="sync-summary">
-          <Metric label="总次数" value={summary.total_runs.toLocaleString()} />
-          <Metric label="成功" value={summary.succeeded.toLocaleString()} />
-          <Metric label="失败" value={summary.failed.toLocaleString()} />
-          <Metric label="写入" value={summary.rows_written.toLocaleString()} />
-          <Metric label="平均耗时" value={`${summary.average_duration_ms} ms`} />
+        <div className="grid grid-cols-5 gap-3 max-xl:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1">
+          <MetricCard label={t("market.totalRuns")} value={summary.total_runs.toLocaleString()} />
+          <MetricCard label={t("market.succeeded")} value={summary.succeeded.toLocaleString()} tone="good" />
+          <MetricCard label={t("market.failed")} value={summary.failed.toLocaleString()} tone={summary.failed > 0 ? "bad" : "good"} />
+          <MetricCard label={t("market.rowsWritten")} value={summary.rows_written.toLocaleString()} />
+          <MetricCard label={t("market.averageDuration")} value={`${summary.average_duration_ms} ms`} />
         </div>
       ) : null}
 
       {health ? (
-        <div className={`sync-health ${health.status}`}>
-          <div>
-            <span>调度状态</span>
-            <strong>{healthStatusLabel(health.status)}</strong>
-          </div>
-          <div>
-            <span>{health.provider}</span>
-            <span>{health.sync_type}</span>
-            <span>阈值 {health.stale_after_minutes} 分钟</span>
-            {health.minutes_since_latest !== null ? <span>{health.minutes_since_latest} 分钟前</span> : null}
-          </div>
-          <p>{health.message}</p>
-        </div>
+        <StatusCard
+          label={t("market.schedulerStatus")}
+          value={healthStatusLabel(health.status, t)}
+          status={health.status}
+          detail={[
+            health.provider,
+            health.sync_type,
+            t("market.thresholdMinutes", { minutes: health.stale_after_minutes }),
+            health.minutes_since_latest !== null ? t("market.minutesAgo", { minutes: health.minutes_since_latest }) : null,
+            health.message,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        />
       ) : null}
 
       {readiness ? (
-        <div className={`provider-readiness ${readiness.ready ? "ready" : "not-ready"}`}>
-          <div>
-            <span>Provider 准备状态</span>
-            <strong>{readiness.ready ? "可用" : "未就绪"}</strong>
-          </div>
-          <div>
-            <span>{readiness.provider}</span>
-            {readiness.missing.length > 0 ? <span>缺少 {readiness.missing.join(", ")}</span> : <span>运行时配置已就绪</span>}
-          </div>
-          <p>{readiness.message}</p>
-        </div>
+        <StatusCard
+          label={t("market.providerReadiness")}
+          value={readiness.ready ? t("market.ready") : t("market.notReady")}
+          status={readiness.ready ? "ready" : "not-ready"}
+          detail={`${readiness.provider} · ${
+            readiness.missing.length > 0 ? t("market.missing", { items: readiness.missing.join(", ") }) : t("market.runtimeReady")
+          } · ${readiness.message}`}
+        />
       ) : null}
 
       {groups.length > 0 ? (
-        <div className="sync-groups">
+        <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
           {groups.map((group) => (
-            <article key={`${group.provider}:${group.sync_type}`} className="sync-group">
-              <div>
-                <strong>{group.provider}</strong>
-                <span>{group.sync_type}</span>
+            <article key={`${group.provider}:${group.sync_type}`} className="rounded-xl border bg-card p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <strong className="block truncate text-sm">{group.provider}</strong>
+                  <span className="text-xs text-muted-foreground">{group.sync_type}</span>
+                </div>
+                <Badge variant={group.failed > 0 ? "destructive" : "secondary"}>
+                  {group.succeeded}/{group.total_runs}
+                </Badge>
               </div>
-              <div>
-                <span>{group.succeeded}/{group.total_runs} 成功</span>
-                <span>{group.failed} 失败</span>
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <span>{group.failed} {t("market.failed")}</span>
                 <span>{group.rows_written.toLocaleString()} rows</span>
                 <span>{group.average_duration_ms} ms</span>
               </div>
@@ -162,35 +183,27 @@ export function DataSyncPanel({
       ) : null}
 
       {runs.length === 0 && !error ? (
-        <p className="empty">暂无同步记录</p>
+        <p className="text-sm text-muted-foreground">{t("market.noSyncRuns")}</p>
       ) : (
-        <div className="sync-list">
+        <div className="grid gap-2">
           {runs.map((run) => (
-            <article key={run.id} className="sync-item">
-              <div>
-                <span className={`sync-status ${run.status}`}>{run.status}</span>
+            <article key={run.id} className="rounded-xl border bg-card p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={run.status === "succeeded" ? "secondary" : "destructive"}>{run.status}</Badge>
                 <strong>{run.provider}</strong>
               </div>
-              <div className="sync-meta">
+              <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <span>{run.sync_type}</span>
                 <span>{run.rows_written.toLocaleString()} rows</span>
                 <span>{formatDate(run.finished_at ?? run.started_at)}</span>
               </div>
-              {run.error_message ? <p className="sync-error">{run.error_message}</p> : null}
+              {run.error_message ? <p className="mt-2 text-sm text-destructive">{run.error_message}</p> : null}
             </article>
           ))}
         </div>
       )}
-    </section>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="sync-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -203,12 +216,9 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function healthStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    ok: "正常",
-    stale: "过期",
-    failing: "失败告警",
-    missing: "无记录",
-  };
-  return labels[status] ?? status;
+function healthStatusLabel(status: string, t: (key: string) => string) {
+  if (["ok", "stale", "failing", "missing"].includes(status)) {
+    return t(`market.health.${status}`);
+  }
+  return status;
 }
