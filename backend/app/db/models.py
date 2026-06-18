@@ -166,6 +166,21 @@ class AgentJobModel(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class StrategyExperimentModel(Base):
+    __tablename__ = "strategy_experiments"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    title: Mapped[str] = mapped_column(String(160))
+    symbol: Mapped[str] = mapped_column(String(64), index=True)
+    strategy_id: Mapped[str] = mapped_column(String(80), index=True)
+    scope: Mapped[str] = mapped_column(String(32), default="research_only")
+    parameters: Mapped[dict] = mapped_column(JSON, default=dict)
+    preview_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    report_id: Mapped[UUID | None] = mapped_column(ForeignKey("analysis_reports.id"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class OptionContractModel(Base):
     __tablename__ = "option_contracts"
     __table_args__ = (

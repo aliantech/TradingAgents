@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ChartNoAxesCombined, FileText, FlaskConical, RefreshCw } from "lucide-react";
+import { Activity, ChartNoAxesCombined, Copy, FileText, FlaskConical, History, RefreshCw, Save } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +15,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  duplicateStrategyExperiment,
+  getStrategyExperiment,
+  listStrategyExperiments,
   previewSignalStrategy,
+  saveStrategyExperiment,
   type MarketBar,
   type ReportListItem,
+  type StrategyExperiment,
   type StrategyPreviewResponse,
 } from "@/lib/api";
 
@@ -40,8 +45,17 @@ export function StrategyLabPanel({
   const [preview, setPreview] = useState<StrategyPreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [experiments, setExperiments] = useState<StrategyExperiment[]>([]);
+  const [experimentsLoading, setExperimentsLoading] = useState(false);
+  const [experimentsError, setExperimentsError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [activeExperimentId, setActiveExperimentId] = useState<string | null>(null);
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
+
+  useEffect(() => {
+    void loadExperiments();
+  }, [symbol]);
 
   useEffect(() => {
     if (!canPreview) {
@@ -74,9 +88,76 @@ export function StrategyLabPanel({
     }
   }
 
+  async function loadExperiments(nextActiveExperimentId = activeExperimentId) {
+    setExperimentsLoading(true);
+    setExperimentsError(null);
+    try {
+      const response = await listStrategyExperiments(symbol);
+      setExperiments(response.experiments);
+      if (nextActiveExperimentId) {
+        setActiveExperimentId(nextActiveExperimentId);
+      }
+    } catch (caught) {
+      setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiments failed to load.");
+    } finally {
+      setExperimentsLoading(false);
+    }
+  }
+
+  async function saveCurrentExperiment() {
+    if (!preview) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const saved = await saveStrategyExperiment({
+        title: `${symbol.toUpperCase()} ${fastWindow}/${slowWindow} SignalStrategy`,
+        symbol,
+        strategyId: preview.strategy.strategy_id,
+        parameters: preview.strategy.parameters,
+        preview,
+        reportId: latestReport?.report_id ?? null,
+      });
+      setActiveExperimentId(saved.experiment_id);
+      await loadExperiments(saved.experiment_id);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Strategy experiment save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function openExperiment(experimentId: string) {
+    setExperimentsError(null);
+    try {
+      const experiment = await getStrategyExperiment(experimentId);
+      setFastWindow(Number(experiment.parameters.fast_window ?? 2));
+      setSlowWindow(Number(experiment.parameters.slow_window ?? 3));
+      setPreview(experiment.preview);
+      setActiveExperimentId(experiment.experiment_id);
+    } catch (caught) {
+      setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment failed to open.");
+    }
+  }
+
+  async function duplicateExperiment(experimentId: string) {
+    setExperimentsError(null);
+    try {
+      const duplicated = await duplicateStrategyExperiment(experimentId);
+      setActiveExperimentId(duplicated.experiment_id);
+      await loadExperiments(duplicated.experiment_id);
+    } catch (caught) {
+      setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment duplicate failed.");
+    }
+  }
+
+  function markLiveEdit() {
+    setActiveExperimentId(null);
+  }
+
   const latestSignal = preview?.signals[preview.signals.length - 1];
   const tradeCount = preview?.backtest.trades.length ?? 0;
   const markerCount = preview?.overlay.markers.length ?? 0;
+  const activeExperiment = experiments.find((experiment) => experiment.experiment_id === activeExperimentId);
 
   return (
     <div className="grid gap-4">
@@ -101,6 +182,7 @@ export function StrategyLabPanel({
                 value={fastWindow}
                 onChange={(event) => {
                   const nextFastWindow = Number(event.target.value);
+                  markLiveEdit();
                   setFastWindow(nextFastWindow);
                   setSlowWindow((current) => Math.max(current, nextFastWindow));
                 }}
@@ -113,7 +195,10 @@ export function StrategyLabPanel({
                 min={1}
                 max={200}
                 value={slowWindow}
-                onChange={(event) => setSlowWindow(Math.max(Number(event.target.value), fastWindow))}
+                onChange={(event) => {
+                  markLiveEdit();
+                  setSlowWindow(Math.max(Number(event.target.value), fastWindow));
+                }}
               />
             </label>
             <label className="grid gap-1">
@@ -123,7 +208,10 @@ export function StrategyLabPanel({
                 min={1}
                 step={100}
                 value={initialEquity}
-                onChange={(event) => setInitialEquity(Number(event.target.value))}
+                onChange={(event) => {
+                  markLiveEdit();
+                  setInitialEquity(Number(event.target.value));
+                }}
               />
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -132,10 +220,21 @@ export function StrategyLabPanel({
               <MetricTile label="Trades" value={tradeCount.toString()} />
               <MetricTile label="Signal" value={signalLabel(latestSignal?.signal ?? 0)} />
             </div>
-            <Button type="button" variant="outline" onClick={onRefreshMarket} className="gap-2">
-              <RefreshCw className="size-4" />
-              Refresh Bars
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={onRefreshMarket} className="gap-2">
+                <RefreshCw className="size-4" />
+                Refresh Bars
+              </Button>
+              <Button type="button" onClick={saveCurrentExperiment} disabled={!preview || saving} className="gap-2">
+                <Save className="size-4" />
+                {saving ? "Saving" : "Save"}
+              </Button>
+            </div>
+            {activeExperiment ? (
+              <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+                Opened: <span className="font-medium text-foreground">{activeExperiment.title}</span>
+              </div>
+            ) : null}
             {!canPreview ? (
               <Alert>
                 <AlertDescription>
@@ -210,6 +309,84 @@ export function StrategyLabPanel({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <History className="size-4" />
+              Experiment History
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={() => void loadExperiments()} className="gap-2">
+              <RefreshCw className="size-4" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {experimentsError ? (
+            <Alert variant="destructive" className="mb-3">
+              <AlertDescription>{experimentsError}</AlertDescription>
+            </Alert>
+          ) : null}
+          {experimentsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading experiments.</p>
+          ) : experiments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No saved experiments for {symbol.toUpperCase()} yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Windows</TableHead>
+                    <TableHead>Final Equity</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="w-[170px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {experiments.map((experiment) => (
+                    <TableRow key={experiment.experiment_id} data-state={experiment.experiment_id === activeExperimentId ? "selected" : undefined}>
+                      <TableCell className="min-w-[220px]">
+                        <div className="font-medium">{experiment.title}</div>
+                        <div className="text-xs text-muted-foreground">{experiment.strategy_id}</div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {String(experiment.parameters.fast_window ?? "-")} / {String(experiment.parameters.slow_window ?? "-")}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(experiment.preview.backtest.final_equity)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatTime(experiment.created_at)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Open ${experiment.title}`}
+                            onClick={() => void openExperiment(experiment.experiment_id)}
+                          >
+                            Open
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            aria-label={`Duplicate ${experiment.title}`}
+                            onClick={() => void duplicateExperiment(experiment.experiment_id)}
+                          >
+                            <Copy className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

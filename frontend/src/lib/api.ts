@@ -337,6 +337,36 @@ export type StrategyPreviewPayload = {
   reportId?: string | null;
 };
 
+export type StrategyExperiment = {
+  experiment_id: string;
+  title: string;
+  symbol: string;
+  strategy_id: string;
+  scope: "research_only";
+  parameters: {
+    fast_window?: number;
+    slow_window?: number;
+    [key: string]: unknown;
+  };
+  preview: StrategyPreviewResponse;
+  report_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StrategyExperimentListResponse = {
+  experiments: StrategyExperiment[];
+};
+
+export type StrategyExperimentCreatePayload = {
+  title: string;
+  symbol: string;
+  strategyId: string;
+  parameters: StrategyExperiment["parameters"];
+  preview: StrategyPreviewResponse;
+  reportId?: string | null;
+};
+
 const API_BASE_URL = resolveApiBaseUrl({
   configuredBaseUrl: import.meta.env.VITE_API_BASE_URL,
   pageHostname: globalThis.location?.hostname,
@@ -542,5 +572,38 @@ export function previewSignalStrategy(payload: StrategyPreviewPayload): Promise<
       })),
       report_id: payload.reportId,
     }),
+  });
+}
+
+export function saveStrategyExperiment(payload: StrategyExperimentCreatePayload): Promise<StrategyExperiment> {
+  return requestJson<StrategyExperiment>("/api/strategy-lab/experiments", {
+    method: "POST",
+    body: JSON.stringify({
+      title: payload.title,
+      symbol: payload.symbol,
+      strategy_id: payload.strategyId,
+      parameters: payload.parameters,
+      preview: payload.preview,
+      report_id: payload.reportId ?? null,
+    }),
+  });
+}
+
+export function listStrategyExperiments(symbol?: string): Promise<StrategyExperimentListResponse> {
+  const params = new URLSearchParams();
+  if (symbol) {
+    params.set("symbol", symbol);
+  }
+  const query = params.toString();
+  return requestJson<StrategyExperimentListResponse>(`/api/strategy-lab/experiments${query ? `?${query}` : ""}`);
+}
+
+export function getStrategyExperiment(experimentId: string): Promise<StrategyExperiment> {
+  return requestJson<StrategyExperiment>(`/api/strategy-lab/experiments/${experimentId}`);
+}
+
+export function duplicateStrategyExperiment(experimentId: string): Promise<StrategyExperiment> {
+  return requestJson<StrategyExperiment>(`/api/strategy-lab/experiments/${experimentId}/duplicate`, {
+    method: "POST",
   });
 }

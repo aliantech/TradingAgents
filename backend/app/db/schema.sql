@@ -161,9 +161,23 @@ CREATE TABLE IF NOT EXISTS agent_jobs (
   CONSTRAINT uq_agent_jobs_token_type_idempotency UNIQUE (agent_token_id, job_type, idempotency_key)
 );
 
+CREATE TABLE IF NOT EXISTS strategy_experiments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  symbol text NOT NULL,
+  strategy_id text NOT NULL,
+  scope text NOT NULL DEFAULT 'research_only',
+  parameters jsonb NOT NULL DEFAULT '{}'::jsonb,
+  preview_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  report_id uuid REFERENCES analysis_reports(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_instruments_symbol ON instruments(symbol);
 CREATE INDEX IF NOT EXISTS idx_option_contracts_underlying_expiry ON option_contracts(underlying_instrument_id, expiry_date);
 CREATE INDEX IF NOT EXISTS idx_analysis_reports_symbol_created ON analysis_reports(symbol, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_agent_audit_route ON agent_audit(route, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_jobs_token_created ON agent_jobs(agent_token_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_strategy_experiments_symbol_created ON strategy_experiments(symbol, created_at DESC);
