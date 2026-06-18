@@ -65,6 +65,26 @@ class StrategyExperimentListResponse(BaseModel):
     experiments: list[StrategyExperimentResponse]
 
 
+class StrategyExperimentComparisonMetric(BaseModel):
+    experiment_id: UUID
+    title: str
+    final_equity: float
+    return_pct: float
+    trade_count: int
+    marker_count: int
+    signal_count: int
+    parameters: dict
+
+
+class StrategyExperimentComparisonResponse(BaseModel):
+    scope: str = "research_only"
+    symbol: str
+    base: StrategyExperimentComparisonMetric
+    candidate: StrategyExperimentComparisonMetric
+    deltas: dict
+    parameter_deltas: dict
+
+
 @router.post("/signal-strategy/preview", response_model=SignalStrategyPreviewResponse)
 def preview_signal_strategy(request: SignalStrategyPreviewRequest) -> SignalStrategyPreviewResponse:
     strategy = SignalStrategy(
@@ -141,6 +161,39 @@ def list_strategy_experiments(
     )
 
 
+@router.get("/experiments/compare", response_model=StrategyExperimentComparisonResponse)
+def compare_strategy_experiments(
+    base_id: UUID,
+    candidate_id: UUID,
+    session: Session = Depends(get_db_session),
+) -> StrategyExperimentComparisonResponse:
+    base = session.get(StrategyExperimentModel, base_id)
+    candidate = session.get(StrategyExperimentModel, candidate_id)
+    if base is None or candidate is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="strategy experiment not found")
+    if base.symbol != candidate.symbol:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="strategy experiments must share the same symbol",
+        )
+
+    base_metric = build_comparison_metric(base)
+    candidate_metric = build_comparison_metric(candidate)
+    return StrategyExperimentComparisonResponse(
+        symbol=base.symbol,
+        base=base_metric,
+        candidate=candidate_metric,
+        deltas={
+            "final_equity": round(candidate_metric.final_equity - base_metric.final_equity, 6),
+            "return_pct": round(candidate_metric.return_pct - base_metric.return_pct, 6),
+            "trade_count": candidate_metric.trade_count - base_metric.trade_count,
+            "marker_count": candidate_metric.marker_count - base_metric.marker_count,
+            "signal_count": candidate_metric.signal_count - base_metric.signal_count,
+        },
+        parameter_deltas=build_parameter_deltas(base_metric.parameters, candidate_metric.parameters),
+    )
+
+
 @router.get("/experiments/{experiment_id}", response_model=StrategyExperimentResponse)
 def get_strategy_experiment(
     experiment_id: UUID,
@@ -192,3 +245,32 @@ def to_experiment_response(experiment: StrategyExperimentModel) -> StrategyExper
         created_at=experiment.created_at.isoformat(),
         updated_at=experiment.updated_at.isoformat(),
     )
+
+
+def build_comparison_metric(experiment: StrategyExperimentModel) -> StrategyExperimentComparisonMetric:
+    preview = experiment.preview_json
+    backtest = preview.get("backtest", {})
+    overlay = preview.get("overlay", {})
+    signals = preview.get("signals", [])
+    return StrategyExperimentComparisonMetric(
+        experiment_id=experiment.id,
+        title=experiment.title,
+        final_equity=float(backtest.get("final_equity", 0)),
+        return_pct=float(backtest.get("return_pct", 0)),
+        trade_count=len(backtest.get("trades", [])),
+        marker_count=len(overlay.get("markers", [])),
+        signal_count=len(signals),
+        parameters=experiment.parameters,
+    )
+
+
+def build_parameter_deltas(base_parameters: dict, candidate_parameters: dict) -> dict:
+    parameter_keys = sorted(set(base_parameters) | set(candidate_parameters))
+    return {
+        key: {
+            "base": base_parameters.get(key),
+            "candidate": candidate_parameters.get(key),
+            "changed": base_parameters.get(key) != candidate_parameters.get(key),
+        }
+        for key in parameter_keys
+    }

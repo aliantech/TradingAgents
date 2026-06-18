@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ChartNoAxesCombined, Copy, FileText, FlaskConical, History, RefreshCw, Save } from "lucide-react";
+import { Activity, ChartNoAxesCombined, Copy, FileText, FlaskConical, GitCompareArrows, History, RefreshCw, Save } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  compareStrategyExperiments,
   duplicateStrategyExperiment,
   getStrategyExperiment,
   listStrategyExperiments,
@@ -22,6 +23,7 @@ import {
   saveStrategyExperiment,
   type MarketBar,
   type ReportListItem,
+  type StrategyExperimentComparison,
   type StrategyExperiment,
   type StrategyPreviewResponse,
 } from "@/lib/api";
@@ -50,12 +52,35 @@ export function StrategyLabPanel({
   const [experimentsError, setExperimentsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeExperimentId, setActiveExperimentId] = useState<string | null>(null);
+  const [compareBaseId, setCompareBaseId] = useState<string | null>(null);
+  const [compareCandidateId, setCompareCandidateId] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<StrategyExperimentComparison | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [comparisonError, setComparisonError] = useState<string | null>(null);
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
 
   useEffect(() => {
     void loadExperiments();
   }, [symbol]);
+
+  useEffect(() => {
+    setCompareBaseId(null);
+    setCompareCandidateId(null);
+    setComparison(null);
+    setComparisonError(null);
+  }, [symbol]);
+
+  useEffect(() => {
+    if (!compareBaseId || !compareCandidateId || compareBaseId === compareCandidateId) {
+      setComparison(null);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      void loadComparison(compareBaseId, compareCandidateId);
+    }, 120);
+    return () => window.clearTimeout(timeout);
+  }, [compareBaseId, compareCandidateId]);
 
   useEffect(() => {
     if (!canPreview) {
@@ -147,6 +172,20 @@ export function StrategyLabPanel({
       await loadExperiments(duplicated.experiment_id);
     } catch (caught) {
       setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment duplicate failed.");
+    }
+  }
+
+  async function loadComparison(baseId: string, candidateId: string) {
+    setComparisonLoading(true);
+    setComparisonError(null);
+    try {
+      const response = await compareStrategyExperiments(baseId, candidateId);
+      setComparison(response);
+    } catch (caught) {
+      setComparison(null);
+      setComparisonError(caught instanceof Error ? caught.message : "Strategy experiment comparison failed.");
+    } finally {
+      setComparisonLoading(false);
     }
   }
 
@@ -329,6 +368,13 @@ export function StrategyLabPanel({
               <AlertDescription>{experimentsError}</AlertDescription>
             </Alert>
           ) : null}
+          <ExperimentComparisonPanel
+            comparison={comparison}
+            comparisonLoading={comparisonLoading}
+            comparisonError={comparisonError}
+            baseTitle={experiments.find((experiment) => experiment.experiment_id === compareBaseId)?.title ?? null}
+            candidateTitle={experiments.find((experiment) => experiment.experiment_id === compareCandidateId)?.title ?? null}
+          />
           {experimentsLoading ? (
             <p className="text-sm text-muted-foreground">Loading experiments.</p>
           ) : experiments.length === 0 ? (
@@ -342,7 +388,7 @@ export function StrategyLabPanel({
                     <TableHead>Windows</TableHead>
                     <TableHead>Final Equity</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="w-[170px]">Actions</TableHead>
+                    <TableHead className="w-[230px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -359,6 +405,24 @@ export function StrategyLabPanel({
                       <TableCell className="whitespace-nowrap">{formatTime(experiment.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant={compareBaseId === experiment.experiment_id ? "default" : "outline"}
+                            aria-label={`Use ${experiment.title} as comparison A`}
+                            onClick={() => setCompareBaseId(experiment.experiment_id)}
+                          >
+                            A
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant={compareCandidateId === experiment.experiment_id ? "default" : "outline"}
+                            aria-label={`Use ${experiment.title} as comparison B`}
+                            onClick={() => setCompareCandidateId(experiment.experiment_id)}
+                          >
+                            B
+                          </Button>
                           <Button
                             type="button"
                             size="sm"
@@ -427,6 +491,91 @@ export function StrategyLabPanel({
   );
 }
 
+function ExperimentComparisonPanel({
+  comparison,
+  comparisonLoading,
+  comparisonError,
+  baseTitle,
+  candidateTitle,
+}: {
+  comparison: StrategyExperimentComparison | null;
+  comparisonLoading: boolean;
+  comparisonError: string | null;
+  baseTitle: string | null;
+  candidateTitle: string | null;
+}) {
+  if (!baseTitle && !candidateTitle && !comparisonError) {
+    return null;
+  }
+
+  return (
+    <div className="mb-4 rounded-md border bg-muted/20 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <GitCompareArrows className="size-4" />
+          Experiment Comparison
+        </div>
+        <Badge variant="outline">research_only</Badge>
+      </div>
+      <div className="mb-3 grid gap-2 text-sm md:grid-cols-2">
+        <div className="rounded-md border bg-background p-3">
+          <div className="text-xs text-muted-foreground">A</div>
+          <div className="mt-1 truncate font-medium">{baseTitle ?? "Select baseline"}</div>
+        </div>
+        <div className="rounded-md border bg-background p-3">
+          <div className="text-xs text-muted-foreground">B</div>
+          <div className="mt-1 truncate font-medium">{candidateTitle ?? "Select candidate"}</div>
+        </div>
+      </div>
+      {comparisonError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{comparisonError}</AlertDescription>
+        </Alert>
+      ) : comparisonLoading ? (
+        <p className="text-sm text-muted-foreground">Comparing experiments.</p>
+      ) : comparison ? (
+        <div className="grid gap-3">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <MetricTile label="Final Delta" value={formatSignedCurrency(comparison.deltas.final_equity)} />
+            <MetricTile label="Return Delta" value={formatSignedPercent(comparison.deltas.return_pct)} />
+            <MetricTile label="Trades Delta" value={formatSignedNumber(comparison.deltas.trade_count)} />
+            <MetricTile label="Markers Delta" value={formatSignedNumber(comparison.deltas.marker_count)} />
+            <MetricTile label="Signals Delta" value={formatSignedNumber(comparison.deltas.signal_count)} />
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Parameter</TableHead>
+                  <TableHead>A</TableHead>
+                  <TableHead>B</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(comparison.parameter_deltas).map(([parameter, delta]) => (
+                  <TableRow key={parameter}>
+                    <TableCell className="font-medium">{parameter}</TableCell>
+                    <TableCell>{String(delta.base ?? "-")}</TableCell>
+                    <TableCell>{String(delta.candidate ?? "-")}</TableCell>
+                    <TableCell>
+                      <Badge variant={delta.changed ? "default" : "secondary"}>
+                        {delta.changed ? "Changed" : "Same"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Select A and B from saved experiments.</p>
+      )}
+    </div>
+  );
+}
+
 function StrategyOverlayChart({ preview }: { preview: StrategyPreviewResponse | null }) {
   const width = 820;
   const height = 300;
@@ -487,6 +636,21 @@ function signalLabel(signal: number) {
 function formatCurrency(value?: number) {
   if (value === undefined) return "-";
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function formatSignedCurrency(value: number) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatCurrency(value)}`;
+}
+
+function formatSignedNumber(value: number) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toLocaleString()}`;
+}
+
+function formatSignedPercent(value: number) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toLocaleString(undefined, { maximumFractionDigits: 4 })}%`;
 }
 
 function formatTime(value: string) {

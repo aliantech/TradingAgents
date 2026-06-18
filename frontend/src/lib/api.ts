@@ -367,6 +367,32 @@ export type StrategyExperimentCreatePayload = {
   reportId?: string | null;
 };
 
+export type StrategyExperimentComparisonMetric = {
+  experiment_id: string;
+  title: string;
+  final_equity: number;
+  return_pct: number;
+  trade_count: number;
+  marker_count: number;
+  signal_count: number;
+  parameters: StrategyExperiment["parameters"];
+};
+
+export type StrategyExperimentComparison = {
+  scope: "research_only";
+  symbol: string;
+  base: StrategyExperimentComparisonMetric;
+  candidate: StrategyExperimentComparisonMetric;
+  deltas: {
+    final_equity: number;
+    return_pct: number;
+    trade_count: number;
+    marker_count: number;
+    signal_count: number;
+  };
+  parameter_deltas: Record<string, { base: unknown; candidate: unknown; changed: boolean }>;
+};
+
 const API_BASE_URL = resolveApiBaseUrl({
   configuredBaseUrl: import.meta.env.VITE_API_BASE_URL,
   pageHostname: globalThis.location?.hostname,
@@ -606,4 +632,15 @@ export function duplicateStrategyExperiment(experimentId: string): Promise<Strat
   return requestJson<StrategyExperiment>(`/api/strategy-lab/experiments/${experimentId}/duplicate`, {
     method: "POST",
   });
+}
+
+export function compareStrategyExperiments(
+  baseExperimentId: string,
+  candidateExperimentId: string,
+): Promise<StrategyExperimentComparison> {
+  const params = new URLSearchParams({
+    base_id: baseExperimentId,
+    candidate_id: candidateExperimentId,
+  });
+  return requestJson<StrategyExperimentComparison>(`/api/strategy-lab/experiments/compare?${params.toString()}`);
 }

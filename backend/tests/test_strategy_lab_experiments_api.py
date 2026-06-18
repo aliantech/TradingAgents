@@ -48,11 +48,60 @@ def test_strategy_lab_saves_lists_gets_and_duplicates_experiments():
     assert duplicate["preview"] == experiment["preview"]
 
 
-def preview_payload():
+def test_strategy_lab_compares_saved_experiments():
+    client = TestClient(app)
+
+    baseline = create_experiment(client, "SPY MA baseline", preview_payload(fast_window=2, slow_window=3))
+    candidate = create_experiment(client, "SPY MA flat", preview_payload(fast_window=5, slow_window=5))
+
+    compare_response = client.get(
+        "/api/strategy-lab/experiments/compare",
+        params={
+            "base_id": baseline["experiment_id"],
+            "candidate_id": candidate["experiment_id"],
+        },
+    )
+
+    assert compare_response.status_code == 200
+    comparison = compare_response.json()
+    assert comparison["scope"] == "research_only"
+    assert comparison["symbol"] == "SPY"
+    assert comparison["base"]["title"] == "SPY MA baseline"
+    assert comparison["candidate"]["title"] == "SPY MA flat"
+    assert comparison["deltas"]["final_equity"] == 3
+    assert comparison["deltas"]["trade_count"] == -1
+    assert comparison["deltas"]["marker_count"] == -2
+    assert comparison["parameter_deltas"]["fast_window"] == {"base": 2, "candidate": 5, "changed": True}
+    assert comparison["parameter_deltas"]["slow_window"] == {"base": 3, "candidate": 5, "changed": True}
+
+
+def preview_payload(fast_window: int = 2, slow_window: int = 3):
     return {
         "symbol": "SPY",
-        "fast_window": 2,
-        "slow_window": 3,
+        "fast_window": fast_window,
+        "slow_window": slow_window,
         "initial_equity": 10_000,
         "bars": sample_bars(),
     }
+
+
+def create_experiment(client: TestClient, title: str, payload: dict):
+    preview_response = client.post(
+        "/api/strategy-lab/signal-strategy/preview",
+        json=payload,
+    )
+    assert preview_response.status_code == 200
+    preview = preview_response.json()
+    create_response = client.post(
+        "/api/strategy-lab/experiments",
+        json={
+            "title": title,
+            "symbol": payload["symbol"],
+            "strategy_id": preview["strategy"]["strategy_id"],
+            "parameters": preview["strategy"]["parameters"],
+            "preview": preview,
+            "report_id": None,
+        },
+    )
+    assert create_response.status_code == 201
+    return create_response.json()

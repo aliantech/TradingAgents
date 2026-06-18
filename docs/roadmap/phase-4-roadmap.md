@@ -45,11 +45,22 @@ Out of scope:
 
 ### Slice 2: Experiment Comparison
 
-Planned:
+Status: implemented and validated on 2026-06-19.
 
-- Compare two saved experiments for the same symbol.
-- Show parameter differences, final equity delta, trade count delta, and signal-marker differences.
-- Keep comparisons read-only and explicitly research scoped.
+Implemented:
+
+- `GET /api/strategy-lab/experiments/compare` compares two saved Strategy Lab experiments.
+- The compare endpoint requires both experiments to exist and share the same symbol.
+- The response returns A/B titles, parameters, final equity, return, trade count, marker count, signal count, metric deltas, and per-parameter changed status.
+- Frontend Strategy Lab history rows now include A/B comparison selectors.
+- The comparison panel displays A/B experiment titles, final equity delta, return delta, trade delta, marker delta, signal delta, and changed/same parameter rows.
+
+Out of scope:
+
+- Cross-symbol comparison.
+- Ranking or optimization.
+- Statistical significance testing.
+- Any paper/live execution decisioning.
 
 ### Slice 3: Strategy Catalog Boundary
 
@@ -95,4 +106,39 @@ Rendered WYSIWYG persistence check:
 - Changed Fast Window from `2` to `5`, which kept Slow Window valid at `5` and updated the right-side preview to `Markers 0 / Trades 0 / Final $10,000`.
 - Opened the saved experiment and confirmed parameters restored to `2 / 3` and the preview restored to `Markers 34 / Trades 17 / Final $10,040.95`.
 - Duplicated the saved experiment and confirmed the copied experiment appeared in history and became the active opened experiment.
+- Browser console had no errors during the rendered check.
+
+Slice 2 backend validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_strategy_lab_contracts.py tests/test_strategy_lab_api.py tests/test_strategy_lab_experiments_api.py --tb=short
+```
+
+Result:
+
+```text
+8 passed in 0.63s
+```
+
+Slice 2 frontend validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+✓ built in 360ms
+```
+
+Rendered comparison check:
+
+- Opened `http://127.0.0.1:5173/#strategy` against the updated backend compare API.
+- Selected `SPY MA baseline` as comparison A and `SPY MA flat` as comparison B.
+- Confirmed the comparison panel displayed `Final Delta +$3`, `Return Delta +0.03%`, `Trades Delta -1`, `Markers Delta -2`, and `Signals Delta 0`.
+- Confirmed parameter rows showed `fast_window 2 -> 5 Changed` and `slow_window 3 -> 5 Changed`.
 - Browser console had no errors during the rendered check.
