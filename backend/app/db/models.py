@@ -140,6 +140,32 @@ class AgentAuditModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class AgentJobModel(Base):
+    __tablename__ = "agent_jobs"
+    __table_args__ = (
+        UniqueConstraint(
+            "agent_token_id",
+            "job_type",
+            "idempotency_key",
+            name="uq_agent_jobs_token_type_idempotency",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    agent_token_id: Mapped[UUID] = mapped_column(ForeignKey("agent_tokens.id"), index=True)
+    agent_name: Mapped[str] = mapped_column(String(80))
+    job_type: Mapped[str] = mapped_column(String(64), index=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    request_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    progress: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    result_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class OptionContractModel(Base):
     __tablename__ = "option_contracts"
     __table_args__ = (

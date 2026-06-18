@@ -69,12 +69,21 @@ Deferred:
 
 ### Slice 3: Async Job Contract
 
-Planned:
+Status: implemented and validated on 2026-06-19.
 
-- Durable job model for long-running research tasks.
-- Submit/poll/progress/result contract.
-- Reuse analysis runs where appropriate, but keep a stable agent-facing job API.
-- Idempotency key support for writeful agent actions.
+Implemented:
+
+- `agent_jobs` durable persistence model for agent-facing jobs.
+- `POST /api/agent/v1/jobs/research-analysis` submits a research analysis job with `A` scope.
+- `GET /api/agent/v1/jobs/{job_id}` polls job status and progress with `R` scope.
+- `GET /api/agent/v1/jobs/{job_id}/result` returns completed job results with `R` scope.
+- Research analysis jobs reuse the existing analysis run/report service while keeping a stable agent-facing job API.
+- `Idempotency-Key` replay returns the original job and analysis result for duplicate writeful submissions.
+- Submit enforces token instrument allowlists before starting analysis.
+
+Notes:
+
+- This slice establishes the durable API contract. The current implementation completes the existing local analysis flow synchronously and records the completed job. A later worker slice can change the backend execution mode without changing the agent-facing contract.
 
 ### Slice 4: MCP Thin Wrapper
 
@@ -130,4 +139,18 @@ Result:
 
 ```text
 8 passed in 0.74s
+```
+
+Slice 3 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_agent_gateway_api.py
+```
+
+Result:
+
+```text
+12 passed in 0.85s
 ```

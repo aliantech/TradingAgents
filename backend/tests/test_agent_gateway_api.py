@@ -165,6 +165,104 @@ def test_agent_gateway_enforces_rate_limit_and_records_audit():
     assert latest_audit_status("/api/agent/v1/reports") == 429
 
 
+def test_agent_gateway_submits_and_polls_research_analysis_job():
+    raw_token = seed_agent_token(scopes="R,A", instruments="SPY")
+    client = TestClient(app)
+    headers = {"Authorization": f"Bearer {raw_token}"}
+
+    submit_response = client.post(
+        "/api/agent/v1/jobs/research-analysis",
+        headers=headers,
+        json=analysis_payload("SPY"),
+    )
+
+    assert submit_response.status_code == 202
+    submitted_job = submit_response.json()
+    assert submitted_job["job_type"] == "research_analysis"
+    assert submitted_job["status"] == "completed"
+    assert submitted_job["result"]["symbol"] == "SPY"
+    assert submitted_job["result"]["analysis_id"]
+    assert submitted_job["result"]["report_id"]
+    assert any(event["step"] == "report" for event in submitted_job["progress"])
+
+    poll_response = client.get(f"/api/agent/v1/jobs/{submitted_job['job_id']}", headers=headers)
+    result_response = client.get(f"/api/agent/v1/jobs/{submitted_job['job_id']}/result", headers=headers)
+
+    assert poll_response.status_code == 200
+    assert poll_response.json()["job_id"] == submitted_job["job_id"]
+    assert poll_response.json()["status"] == "completed"
+    assert result_response.status_code == 200
+    assert result_response.json() == submitted_job["result"]
+
+
+def test_agent_gateway_replays_research_analysis_job_with_idempotency_key():
+    raw_token = seed_agent_token(scopes="R,A", instruments="SPY")
+    client = TestClient(app)
+    headers = {
+        "Authorization": f"Bearer {raw_token}",
+        "Idempotency-Key": f"job-replay-{uuid4().hex}",
+    }
+
+    first_response = client.post(
+        "/api/agent/v1/jobs/research-analysis",
+        headers=headers,
+        json=analysis_payload("SPY"),
+    )
+    second_response = client.post(
+        "/api/agent/v1/jobs/research-analysis",
+        headers=headers,
+        json=analysis_payload("SPY"),
+    )
+
+    assert first_response.status_code == 202
+    assert second_response.status_code == 202
+    assert second_response.json()["job_id"] == first_response.json()["job_id"]
+    assert second_response.json()["result"]["analysis_id"] == first_response.json()["result"]["analysis_id"]
+
+
+def test_agent_gateway_research_analysis_job_requires_action_scope():
+    raw_token = seed_agent_token(scopes="R", instruments="SPY")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/agent/v1/jobs/research-analysis",
+        headers={"Authorization": f"Bearer {raw_token}"},
+        json=analysis_payload("SPY"),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "agent token lacks required scope: A"
+
+
+def test_agent_gateway_research_analysis_job_enforces_instrument_allowlist():
+    raw_token = seed_agent_token(scopes="R,A", instruments="SPY")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/agent/v1/jobs/research-analysis",
+        headers={"Authorization": f"Bearer {raw_token}"},
+        json=analysis_payload("QQQ"),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "instrument not allowed: QQQ"
+    assert latest_audit_status("/api/agent/v1/jobs/research-analysis") == 403
+
+
+def analysis_payload(symbol: str) -> dict[str, str]:
+    return {
+        "symbol": symbol,
+        "asset_type": "etf",
+        "analysis_date": "2026-06-19",
+        "language": "zh",
+        "llm_provider": "openai",
+        "model": "gpt-5.5",
+        "depth": "standard",
+        "analyst_set": "macro-options",
+        "research_template": "general",
+    }
+
+
 def create_report(session, symbol: str):
     return start_analysis(
         AnalysisRequest(

@@ -144,8 +144,26 @@ CREATE TABLE IF NOT EXISTS agent_audit (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS agent_jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_token_id uuid NOT NULL REFERENCES agent_tokens(id),
+  agent_name text NOT NULL,
+  job_type text NOT NULL,
+  idempotency_key text,
+  status text NOT NULL,
+  request_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  progress jsonb NOT NULL DEFAULT '[]'::jsonb,
+  result_json jsonb,
+  error_message text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  CONSTRAINT uq_agent_jobs_token_type_idempotency UNIQUE (agent_token_id, job_type, idempotency_key)
+);
+
 CREATE INDEX IF NOT EXISTS idx_instruments_symbol ON instruments(symbol);
 CREATE INDEX IF NOT EXISTS idx_option_contracts_underlying_expiry ON option_contracts(underlying_instrument_id, expiry_date);
 CREATE INDEX IF NOT EXISTS idx_analysis_reports_symbol_created ON analysis_reports(symbol, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_agent_audit_route ON agent_audit(route, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_jobs_token_created ON agent_jobs(agent_token_id, created_at DESC);

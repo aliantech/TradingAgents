@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 3 Slice 2 Agent Gateway Audit and Allowlists Implemented
+Status: Phase 3 Slice 3 Async Job Contract Implemented
 Last Reviewed: 2026-06-19
 Owner: Yasin
 
@@ -60,7 +60,7 @@ As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
 - Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
-- Current Phase 3 state: Phase 2D is complete, and the Research Agent Gateway now has token-hash persistence, `whoami`, gateway health, read-scoped report endpoints, append-only audit records, token expiry enforcement, instrument allowlist enforcement, report-list filtering, and a local rate-limit guard. The gateway remains research-only and does not expose trading, broker credentials, or live execution.
+- Current Phase 3 state: Phase 2D is complete, and the Research Agent Gateway now has token-hash persistence, `whoami`, gateway health, read-scoped report endpoints, append-only audit records, token expiry enforcement, instrument allowlist enforcement, report-list filtering, a local rate-limit guard, and a durable agent-facing research analysis job contract with idempotency-key replay. The gateway remains research-only and does not expose trading, broker credentials, or live execution.
 
 Current code shape:
 
