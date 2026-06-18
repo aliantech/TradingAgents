@@ -15,6 +15,8 @@ The roadmap records 27 completed implementation slices plus a reverse-proxy prev
 
 The remaining completion gap is live option-chain sync with real provider credentials and entitlement. The guarded live sync smoke currently stops safely at readiness because `AQUANTLENS_POLYGON_API_KEY` is not configured in the Ubuntu runtime environment.
 
+The product path for credentials is the Settings workbench and `/api/settings`: users can save provider keys from the frontend, secrets are write-only, and provider readiness refreshes after saving. CLI env variables remain an operations smoke path, not the required user workflow.
+
 ## Implemented Scope
 
 | Area | Evidence | Status |
@@ -35,7 +37,7 @@ The remaining completion gap is live option-chain sync with real provider creden
 | Analysis launch workflow | Date, provider/model, depth, language, and typed analysis request payload. | Implemented |
 | Runs/task center | Analysis runs list, status filters, provider sync summary, progress inspection. | Implemented |
 | Market data workbench | Symbol/timeframe controls, chart, volume pane, bar preview, real API adapter. | Implemented |
-| Settings workbench | Backend health, provider readiness, sync health, settings surfaces without secret disclosure. | Implemented |
+| Settings workbench | Backend health, provider readiness, sync health, write-only API key storage, settings surfaces without secret disclosure. | Implemented |
 | Dashboard | Market pulse, supported symbols, research queue, workflow links. | Implemented |
 | App shell | Sticky header, symbol search, market session state, provider readiness, language switch. | Implemented |
 | Reports/Runs actions | Runs can open completed reports and inspect progress/error detail. | Implemented |

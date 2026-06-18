@@ -718,7 +718,7 @@ export function App() {
             backendHealthError={backendHealthError}
             analysisConfig={analysisConfig}
             syncRuns={syncRuns}
-            onRefresh={() => void Promise.all([refreshBackendHealth(), refreshSyncRuns()])}
+            onRefresh={() => Promise.all([refreshBackendHealth(), refreshSyncRuns()]).then(() => undefined)}
           />
         ) : null}
         </div>
@@ -1745,7 +1745,7 @@ function SettingsPage({
   backendHealthError: string | null;
   analysisConfig: Pick<AnalysisStartPayload, "analysisDate" | "llmProvider" | "model" | "depth" | "analystSet">;
   syncRuns: ProviderSyncRunItem[];
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const recentRuns = syncRuns.slice(0, 4);
@@ -1839,6 +1839,7 @@ function SettingsPage({
       applyPersistedSettings(response.items);
       setSecretValues({});
       setDirtyKeys([]);
+      await onRefresh();
     } catch (caught) {
       setSettingsError(caught instanceof Error ? caught.message : t("settings.saveError"));
     } finally {

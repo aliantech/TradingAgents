@@ -237,6 +237,8 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
   - recent provider sync runs.
 - Kept the settings surface operational and narrow:
   - no secret values;
+  - write-only frontend API key save through `/api/settings`;
+  - automatic provider readiness refresh after settings are saved;
   - only safe missing configuration names from readiness responses;
   - no broker, live-trading, or paper-trading controls.
 - Verified frontend builds locally and in the Ubuntu runtime workspace.
