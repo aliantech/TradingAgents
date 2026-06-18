@@ -17,6 +17,8 @@ The remaining completion gap is live option-chain sync with real provider creden
 
 The product path for credentials is the Settings workbench and `/api/settings`: users can save provider keys from the frontend, secrets are write-only, and provider readiness refreshes after saving. CLI env variables remain an operations smoke path, not the required user workflow.
 
+Phase 2D pre-clear update: Market Data and Options now point provider-not-ready users back to Settings, and sync actions remain gated until readiness is available.
+
 ## Implemented Scope
 
 | Area | Evidence | Status |
@@ -161,7 +163,7 @@ The live smoke script must remain bounded, readiness-gated, and secret-safe.
 ## Known Risks
 
 - Phase 2C has grown from a data foundation into broader workbench UI integration, so completion review should check for accidental scope drift.
-- Live provider sync success is not yet proven because the Ubuntu runtime environment does not currently have `AQUANTLENS_POLYGON_API_KEY` configured.
+- Live provider sync success is not yet proven through the current UI session because no user-provided provider key and vendor entitlement have been entered. This is an external credential/entitlement requirement; the product path for entering it is Settings, not CLI env injection.
 - Selected option bars currently use the existing market-bar repository path and deterministic fallback behavior; a provider-backed option-bars sync path may still be needed before analytics work.
 - PDF/DOCX report export, retry mutations, backend logs for failed analysis runs, volatility surfaces, strategy builders, and backtesting remain intentionally deferred.
 - README still reflects the upstream TradingAgents project and should be rewritten later as product-oriented AQuantLens US public documentation.

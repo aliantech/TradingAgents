@@ -54,6 +54,7 @@ type OptionChainTableProps = {
   onExpiryChange: (value: string) => void;
   onSelectedContractChange: (optionSymbol: string) => void;
   onSelectedBarsTimeframeChange: (timeframe: MarketTimeframe) => void;
+  onConfigureProvider: () => void;
   onRefresh: () => void;
   onSync: () => void;
 };
@@ -115,6 +116,7 @@ export function OptionChainTable({
   onExpiryChange,
   onSelectedContractChange,
   onSelectedBarsTimeframeChange,
+  onConfigureProvider,
   onRefresh,
   onSync,
 }: OptionChainTableProps) {
@@ -343,6 +345,7 @@ export function OptionChainTable({
           latestSyncRun={latestSyncRun}
           contractsCount={contracts.length}
           syncing={syncing}
+          onConfigureProvider={onConfigureProvider}
           onRefresh={onRefresh}
           onSync={onSync}
         />
@@ -716,6 +719,7 @@ function OptionsEmptyState({
   latestSyncRun,
   contractsCount,
   syncing,
+  onConfigureProvider,
   onRefresh,
   onSync,
 }: {
@@ -726,6 +730,7 @@ function OptionsEmptyState({
   latestSyncRun: ProviderSyncRunItem | null;
   contractsCount: number;
   syncing: boolean;
+  onConfigureProvider: () => void;
   onRefresh: () => void;
   onSync: () => void;
 }) {
@@ -751,10 +756,15 @@ function OptionsEmptyState({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {!readiness?.ready ? (
+            <Button type="button" onClick={onConfigureProvider}>
+              {t("options.configureProvider")}
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" onClick={onRefresh}>
             {t("options.refresh")}
           </Button>
-          <Button type="button" onClick={onSync} disabled={!canSync}>
+          <Button type="button" variant={readiness?.ready ? "default" : "outline"} onClick={onSync} disabled={!canSync}>
             {syncing ? t("options.syncing") : t("options.sync")}
           </Button>
         </div>

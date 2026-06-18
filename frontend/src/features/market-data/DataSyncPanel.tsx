@@ -31,6 +31,7 @@ type DataSyncPanelProps = {
   onSyncTypeFilterChange: (syncType: string) => void;
   onStartedAfterFilterChange: (startedAfter: string) => void;
   onStartedBeforeFilterChange: (startedBefore: string) => void;
+  onConfigureProvider: () => void;
   onRefresh: () => void;
   onSyncSample: () => void;
 };
@@ -52,6 +53,7 @@ export function DataSyncPanel({
   onSyncTypeFilterChange,
   onStartedAfterFilterChange,
   onStartedBeforeFilterChange,
+  onConfigureProvider,
   onRefresh,
   onSyncSample,
 }: DataSyncPanelProps) {
@@ -61,7 +63,7 @@ export function DataSyncPanel({
       <CardHeader>
         <CardTitle>{t("market.syncTitle")}</CardTitle>
         <CardAction className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onSyncSample} disabled={syncing || loading}>
+          <Button type="button" variant="outline" onClick={onSyncSample} disabled={syncing || loading || !readiness?.ready}>
             {syncing ? t("market.syncing") : t("market.syncSample")}
           </Button>
           <Button type="button" variant="outline" onClick={onRefresh} disabled={loading || syncing}>
@@ -149,14 +151,21 @@ export function DataSyncPanel({
       ) : null}
 
       {readiness ? (
-        <StatusCard
-          label={t("market.providerReadiness")}
-          value={readiness.ready ? t("market.ready") : t("market.notReady")}
-          status={readiness.ready ? "ready" : "not-ready"}
-          detail={`${readiness.provider} · ${
-            readiness.missing.length > 0 ? t("market.missing", { items: readiness.missing.join(", ") }) : t("market.runtimeReady")
-          } · ${readiness.message}`}
-        />
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <StatusCard
+            label={t("market.providerReadiness")}
+            value={readiness.ready ? t("market.ready") : t("market.notReady")}
+            status={readiness.ready ? "ready" : "not-ready"}
+            detail={`${readiness.provider} · ${
+              readiness.missing.length > 0 ? t("market.missing", { items: readiness.missing.join(", ") }) : t("market.runtimeReady")
+            } · ${readiness.message}`}
+          />
+          {!readiness.ready ? (
+            <Button type="button" onClick={onConfigureProvider}>
+              {t("market.configureProvider")}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {groups.length > 0 ? (

@@ -658,6 +658,7 @@ export function App() {
               onSyncTypeFilterChange={setSyncTypeFilter}
               onStartedAfterFilterChange={setSyncStartedAfterFilter}
               onStartedBeforeFilterChange={setSyncStartedBeforeFilter}
+              onConfigureProvider={() => navigateToPage("settings")}
               onRefresh={() => void handleRefreshSyncRuns()}
               onSyncSample={() => void handleSyncSampleBars()}
             />
@@ -688,6 +689,7 @@ export function App() {
                 onExpiryChange={handleOptionExpiryChange}
                 onSelectedContractChange={(optionSymbol) => void loadSelectedOptionBars(optionSymbol)}
                 onSelectedBarsTimeframeChange={(timeframe) => void handleSelectedOptionBarsTimeframeChange(timeframe)}
+                onConfigureProvider={() => navigateToPage("settings")}
                 onRefresh={() => void handleRefreshOptions()}
                 onSync={() => void handleSyncOptions()}
               />
@@ -1758,6 +1760,7 @@ function SettingsPage({
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSavedAt, setSettingsSavedAt] = useState<string | null>(null);
+  const [settingsSaveNotice, setSettingsSaveNotice] = useState(false);
   const settingsTabs = [
     { value: "apis", title: t("settings.tabs.apis"), detail: t("settings.nav.apis"), icon: KeyRound, sections: catalog.apiSections },
     { value: "models", title: t("settings.tabs.models"), detail: t("settings.nav.models"), icon: Bot, sections: catalog.modelSections },
@@ -1812,6 +1815,7 @@ function SettingsPage({
     } else {
       setSettingValues((current) => ({ ...current, [configKey]: value }));
     }
+    setSettingsSaveNotice(false);
     setDirtyKeys((current) => (current.includes(configKey) ? current : [...current, configKey]));
   }
 
@@ -1840,6 +1844,7 @@ function SettingsPage({
       setSecretValues({});
       setDirtyKeys([]);
       await onRefresh();
+      setSettingsSaveNotice(true);
     } catch (caught) {
       setSettingsError(caught instanceof Error ? caught.message : t("settings.saveError"));
     } finally {
@@ -1851,6 +1856,7 @@ function SettingsPage({
     applyPersistedSettings(Object.values(persistedSettings));
     setSecretValues({});
     setDirtyKeys([]);
+    setSettingsSaveNotice(false);
   }
 
   return (
@@ -1882,6 +1888,11 @@ function SettingsPage({
       {settingsError ? (
         <Alert variant="destructive">
           <AlertDescription>{settingsError}</AlertDescription>
+        </Alert>
+      ) : null}
+      {!settingsError && settingsSaveNotice && settingsSavedAt ? (
+        <Alert>
+          <AlertDescription>{t("settings.savedAndRefreshed", { time: formatDate(settingsSavedAt) })}</AlertDescription>
         </Alert>
       ) : null}
       {backendHealthError ? (

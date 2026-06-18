@@ -444,10 +444,12 @@ Result:
 
 Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes, and aggregates. WebSocket ingestion is useful for future realtime cache/events, but Phase 2C should first validate REST entitlement and persistence because REST responses are easier to audit and replay.
 
-## Next Slice
+## Phase 2D Pre-Clear
 
-- Rerun live guarded SPX/SPY option-chain sync smoke once the runtime shell has the API key loaded.
-- Add scheduler/backfill target config only after live option-chain sync smoke is stable.
+- Treat the frontend Settings workbench and `/api/settings` as the default product path for provider API keys.
+- Keep CLI env-based live smoke as an optional operations check after a user has configured credentials and entitlement; do not block product planning on Mac or shell-local key injection.
+- Make provider-not-ready states actionable in Market Data and Options by linking users back to Settings.
+- Add scheduler/backfill target config only after the product path can save provider credentials, refresh readiness, and start sync actions without exposing secret values.
 
 ## UI Framework Slice
 
