@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from app.core.config import Settings
-from app.runtime_config import runtime_config
 
 
 @dataclass(frozen=True)
@@ -16,9 +15,9 @@ def check_market_data_provider_readiness(settings: Settings, provider: str | Non
     provider_name = (provider or settings.market_data_provider).lower().strip()
     if provider_name == "polygon":
         missing = []
-        if not runtime_config.polygon_api_key(settings):
+        if not settings.polygon_api_key:
             missing.append("AQUANTLENS_POLYGON_API_KEY")
-        if not runtime_config.polygon_base_url(settings):
+        if not settings.polygon_base_url:
             missing.append("AQUANTLENS_POLYGON_BASE_URL")
         return ProviderReadiness(
             provider="polygon",
