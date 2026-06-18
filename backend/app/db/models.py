@@ -126,6 +126,20 @@ class AgentTokenModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class AgentAuditModel(Base):
+    __tablename__ = "agent_audit"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    agent_token_id: Mapped[UUID | None] = mapped_column(ForeignKey("agent_tokens.id"), nullable=True, index=True)
+    agent_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    route: Mapped[str] = mapped_column(String(255), index=True)
+    method: Mapped[str] = mapped_column(String(16))
+    scope_class: Mapped[str] = mapped_column(String(8), default="R")
+    status_code: Mapped[int] = mapped_column()
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class OptionContractModel(Base):
     __tablename__ = "option_contracts"
     __table_args__ = (

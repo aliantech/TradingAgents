@@ -132,7 +132,20 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS agent_audit (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_token_id uuid REFERENCES agent_tokens(id),
+  agent_name text,
+  route text NOT NULL,
+  method text NOT NULL,
+  scope_class text NOT NULL DEFAULT 'R',
+  status_code integer NOT NULL,
+  detail text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_instruments_symbol ON instruments(symbol);
 CREATE INDEX IF NOT EXISTS idx_option_contracts_underlying_expiry ON option_contracts(underlying_instrument_id, expiry_date);
 CREATE INDEX IF NOT EXISTS idx_analysis_reports_symbol_created ON analysis_reports(symbol, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_agent_audit_route ON agent_audit(route, created_at DESC);

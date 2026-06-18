@@ -53,13 +53,19 @@ Implemented surface:
 
 ### Slice 2: Agent Gateway Audit and Allowlists
 
-Planned:
+Status: implemented and validated on 2026-06-19.
+
+Implemented:
 
 - Append-only agent audit log for success and denial events.
-- Market allowlist enforcement.
-- Instrument allowlist enforcement.
+- Instrument allowlist enforcement for report detail reads.
+- Instrument allowlist filtering for report list reads.
 - Token expiry tests.
-- In-process rate-limit guard or persisted rate-limiting design.
+- In-process rate-limit guard for the local gateway process.
+
+Deferred:
+
+- Market allowlist enforcement remains deferred until report and job records carry an explicit market field.
 
 ### Slice 3: Async Job Contract
 
@@ -110,4 +116,18 @@ Result:
 
 ```text
 4 passed in 0.56s
+```
+
+Slice 2 validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_agent_gateway_api.py
+```
+
+Result:
+
+```text
+8 passed in 0.74s
 ```

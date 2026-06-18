@@ -1,12 +1,14 @@
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.analysis.service import start_analysis
+from app.agent_gateway.auth import RATE_LIMIT_BUCKETS
 from app.analysis.repository import AnalysisRepository
 from app.analysis.schemas import AnalysisDepth, AnalysisRequest, AssetType, ReportLanguage
-from app.db.models import AgentTokenModel
+from app.analysis.service import start_analysis
+from app.db.models import AgentAuditModel, AgentTokenModel
 from app.db.session import SessionLocal, initialize_database
 from app.main import app
 
@@ -97,7 +99,114 @@ def test_agent_gateway_reports_reject_token_without_read_scope():
     assert response.json()["detail"] == "agent token lacks required scope: R"
 
 
-def seed_agent_token(*, scopes: str = "R,A", instruments: str = "SPY,QQQ") -> str:
+def test_agent_gateway_rejects_expired_token_and_records_denial_audit():
+    raw_token = seed_agent_token(scopes="R", expires_at=datetime.now(UTC) - timedelta(minutes=1))
+    client = TestClient(app)
+
+    response = client.get("/api/agent/v1/reports", headers={"Authorization": f"Bearer {raw_token}"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "agent token expired"
+    assert latest_audit_status("/api/agent/v1/reports") == 401
+
+
+def test_agent_gateway_report_detail_enforces_instrument_allowlist_and_audits():
+    allowed_token = seed_agent_token(scopes="R", instruments="SPY")
+    session = SessionLocal()
+    try:
+        spy_run = create_report(session, "SPY")
+        qqq_run = create_report(session, "QQQ")
+    finally:
+        session.close()
+
+    client = TestClient(app)
+    headers = {"Authorization": f"Bearer {allowed_token}"}
+
+    allowed_response = client.get(f"/api/agent/v1/reports/{spy_run.report.report_id}", headers=headers)
+    denied_response = client.get(f"/api/agent/v1/reports/{qqq_run.report.report_id}", headers=headers)
+
+    assert allowed_response.status_code == 200
+    assert denied_response.status_code == 403
+    assert denied_response.json()["detail"] == "instrument not allowed: QQQ"
+    assert audit_statuses(f"/api/agent/v1/reports/{spy_run.report.report_id}")[-1] == 200
+    assert audit_statuses(f"/api/agent/v1/reports/{qqq_run.report.report_id}")[-1] == 403
+
+
+def test_agent_gateway_report_list_filters_instrument_allowlist():
+    allowed_token = seed_agent_token(scopes="R", instruments="SPY")
+    session = SessionLocal()
+    try:
+        spy_run = create_report(session, "SPY")
+        qqq_run = create_report(session, "QQQ")
+    finally:
+        session.close()
+
+    client = TestClient(app)
+    response = client.get("/api/agent/v1/reports", headers={"Authorization": f"Bearer {allowed_token}"})
+
+    report_ids = {item["report_id"] for item in response.json()}
+    assert response.status_code == 200
+    assert str(spy_run.report.report_id) in report_ids
+    assert str(qqq_run.report.report_id) not in report_ids
+
+
+def test_agent_gateway_enforces_rate_limit_and_records_audit():
+    RATE_LIMIT_BUCKETS.clear()
+    raw_token = seed_agent_token(scopes="R", rate_limit_per_min=1)
+    client = TestClient(app)
+    headers = {"Authorization": f"Bearer {raw_token}"}
+
+    first_response = client.get("/api/agent/v1/reports", headers=headers)
+    second_response = client.get("/api/agent/v1/reports", headers=headers)
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 429
+    assert second_response.json()["detail"] == "agent token rate limit exceeded"
+    assert latest_audit_status("/api/agent/v1/reports") == 429
+
+
+def create_report(session, symbol: str):
+    return start_analysis(
+        AnalysisRequest(
+            symbol=symbol,
+            asset_type=AssetType.etf,
+            analysis_date="2026-06-19",
+            language=ReportLanguage.zh,
+            llm_provider="openai",
+            model="gpt-5.5",
+            depth=AnalysisDepth.standard,
+        ),
+        repository=AnalysisRepository(session),
+    )
+
+
+def latest_audit_status(route: str) -> int:
+    statuses = audit_statuses(route)
+    assert statuses
+    return statuses[-1]
+
+
+def audit_statuses(route: str) -> list[int]:
+    session = SessionLocal()
+    try:
+        rows = (
+            session.query(AgentAuditModel)
+            .filter(AgentAuditModel.route == route)
+            .order_by(AgentAuditModel.created_at.asc())
+            .all()
+        )
+        return [row.status_code for row in rows]
+    finally:
+        session.close()
+
+
+def seed_agent_token(
+    *,
+    scopes: str = "R,A",
+    instruments: str = "SPY,QQQ",
+    expires_at=None,
+    rate_limit_per_min: int = 30,
+) -> str:
     initialize_database()
     raw_token = f"aql_agent_test_{uuid4().hex}"
     session = SessionLocal()
@@ -110,8 +219,9 @@ def seed_agent_token(*, scopes: str = "R,A", instruments: str = "SPY,QQQ") -> st
                 scopes=scopes,
                 markets="US",
                 instruments=instruments,
-                rate_limit_per_min=30,
+                rate_limit_per_min=rate_limit_per_min,
                 status="active",
+                expires_at=expires_at,
             )
         )
         session.commit()

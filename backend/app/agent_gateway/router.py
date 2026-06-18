@@ -1,9 +1,16 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.agent_gateway.auth import get_current_agent_token, parse_csv, require_scope
+from app.agent_gateway.auth import (
+    ensure_instrument_allowed,
+    get_current_agent_token,
+    list_matches,
+    parse_csv,
+    record_agent_audit,
+    require_scope,
+)
 from app.analysis.repository import AnalysisRepository
 from app.db.models import AgentTokenModel
 from app.db.session import get_db_session
@@ -36,19 +43,40 @@ def get_analysis_repository(session: Session = Depends(get_db_session)) -> Analy
 
 @router.get("/reports", response_model=list[ReportListItem])
 def list_reports(
+    request: Request,
     token: AgentTokenModel = Depends(require_scope("R")),
     repository: AnalysisRepository = Depends(get_analysis_repository),
+    session: Session = Depends(get_db_session),
 ) -> list[ReportListItem]:
-    return repository.list_reports()
+    try:
+        reports = [
+            report
+            for report in repository.list_reports()
+            if list_matches(report.symbol, parse_csv(token.instruments))
+        ]
+    except HTTPException as exc:
+        record_agent_audit(session, request=request, token=token, scope_class="R", status_code=exc.status_code, detail=str(exc.detail))
+        raise
+    record_agent_audit(session, request=request, token=token, scope_class="R", status_code=200)
+    return reports
 
 
 @router.get("/reports/{report_id}", response_model=ResearchReport)
 def get_report(
     report_id: UUID,
+    request: Request,
     token: AgentTokenModel = Depends(require_scope("R")),
     repository: AnalysisRepository = Depends(get_analysis_repository),
+    session: Session = Depends(get_db_session),
 ) -> ResearchReport:
     report = repository.get_report(report_id)
     if report is None:
+        record_agent_audit(session, request=request, token=token, scope_class="R", status_code=404, detail="report not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+    try:
+        ensure_instrument_allowed(token, report.symbol)
+    except HTTPException as exc:
+        record_agent_audit(session, request=request, token=token, scope_class="R", status_code=exc.status_code, detail=str(exc.detail))
+        raise
+    record_agent_audit(session, request=request, token=token, scope_class="R", status_code=200)
     return report
