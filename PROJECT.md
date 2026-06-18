@@ -2,8 +2,8 @@
 
 ## Status
 
-Status: Phase 2C Options Data Foundation Started
-Last Reviewed: 2026-06-17
+Status: Phase 2C Slices 1-27 Implemented; Final Audit Pending
+Last Reviewed: 2026-06-19
 Owner: Yasin
 
 ## Purpose
@@ -52,6 +52,23 @@ Deliver an MVP that can:
 - Display basic charts and selected option-chain data.
 - Prepare clean interfaces for later quant and execution modules.
 
+## Current Progress Snapshot
+
+As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation into Phase 2C options-data workbench implementation.
+
+- Phase 1: architecture, product scope, API/UI module plan, and research-only safety boundary are documented.
+- Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
+- Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
+- Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
+- Current Phase 2C state: implementation is advanced, but final completion should wait for a clean Ubuntu validation pass, review of the current uncommitted working tree, and a dedicated Phase 2C completion audit.
+
+Current code shape:
+
+- Backend: FastAPI service boundary with analysis, reports, market data, options, settings, and health routers.
+- Data layer: SQLAlchemy models for analysis/report persistence, market bars, provider sync audit, settings, option contracts, and option snapshots.
+- Frontend: React/Vite/TypeScript workbench with Dashboard, Analysis, Reports, Market Data, Options, Runs, and Settings pages.
+- Upstream TradingAgents: retained as the AI research framework underneath the AQuantLens US/options service and UI layers.
+
 ## Preferred Stack
 
 Frontend:
@@ -99,5 +116,11 @@ Initial storage scope:
 
 - `docs/roadmap/phase-1-roadmap.md`
 - `docs/architecture/phase-1-architecture.md`
+- `docs/roadmap/phase-2a-roadmap.md`
+- `docs/roadmap/phase-2a-verification.md`
+- `docs/roadmap/phase-2b-roadmap.md`
+- `docs/roadmap/phase-2b-completion-audit.md`
+- `docs/roadmap/phase-2c-roadmap.md`
+- `docs/roadmap/phase-2c-completion-audit.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`
