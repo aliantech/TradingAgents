@@ -8,10 +8,12 @@ Phase 2C remains a research and data layer. It does not add broker order placeme
 
 ## Current Status
 
-Status: Implementation slices 1-27 are present; final completion audit pending.
+Status: Implementation slices 1-27 are present; live provider sync entitlement pending.
 Last audited: 2026-06-19.
 
-The roadmap records 27 completed implementation slices plus a reverse-proxy preview fix, but the branch currently has a large uncommitted working tree. Treat Phase 2C as functionally advanced but not finally closed until the Ubuntu validation gate passes and the changes are reviewed, grouped, and committed.
+The roadmap records 27 completed implementation slices plus a reverse-proxy preview fix. The Phase 2C work has been reviewed, split into commits, pushed to `origin/aquantlens-us`, rebased with the remote Phase 2C runtime-setting work, and validated on the Ubuntu runtime workspace.
+
+The remaining completion gap is live option-chain sync with real provider credentials and entitlement. The guarded live sync smoke currently stops safely at readiness because `AQUANTLENS_POLYGON_API_KEY` is not configured in the Ubuntu runtime environment.
 
 ## Implemented Scope
 
@@ -48,13 +50,13 @@ The roadmap records 27 completed implementation slices plus a reverse-proxy prev
 
 Phase 2C should be marked complete only after these are done:
 
-- Review the full uncommitted working tree and split unrelated changes if needed. Pending.
+- Review the full uncommitted working tree and split unrelated changes if needed. Done on 2026-06-19.
 - Run backend tests on the Ubuntu runtime workspace. Done on 2026-06-19.
 - Run frontend build on the Ubuntu runtime workspace. Done on 2026-06-19.
 - Verify preview API routing on the deployed or proxied preview URL when that surface is in use.
 - Run a non-live Phase 2C smoke path using sample or deterministic fallback data.
-- Run guarded live options smoke only when user-provided runtime env vars and vendor entitlements are available.
-- Confirm smoke output never prints API keys, tokens, `.env` contents, browser sessions, or credential values.
+- Run guarded live options smoke only when user-provided runtime env vars and vendor entitlements are available. Readiness gate verified; live sync not ready because `AQUANTLENS_POLYGON_API_KEY` is missing.
+- Confirm smoke output never prints API keys, tokens, `.env` contents, browser sessions, or credential values. Readiness and not-ready smoke output verified.
 - Confirm `PROJECT.md`, `docs/roadmap/phase-2c-roadmap.md`, and this audit agree on the final status.
 
 ## Validation Evidence
@@ -70,7 +72,7 @@ pytest -q
 Result:
 
 ```text
-102 passed in 1.51s
+102 passed in 1.73s
 ```
 
 ```bash
@@ -84,19 +86,49 @@ Result:
 tsc -b && vite build
 1927 modules transformed
 dist/index.html
-dist/assets/OptionChainTable-i3tVmXp8.js
-dist/assets/KlineChart-jMZnQw1j.js
-dist/assets/index-BbYfYZDd.js
-built in 466ms
+dist/assets/vendor-table-hPDDHFqE.js
+dist/assets/KlineChart-DDB7IYS0.js
+dist/assets/vendor-icons-B3wET5KB.js
+dist/assets/OptionChainTable-CCVxcUbB.js
+dist/assets/vendor-radix-CCbxh7D7.js
+dist/assets/index-R-9-ZG6q.js
+dist/assets/vendor-react-DdZ8l58_.js
+dist/assets/vendor-DPGdXZhG.js
+built in 413ms
 ```
 
-Known build warning:
+Code-splitting result:
 
 ```text
-Some chunks are larger than 500 kB after minification.
+main app chunk reduced from about 564 kB to 160.41 kB.
 ```
 
-The warning does not block the production build. `OptionChainTable` and `KlineChart` already emit split chunks; the main app shell remains the largest bundle and can be optimized in a later UI performance pass.
+The previous large single-chunk warning is gone. Vendor libraries, icons, Radix, TanStack Table, `KlineChart`, and `OptionChainTable` now emit separate chunks.
+
+Guarded options sync smoke on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+python -m app.market_data.cli provider-readiness --provider polygon
+```
+
+Result:
+
+```json
+{"provider": "polygon", "ready": false, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "message": "Polygon provider is missing required runtime configuration."}
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents
+scripts/phase2c_options_sync_live_smoke.sh SPX 2026-06-19 250
+```
+
+Result:
+
+```json
+{"provider": "polygon", "underlying_symbol": "SPX", "expiry": "2026-06-19", "status": "not_ready", "readiness_ready": false, "rows_written": 0, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "error_message": "Polygon provider is missing required runtime configuration."}
+```
 
 During validation, one stale backend test was updated to match the new runtime settings architecture. The provider-readiness API now resolves Polygon readiness from persisted runtime settings instead of a module-level `settings` monkeypatch.
 
@@ -126,8 +158,8 @@ The live smoke script must remain bounded, readiness-gated, and secret-safe.
 
 ## Known Risks
 
-- The current branch has many uncommitted files across backend, frontend, scripts, and docs.
 - Phase 2C has grown from a data foundation into broader workbench UI integration, so completion review should check for accidental scope drift.
+- Live provider sync success is not yet proven because the Ubuntu runtime environment does not currently have `AQUANTLENS_POLYGON_API_KEY` configured.
 - Selected option bars currently use the existing market-bar repository path and deterministic fallback behavior; a provider-backed option-bars sync path may still be needed before analytics work.
 - PDF/DOCX report export, retry mutations, backend logs for failed analysis runs, volatility surfaces, strategy builders, and backtesting remain intentionally deferred.
 - README still reflects the upstream TradingAgents project and should be rewritten later as product-oriented AQuantLens US public documentation.

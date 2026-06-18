@@ -160,7 +160,7 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
   - `KlineChart`;
   - `OptionChainTable`;
   - main app shell.
-- Removed the previous large single-chunk warning after route splitting.
+- Reduced the previous single-bundle risk after route splitting.
 - Migrated the Options page Call / Strike / Put table to TanStack Table row and column models while preserving:
   - grouped Call / Strike / Put headers;
   - ATM marker row;
@@ -383,8 +383,11 @@ Results:
 - Timeout/retry options live smoke tests: `5 passed`.
 - Full backend suite: `102 passed`.
 - Frontend production build: `npm run build` succeeded.
+- Frontend vendor code splitting now emits separate vendor chunks for React/i18n, Radix, icons, TanStack Table, and shared vendor code.
+- Latest Ubuntu build main app chunk is about `160.41 kB`, down from about `564 kB`; the previous chunk-size warning is gone.
 - Guarded no-key smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
 - Guarded no-key option-chain sync smoke returns `status=not_ready` with missing `AQUANTLENS_POLYGON_API_KEY`.
+- Guarded live option-chain sync smoke on Ubuntu currently returns `status=not_ready` because `AQUANTLENS_POLYGON_API_KEY` is not configured.
 - Live sync with expired `2024-06-21` returned `rows_written=0`; this now maps to `status=empty`.
 
 ## Live Entitlement Check
@@ -441,7 +444,7 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 
 ## Next Slice
 
-- Add live guarded SPX/SPY option-chain sync smoke once the runtime shell has the API key loaded.
+- Rerun live guarded SPX/SPY option-chain sync smoke once the runtime shell has the API key loaded.
 - Add scheduler/backfill target config only after live option-chain sync smoke is stable.
 
 ## UI Framework Slice
