@@ -451,6 +451,14 @@ Massive WebSocket docs describe Options streams as real-time OPRA trades, quotes
 - Make provider-not-ready states actionable in Market Data and Options by linking users back to Settings.
 - Add scheduler/backfill target config only after the product path can save provider credentials, refresh readiness, and start sync actions without exposing secret values.
 
+Status: complete on 2026-06-19.
+
+Validation:
+
+- Ubuntu frontend `npm run build`: passed.
+- Ubuntu backend targeted settings/readiness tests: `5 passed`.
+- Ubuntu backend full test suite: `102 passed`.
+
 ## UI Framework Slice
 
 The AQuantLens US/options UI framework now follows the local UI design route:

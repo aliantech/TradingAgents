@@ -79,6 +79,44 @@ Result:
 102 passed in 1.73s
 ```
 
+Phase 2D pre-clear validation on 2026-06-19:
+
+```bash
+cd /home/yasin/workspace/TradingAgents/frontend
+npm run build
+```
+
+Result:
+
+```text
+1927 modules transformed
+built in 612ms
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q tests/test_settings_api.py tests/test_market_data_provider_readiness.py
+```
+
+Result:
+
+```text
+5 passed in 0.75s
+```
+
+```bash
+cd /home/yasin/workspace/TradingAgents/backend
+. .venv/bin/activate
+pytest -q
+```
+
+Result:
+
+```text
+102 passed in 1.75s
+```
+
 ```bash
 cd /home/yasin/workspace/TradingAgents/frontend
 npm run build

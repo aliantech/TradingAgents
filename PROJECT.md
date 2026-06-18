@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 2C Slices 1-27 Implemented; Phase 2D Pre-Clear In Progress
+Status: Phase 2C Slices 1-27 Implemented; Phase 2D Pre-Clear Complete
 Last Reviewed: 2026-06-19
 Owner: Yasin
 
@@ -60,7 +60,7 @@ As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
 - Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
-- Current Phase 2C state: implementation is advanced, Ubuntu backend/frontend validation has passed for the audited baseline, and the remaining pre-Phase-2D work is product-path cleanup around Settings/provider readiness plus final completion review.
+- Current Phase 2C state: implementation is advanced, Ubuntu backend/frontend validation has passed, and the pre-Phase-2D Settings/provider readiness product-path cleanup is complete. Remaining work should move into Phase 2D research workflow planning and implementation.
 
 Current code shape:
 
