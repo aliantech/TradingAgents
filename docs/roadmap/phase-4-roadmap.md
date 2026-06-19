@@ -225,7 +225,7 @@ PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pyt
 Result:
 
 ```text
-11 passed in 1.52s
+11 passed in 1.44s
 ```
 
 Full backend regression on 2026-06-19:
@@ -238,25 +238,19 @@ PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pyt
 Result:
 
 ```text
-138 passed in 3.33s
+138 passed in 3.36s
 ```
 
 Slice 4 frontend validation on 2026-06-19:
 
 ```bash
 cd /tmp/tradingagents-slice4/frontend
+ln -sfn /home/yasin/workspace/TradingAgents/frontend/node_modules node_modules
 npm run build
 ```
 
 Result:
 
 ```text
-✓ built in 502ms
+✓ built in 444ms
 ```
-
-Rendered curation check:
-
-- Opened `http://192.168.100.123:5197/#strategy` against temporary Ubuntu backend/frontend services.
-- Confirmed Strategy Lab rendered tags, notes, tag filter, archived toggle, and the existing strategy catalog controls.
-- Toggled archived visibility and typed `draft` into the tag filter.
-- Confirmed the UI called the filtered experiments API and remained in the expected empty state with no browser console warnings or errors.
