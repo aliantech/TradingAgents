@@ -143,5 +143,6 @@ Initial storage scope:
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-6-paper-adapter-simulation.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-7-candidate-to-paper-ui.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-1-roadmap.md`
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-2-paper-workflow-browser-smoke.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`

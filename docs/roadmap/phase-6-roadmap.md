@@ -50,7 +50,7 @@ Verification:
 
 ### Slice 2: Paper Workflow Browser Smoke Test
 
-Status: planned.
+Status: implementation plan added on 2026-06-20.
 
 Goal:
 
@@ -62,6 +62,10 @@ Expected coverage:
 - Locate Candidate Review Board paper action.
 - Confirm paper-only UI copy and absence of live-trading controls.
 - Exercise the review panel against controlled API fixtures or test-backed app state.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-2-paper-workflow-browser-smoke.md`
 
 Verification:
 
