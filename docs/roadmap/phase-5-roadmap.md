@@ -283,13 +283,17 @@ Verification:
 
 ### Slice 7: Candidate-to-Paper UI
 
-Status: pending.
+Status: planned; implementation plan written on 2026-06-20.
 
 Planned deliverables:
 
 - Candidate Review Board action to create a paper intent draft.
 - Paper review page with RiskGuard decision, audit timeline, and explicit human approval controls.
 - No buy/sell broker buttons.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-7-candidate-to-paper-ui.md`
 
 Verification:
 
