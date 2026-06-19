@@ -83,6 +83,29 @@ Out of scope:
 - Paper or live execution.
 - Broker adapters.
 
+### Slice 4: Experiment Curation
+
+Status: implemented and validated on 2026-06-19.
+
+Implemented:
+
+- Added research-only curation metadata to saved Strategy Lab experiments: tags, notes, and archived state.
+- Added create-time tags and notes for saved experiments.
+- Added `PATCH /api/strategy-lab/experiments/{experiment_id}` to update tags, notes, and archived state.
+- `GET /api/strategy-lab/experiments` now hides archived experiments by default, can include archived rows, and can filter by tag.
+- Duplicating an archived experiment creates an active copy while preserving tags and notes.
+- Frontend Strategy Lab save controls now include tags and notes.
+- Frontend experiment rail and saved experiment table render tags, notes, archived badges, archive/restore actions, archived visibility toggle, and tag filtering.
+
+Out of scope:
+
+- Ranking or optimization.
+- Cross-symbol curation workflows.
+- Multi-user sharing.
+- Paper trading.
+- Live execution.
+- Broker adapters.
+
 ## Validation Evidence
 
 Slice 1 backend validation on 2026-06-19:
@@ -191,3 +214,49 @@ Rendered catalog check:
 - Confirmed the right-side live preview still rendered `Markers 34 / Trades 17 / Final $10,040.95`.
 - Saved the current experiment and confirmed the opened/history title used `SPY 2/3 MA Cross Research`.
 - Browser console had no errors during the rendered check.
+
+Slice 4 backend validation on 2026-06-19:
+
+```bash
+cd /tmp/tradingagents-slice4/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q tests/test_strategy_lab_contracts.py tests/test_strategy_lab_api.py tests/test_strategy_lab_experiments_api.py --tb=short
+```
+
+Result:
+
+```text
+11 passed in 1.52s
+```
+
+Full backend regression on 2026-06-19:
+
+```bash
+cd /tmp/tradingagents-slice4/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
+```
+
+Result:
+
+```text
+138 passed in 3.33s
+```
+
+Slice 4 frontend validation on 2026-06-19:
+
+```bash
+cd /tmp/tradingagents-slice4/frontend
+npm run build
+```
+
+Result:
+
+```text
+✓ built in 502ms
+```
+
+Rendered curation check:
+
+- Opened `http://192.168.100.123:5197/#strategy` against temporary Ubuntu backend/frontend services.
+- Confirmed Strategy Lab rendered tags, notes, tag filter, archived toggle, and the existing strategy catalog controls.
+- Toggled archived visibility and typed `draft` into the tag filter.
+- Confirmed the UI called the filtered experiments API and remained in the expected empty state with no browser console warnings or errors.

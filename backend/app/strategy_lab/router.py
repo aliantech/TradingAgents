@@ -64,7 +64,15 @@ class StrategyExperimentCreateRequest(BaseModel):
     strategy_id: str = Field(min_length=1, max_length=80)
     parameters: dict
     preview: dict
+    tags: list[str] = Field(default_factory=list, max_length=12)
+    notes: str | None = Field(default=None, max_length=2_000)
     report_id: UUID | None = None
+
+
+class StrategyExperimentUpdateRequest(BaseModel):
+    tags: list[str] | None = Field(default=None, max_length=12)
+    notes: str | None = Field(default=None, max_length=2_000)
+    archived: bool | None = None
 
 
 class StrategyExperimentResponse(BaseModel):
@@ -75,6 +83,9 @@ class StrategyExperimentResponse(BaseModel):
     scope: str
     parameters: dict
     preview: dict
+    tags: list[str]
+    notes: str | None = None
+    archived: bool
     report_id: UUID | None = None
     created_at: str
     updated_at: str
@@ -179,6 +190,8 @@ def create_strategy_experiment(
         scope="research_only",
         parameters=request.parameters,
         preview_json=request.preview,
+        tags=normalize_tags(request.tags),
+        notes=request.notes,
         report_id=request.report_id,
     )
     session.add(experiment)
@@ -190,14 +203,22 @@ def create_strategy_experiment(
 @router.get("/experiments", response_model=StrategyExperimentListResponse)
 def list_strategy_experiments(
     symbol: str | None = None,
+    tag: str | None = None,
+    include_archived: bool = False,
     session: Session = Depends(get_db_session),
 ) -> StrategyExperimentListResponse:
     statement = select(StrategyExperimentModel).order_by(StrategyExperimentModel.created_at.desc())
     if symbol:
         statement = statement.where(StrategyExperimentModel.symbol == symbol.upper())
-    experiments = session.scalars(statement.limit(50)).all()
+    if not include_archived:
+        statement = statement.where(StrategyExperimentModel.archived.is_(False))
+    experiments = session.scalars(statement.limit(100)).all()
+    if tag:
+        experiments = [
+            experiment for experiment in experiments if tag.strip() in (experiment.tags or [])
+        ]
     return StrategyExperimentListResponse(
-        experiments=[to_experiment_response(experiment) for experiment in experiments]
+        experiments=[to_experiment_response(experiment) for experiment in experiments[:50]]
     )
 
 
@@ -245,6 +266,31 @@ def get_strategy_experiment(
     return to_experiment_response(experiment)
 
 
+@router.patch("/experiments/{experiment_id}", response_model=StrategyExperimentResponse)
+def update_strategy_experiment(
+    experiment_id: UUID,
+    request: StrategyExperimentUpdateRequest,
+    session: Session = Depends(get_db_session),
+) -> StrategyExperimentResponse:
+    experiment = session.get(StrategyExperimentModel, experiment_id)
+    if experiment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="strategy experiment not found")
+
+    fields_set = request.model_fields_set
+    if "tags" in fields_set:
+        experiment.tags = normalize_tags(request.tags or [])
+    if "notes" in fields_set:
+        experiment.notes = request.notes
+    if request.archived is not None:
+        experiment.archived = request.archived
+    experiment.updated_at = utc_now_for_model()
+
+    session.add(experiment)
+    session.commit()
+    session.refresh(experiment)
+    return to_experiment_response(experiment)
+
+
 @router.post(
     "/experiments/{experiment_id}/duplicate",
     response_model=StrategyExperimentResponse,
@@ -264,6 +310,9 @@ def duplicate_strategy_experiment(
         scope=experiment.scope,
         parameters=experiment.parameters,
         preview_json=experiment.preview_json,
+        tags=experiment.tags,
+        notes=experiment.notes,
+        archived=False,
         report_id=experiment.report_id,
     )
     session.add(duplicated)
@@ -281,10 +330,28 @@ def to_experiment_response(experiment: StrategyExperimentModel) -> StrategyExper
         scope=experiment.scope,
         parameters=experiment.parameters,
         preview=experiment.preview_json,
+        tags=experiment.tags or [],
+        notes=experiment.notes,
+        archived=experiment.archived,
         report_id=experiment.report_id,
         created_at=experiment.created_at.isoformat(),
         updated_at=experiment.updated_at.isoformat(),
     )
+
+
+def normalize_tags(tags: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for tag in tags:
+        value = tag.strip()
+        if value and value not in normalized:
+            normalized.append(value)
+    return normalized
+
+
+def utc_now_for_model():
+    from app.db.models import utc_now
+
+    return utc_now()
 
 
 def build_comparison_metric(experiment: StrategyExperimentModel) -> StrategyExperimentComparisonMetric:

@@ -171,6 +171,9 @@ CREATE TABLE IF NOT EXISTS strategy_experiments (
   scope text NOT NULL DEFAULT 'research_only',
   parameters jsonb NOT NULL DEFAULT '{}'::jsonb,
   preview_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  tags jsonb NOT NULL DEFAULT '[]'::jsonb,
+  notes text,
+  archived boolean NOT NULL DEFAULT false,
   report_id uuid REFERENCES analysis_reports(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -183,3 +186,4 @@ CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_agent_audit_route ON agent_audit(route, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_jobs_token_created ON agent_jobs(agent_token_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_strategy_experiments_symbol_created ON strategy_experiments(symbol, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_strategy_experiments_archived ON strategy_experiments(archived);

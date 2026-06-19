@@ -20,6 +20,7 @@ def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_analysis_run_columns()
     _ensure_provider_sync_run_columns()
+    _ensure_strategy_experiment_columns()
     _seed_default_settings()
     _initialized = True
 
@@ -61,6 +62,25 @@ def _ensure_provider_sync_run_columns() -> None:
             connection.execute(text("ALTER TABLE provider_sync_runs ADD COLUMN target_symbol VARCHAR(64)"))
         if needs_target_expiry:
             connection.execute(text("ALTER TABLE provider_sync_runs ADD COLUMN target_expiry DATE"))
+
+
+def _ensure_strategy_experiment_columns() -> None:
+    inspector = inspect(engine)
+    if "strategy_experiments" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("strategy_experiments")}
+    needs_tags = "tags" not in columns
+    needs_notes = "notes" not in columns
+    needs_archived = "archived" not in columns
+    if not needs_tags and not needs_notes and not needs_archived:
+        return
+    with engine.begin() as connection:
+        if needs_tags:
+            connection.execute(text("ALTER TABLE strategy_experiments ADD COLUMN tags JSON NOT NULL DEFAULT '[]'"))
+        if needs_notes:
+            connection.execute(text("ALTER TABLE strategy_experiments ADD COLUMN notes TEXT"))
+        if needs_archived:
+            connection.execute(text("ALTER TABLE strategy_experiments ADD COLUMN archived BOOLEAN NOT NULL DEFAULT false"))
 
 
 def _seed_default_settings() -> None:

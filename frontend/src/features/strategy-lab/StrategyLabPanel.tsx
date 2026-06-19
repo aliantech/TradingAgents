@@ -14,6 +14,8 @@ import {
 } from "lightweight-charts";
 import {
   Activity,
+  Archive,
+  ArchiveRestore,
   ChartNoAxesCombined,
   CheckCircle2,
   Copy,
@@ -26,6 +28,7 @@ import {
   RefreshCw,
   Save,
   SlidersHorizontal,
+  Tag,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -41,6 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Toggle } from "@/components/ui/toggle";
 import {
   compareStrategyExperiments,
   duplicateStrategyExperiment,
@@ -49,6 +53,7 @@ import {
   listStrategyExperiments,
   previewSignalStrategy,
   saveStrategyExperiment,
+  updateStrategyExperiment,
   type MarketBar,
   type ReportListItem,
   type StrategyCatalogItem,
@@ -84,6 +89,10 @@ export function StrategyLabPanel({
   const [experimentsError, setExperimentsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeExperimentId, setActiveExperimentId] = useState<string | null>(null);
+  const [experimentTags, setExperimentTags] = useState("draft");
+  const [experimentNotes, setExperimentNotes] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [compareBaseId, setCompareBaseId] = useState<string | null>(null);
   const [compareCandidateId, setCompareCandidateId] = useState<string | null>(null);
   const [comparison, setComparison] = useState<StrategyExperimentComparison | null>(null);
@@ -99,7 +108,7 @@ export function StrategyLabPanel({
 
   useEffect(() => {
     void loadExperiments();
-  }, [symbol]);
+  }, [symbol, showArchived, tagFilter]);
 
   useEffect(() => {
     setCompareBaseId(null);
@@ -171,7 +180,10 @@ export function StrategyLabPanel({
     setExperimentsLoading(true);
     setExperimentsError(null);
     try {
-      const response = await listStrategyExperiments(symbol);
+      const response = await listStrategyExperiments(symbol, {
+        includeArchived: showArchived,
+        tag: tagFilter.trim() || undefined,
+      });
       setExperiments(response.experiments);
       if (nextActiveExperimentId) {
         setActiveExperimentId(nextActiveExperimentId);
@@ -194,6 +206,8 @@ export function StrategyLabPanel({
         strategyId: preview.strategy.strategy_id,
         parameters: preview.strategy.parameters,
         preview,
+        tags: parseTags(experimentTags),
+        notes: experimentNotes.trim() || null,
         reportId: latestReport?.report_id ?? null,
       });
       setActiveExperimentId(saved.experiment_id);
@@ -211,6 +225,8 @@ export function StrategyLabPanel({
       const experiment = await getStrategyExperiment(experimentId);
       setFastWindow(Number(experiment.parameters.fast_window ?? 2));
       setSlowWindow(Number(experiment.parameters.slow_window ?? 3));
+      setExperimentTags(experiment.tags.join(", "));
+      setExperimentNotes(experiment.notes ?? "");
       setPreview(experiment.preview);
       setActiveExperimentId(experiment.experiment_id);
     } catch (caught) {
@@ -226,6 +242,19 @@ export function StrategyLabPanel({
       await loadExperiments(duplicated.experiment_id);
     } catch (caught) {
       setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment duplicate failed.");
+    }
+  }
+
+  async function setExperimentArchived(experiment: StrategyExperiment, archived: boolean) {
+    setExperimentsError(null);
+    try {
+      const updated = await updateStrategyExperiment(experiment.experiment_id, { archived });
+      if (archived && activeExperimentId === updated.experiment_id) {
+        setActiveExperimentId(null);
+      }
+      await loadExperiments(archived ? null : updated.experiment_id);
+    } catch (caught) {
+      setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment archive update failed.");
     }
   }
 
@@ -363,6 +392,22 @@ export function StrategyLabPanel({
                     }}
                   />
                 </label>
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">Tags</span>
+                  <Input
+                    value={experimentTags}
+                    onChange={(event) => setExperimentTags(event.target.value)}
+                    placeholder="draft, breakout"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">Notes</span>
+                  <Input
+                    value={experimentNotes}
+                    onChange={(event) => setExperimentNotes(event.target.value)}
+                    placeholder="Research note"
+                  />
+                </label>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <MetricTile label="Bars" value={previewBars.length.toString()} />
@@ -489,9 +534,28 @@ export function StrategyLabPanel({
                   <RefreshCw className="size-4" />
                   Refresh
                 </Button>
+                <Toggle
+                  pressed={showArchived}
+                  onPressedChange={setShowArchived}
+                  variant="outline"
+                  size="sm"
+                  aria-label="Show archived experiments"
+                  className="gap-2"
+                >
+                  <Archive className="size-4" />
+                  Archived
+                </Toggle>
               </div>
             </CardHeader>
             <CardContent className="grid gap-3">
+              <label className="grid gap-1">
+                <span className="text-xs text-muted-foreground">Filter tag</span>
+                <Input
+                  value={tagFilter}
+                  onChange={(event) => setTagFilter(event.target.value)}
+                  placeholder="draft"
+                />
+              </label>
               {experimentsError ? (
                 <Alert variant="destructive">
                   <AlertDescription>{experimentsError}</AlertDescription>
@@ -514,6 +578,7 @@ export function StrategyLabPanel({
                       onDuplicate={() => void duplicateExperiment(experiment.experiment_id)}
                       onUseAsBase={() => setCompareBaseId(experiment.experiment_id)}
                       onUseAsCandidate={() => setCompareCandidateId(experiment.experiment_id)}
+                      onArchive={() => void setExperimentArchived(experiment, !experiment.archived)}
                     />
                   ))}
                 </div>
@@ -549,6 +614,7 @@ export function StrategyLabPanel({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
+                    <TableHead>Metadata</TableHead>
                     <TableHead>Windows</TableHead>
                     <TableHead>Final Equity</TableHead>
                     <TableHead>Created</TableHead>
@@ -561,6 +627,9 @@ export function StrategyLabPanel({
                       <TableCell className="min-w-[220px]">
                         <div className="font-medium">{experiment.title}</div>
                         <div className="text-xs text-muted-foreground">{experiment.strategy_id}</div>
+                      </TableCell>
+                      <TableCell className="min-w-[220px]">
+                        <ExperimentMetadata experiment={experiment} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {String(experiment.parameters.fast_window ?? "-")} / {String(experiment.parameters.slow_window ?? "-")}
@@ -605,6 +674,15 @@ export function StrategyLabPanel({
                           >
                             <Copy className="size-4" />
                           </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            aria-label={experiment.archived ? `Restore ${experiment.title}` : `Archive ${experiment.title}`}
+                            onClick={() => void setExperimentArchived(experiment, !experiment.archived)}
+                          >
+                            {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -640,6 +718,7 @@ function ExperimentRailItem({
   onDuplicate,
   onUseAsBase,
   onUseAsCandidate,
+  onArchive,
 }: {
   experiment: StrategyExperiment;
   selected: boolean;
@@ -649,6 +728,7 @@ function ExperimentRailItem({
   onDuplicate: () => void;
   onUseAsBase: () => void;
   onUseAsCandidate: () => void;
+  onArchive: () => void;
 }) {
   return (
     <div
@@ -663,8 +743,12 @@ function ExperimentRailItem({
           <div className="truncate text-sm font-medium">{experiment.title}</div>
           <div className="mt-1 text-xs text-muted-foreground">{formatTime(experiment.created_at)}</div>
         </div>
-        <Badge variant="outline">{String(experiment.parameters.fast_window ?? "-")}/{String(experiment.parameters.slow_window ?? "-")}</Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge variant="outline">{String(experiment.parameters.fast_window ?? "-")}/{String(experiment.parameters.slow_window ?? "-")}</Badge>
+          {experiment.archived ? <Badge variant="secondary">Archived</Badge> : null}
+        </div>
       </div>
+      <ExperimentMetadata experiment={experiment} />
       <div className="mt-3 grid grid-cols-2 gap-2">
         <MetricTile label="Final" value={formatCurrency(experiment.preview.backtest.final_equity)} compact />
         <MetricTile
@@ -705,7 +789,40 @@ function ExperimentRailItem({
         >
           <Copy className="size-4" />
         </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label={experiment.archived ? `Restore ${experiment.title}` : `Archive ${experiment.title}`}
+          onClick={onArchive}
+        >
+          {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+        </Button>
       </div>
+    </div>
+  );
+}
+
+function ExperimentMetadata({ experiment }: { experiment: StrategyExperiment }) {
+  const tags = experiment.tags ?? [];
+  if (tags.length === 0 && !experiment.notes) {
+    return <div className="mt-2 text-xs text-muted-foreground">No tags or notes.</div>;
+  }
+  return (
+    <div className="mt-2 grid gap-2">
+      {tags.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-1">
+              <Tag className="size-3" />
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+      {experiment.notes ? (
+        <div className="line-clamp-2 text-xs text-muted-foreground">{experiment.notes}</div>
+      ) : null}
     </div>
   );
 }
@@ -971,6 +1088,14 @@ function signalTone(signal: number): "neutral" | "positive" | "negative" {
   if (signal === 1) return "positive";
   if (signal === -1) return "negative";
   return "neutral";
+}
+
+function parseTags(value: string): string[] {
+  const tags = value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  return Array.from(new Set(tags)).slice(0, 12);
 }
 
 function toStrategyCandles(bars: MarketBar[]): CandlestickData<Time>[] {

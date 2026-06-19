@@ -75,6 +75,55 @@ def test_strategy_lab_compares_saved_experiments():
     assert comparison["parameter_deltas"]["slow_window"] == {"base": 3, "candidate": 5, "changed": True}
 
 
+def test_strategy_lab_curates_experiments_with_tags_notes_and_archive():
+    client = TestClient(app)
+
+    experiment = create_experiment(
+        client,
+        "SPY MA candidate",
+        preview_payload(),
+        tags=["breakout", "watchlist"],
+        notes="Candidate for further research review.",
+    )
+
+    assert experiment["tags"] == ["breakout", "watchlist"]
+    assert experiment["notes"] == "Candidate for further research review."
+    assert experiment["archived"] is False
+
+    tag_response = client.get("/api/strategy-lab/experiments", params={"symbol": "SPY", "tag": "breakout"})
+    assert tag_response.status_code == 200
+    assert [row["experiment_id"] for row in tag_response.json()["experiments"]] == [experiment["experiment_id"]]
+
+    update_response = client.patch(
+        f"/api/strategy-lab/experiments/{experiment['experiment_id']}",
+        json={
+            "tags": ["reviewed"],
+            "notes": "Archived after comparison.",
+            "archived": True,
+        },
+    )
+    assert update_response.status_code == 200
+    archived = update_response.json()
+    assert archived["tags"] == ["reviewed"]
+    assert archived["notes"] == "Archived after comparison."
+    assert archived["archived"] is True
+
+    default_list_response = client.get("/api/strategy-lab/experiments", params={"symbol": "SPY"})
+    assert default_list_response.status_code == 200
+    assert archived["experiment_id"] not in [
+        row["experiment_id"] for row in default_list_response.json()["experiments"]
+    ]
+
+    archived_list_response = client.get(
+        "/api/strategy-lab/experiments",
+        params={"symbol": "SPY", "include_archived": "true"},
+    )
+    assert archived_list_response.status_code == 200
+    assert archived["experiment_id"] in [
+        row["experiment_id"] for row in archived_list_response.json()["experiments"]
+    ]
+
+
 def preview_payload(fast_window: int = 2, slow_window: int = 3):
     return {
         "symbol": "SPY",
@@ -85,23 +134,31 @@ def preview_payload(fast_window: int = 2, slow_window: int = 3):
     }
 
 
-def create_experiment(client: TestClient, title: str, payload: dict):
+def create_experiment(
+    client: TestClient,
+    title: str,
+    payload: dict,
+    tags: list[str] | None = None,
+    notes: str | None = None,
+):
     preview_response = client.post(
         "/api/strategy-lab/signal-strategy/preview",
         json=payload,
     )
     assert preview_response.status_code == 200
     preview = preview_response.json()
-    create_response = client.post(
-        "/api/strategy-lab/experiments",
-        json={
-            "title": title,
-            "symbol": payload["symbol"],
-            "strategy_id": preview["strategy"]["strategy_id"],
-            "parameters": preview["strategy"]["parameters"],
-            "preview": preview,
-            "report_id": None,
-        },
-    )
+    request_json = {
+        "title": title,
+        "symbol": payload["symbol"],
+        "strategy_id": preview["strategy"]["strategy_id"],
+        "parameters": preview["strategy"]["parameters"],
+        "preview": preview,
+        "report_id": None,
+    }
+    if tags is not None:
+        request_json["tags"] = tags
+    if notes is not None:
+        request_json["notes"] = notes
+    create_response = client.post("/api/strategy-lab/experiments", json=request_json)
     assert create_response.status_code == 201
     return create_response.json()

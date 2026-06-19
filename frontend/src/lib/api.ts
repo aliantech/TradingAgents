@@ -370,6 +370,9 @@ export type StrategyExperiment = {
     [key: string]: unknown;
   };
   preview: StrategyPreviewResponse;
+  tags: string[];
+  notes: string | null;
+  archived: boolean;
   report_id: string | null;
   created_at: string;
   updated_at: string;
@@ -385,7 +388,15 @@ export type StrategyExperimentCreatePayload = {
   strategyId: string;
   parameters: StrategyExperiment["parameters"];
   preview: StrategyPreviewResponse;
+  tags?: string[];
+  notes?: string | null;
   reportId?: string | null;
+};
+
+export type StrategyExperimentUpdatePayload = {
+  tags?: string[];
+  notes?: string | null;
+  archived?: boolean;
 };
 
 export type StrategyExperimentComparisonMetric = {
@@ -655,15 +666,26 @@ export function saveStrategyExperiment(payload: StrategyExperimentCreatePayload)
       strategy_id: payload.strategyId,
       parameters: payload.parameters,
       preview: payload.preview,
+      tags: payload.tags ?? [],
+      notes: payload.notes ?? null,
       report_id: payload.reportId ?? null,
     }),
   });
 }
 
-export function listStrategyExperiments(symbol?: string): Promise<StrategyExperimentListResponse> {
+export function listStrategyExperiments(
+  symbol?: string,
+  options: { includeArchived?: boolean; tag?: string } = {},
+): Promise<StrategyExperimentListResponse> {
   const params = new URLSearchParams();
   if (symbol) {
     params.set("symbol", symbol);
+  }
+  if (options.includeArchived) {
+    params.set("include_archived", "true");
+  }
+  if (options.tag) {
+    params.set("tag", options.tag);
   }
   const query = params.toString();
   return requestJson<StrategyExperimentListResponse>(`/api/strategy-lab/experiments${query ? `?${query}` : ""}`);
@@ -676,6 +698,16 @@ export function getStrategyExperiment(experimentId: string): Promise<StrategyExp
 export function duplicateStrategyExperiment(experimentId: string): Promise<StrategyExperiment> {
   return requestJson<StrategyExperiment>(`/api/strategy-lab/experiments/${experimentId}/duplicate`, {
     method: "POST",
+  });
+}
+
+export function updateStrategyExperiment(
+  experimentId: string,
+  payload: StrategyExperimentUpdatePayload,
+): Promise<StrategyExperiment> {
+  return requestJson<StrategyExperiment>(`/api/strategy-lab/experiments/${experimentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }
 
