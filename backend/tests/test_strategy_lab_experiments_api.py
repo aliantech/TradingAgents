@@ -123,6 +123,14 @@ def test_strategy_lab_curates_experiments_with_tags_notes_and_archive():
         row["experiment_id"] for row in archived_list_response.json()["experiments"]
     ]
 
+    duplicate_response = client.post(f"/api/strategy-lab/experiments/{archived['experiment_id']}/duplicate")
+    assert duplicate_response.status_code == 201
+    duplicate = duplicate_response.json()
+    assert duplicate["experiment_id"] != archived["experiment_id"]
+    assert duplicate["tags"] == ["reviewed"]
+    assert duplicate["notes"] == "Archived after comparison."
+    assert duplicate["archived"] is False
+
 
 def preview_payload(fast_window: int = 2, slow_window: int = 3):
     return {

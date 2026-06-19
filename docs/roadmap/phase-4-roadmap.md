@@ -225,7 +225,7 @@ PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pyt
 Result:
 
 ```text
-11 passed in 1.44s
+11 passed in 1.55s
 ```
 
 Full backend regression on 2026-06-19:
@@ -252,5 +252,5 @@ npm run build
 Result:
 
 ```text
-✓ built in 444ms
+✓ built in 798ms
 ```
