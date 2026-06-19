@@ -257,13 +257,17 @@ Verification:
 
 ### Slice 6: Paper Adapter and Position Simulation
 
-Status: pending.
+Status: planned; implementation plan written on 2026-06-20.
 
 Planned deliverables:
 
 - Local paper adapter that creates deterministic simulated fills.
 - Cash and position updates.
 - Cancel flow for intents that have not filled.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-6-paper-adapter-simulation.md`
 
 Verification:
 
