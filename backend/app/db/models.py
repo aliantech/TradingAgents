@@ -181,6 +181,8 @@ class StrategyExperimentModel(Base):
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    review_status: Mapped[str] = mapped_column(String(32), default="draft", index=True)
+    review_checklist: Mapped[dict] = mapped_column(JSON, default=dict)
     report_id: Mapped[UUID | None] = mapped_column(ForeignKey("analysis_reports.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

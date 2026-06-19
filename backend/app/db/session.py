@@ -72,7 +72,9 @@ def _ensure_strategy_experiment_columns() -> None:
     needs_tags = "tags" not in columns
     needs_notes = "notes" not in columns
     needs_archived = "archived" not in columns
-    if not needs_tags and not needs_notes and not needs_archived:
+    needs_review_status = "review_status" not in columns
+    needs_review_checklist = "review_checklist" not in columns
+    if not needs_tags and not needs_notes and not needs_archived and not needs_review_status and not needs_review_checklist:
         return
     with engine.begin() as connection:
         if needs_tags:
@@ -81,6 +83,12 @@ def _ensure_strategy_experiment_columns() -> None:
             connection.execute(text("ALTER TABLE strategy_experiments ADD COLUMN notes TEXT"))
         if needs_archived:
             connection.execute(text("ALTER TABLE strategy_experiments ADD COLUMN archived BOOLEAN NOT NULL DEFAULT false"))
+        if needs_review_status:
+            connection.execute(
+                text("ALTER TABLE strategy_experiments ADD COLUMN review_status VARCHAR(32) NOT NULL DEFAULT 'draft'")
+            )
+        if needs_review_checklist:
+            connection.execute(text("ALTER TABLE strategy_experiments ADD COLUMN review_checklist JSON NOT NULL DEFAULT '{}'"))
 
 
 def _seed_default_settings() -> None:

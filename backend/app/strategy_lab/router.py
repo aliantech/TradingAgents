@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,6 +22,8 @@ from app.strategy_lab.catalog import (
 )
 
 router = APIRouter(prefix="/api/strategy-lab", tags=["strategy-lab"])
+
+ReviewStatus = Literal["draft", "reviewed", "candidate", "rejected"]
 
 
 class SignalStrategyPreviewRequest(BaseModel):
@@ -73,6 +76,8 @@ class StrategyExperimentUpdateRequest(BaseModel):
     tags: list[str] | None = Field(default=None, max_length=12)
     notes: str | None = Field(default=None, max_length=2_000)
     archived: bool | None = None
+    review_status: ReviewStatus | None = None
+    review_checklist: dict | None = None
 
 
 class StrategyExperimentResponse(BaseModel):
@@ -86,6 +91,8 @@ class StrategyExperimentResponse(BaseModel):
     tags: list[str]
     notes: str | None = None
     archived: bool
+    review_status: str
+    review_checklist: dict
     report_id: UUID | None = None
     created_at: str
     updated_at: str
@@ -205,6 +212,7 @@ def list_strategy_experiments(
     symbol: str | None = None,
     tag: str | None = None,
     include_archived: bool = False,
+    review_status: ReviewStatus | None = None,
     session: Session = Depends(get_db_session),
 ) -> StrategyExperimentListResponse:
     statement = select(StrategyExperimentModel).order_by(StrategyExperimentModel.created_at.desc())
@@ -212,6 +220,8 @@ def list_strategy_experiments(
         statement = statement.where(StrategyExperimentModel.symbol == symbol.upper())
     if not include_archived:
         statement = statement.where(StrategyExperimentModel.archived.is_(False))
+    if review_status:
+        statement = statement.where(StrategyExperimentModel.review_status == review_status)
     experiments = session.scalars(statement.limit(100)).all()
     if tag:
         experiments = [
@@ -283,6 +293,10 @@ def update_strategy_experiment(
         experiment.notes = request.notes
     if request.archived is not None:
         experiment.archived = request.archived
+    if request.review_status is not None:
+        experiment.review_status = request.review_status
+    if "review_checklist" in fields_set:
+        experiment.review_checklist = request.review_checklist or {}
     experiment.updated_at = utc_now_for_model()
 
     session.add(experiment)
@@ -313,6 +327,8 @@ def duplicate_strategy_experiment(
         tags=experiment.tags,
         notes=experiment.notes,
         archived=False,
+        review_status="draft",
+        review_checklist={},
         report_id=experiment.report_id,
     )
     session.add(duplicated)
@@ -333,6 +349,8 @@ def to_experiment_response(experiment: StrategyExperimentModel) -> StrategyExper
         tags=experiment.tags or [],
         notes=experiment.notes,
         archived=experiment.archived,
+        review_status=experiment.review_status,
+        review_checklist=experiment.review_checklist or {},
         report_id=experiment.report_id,
         created_at=experiment.created_at.isoformat(),
         updated_at=experiment.updated_at.isoformat(),

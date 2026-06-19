@@ -132,6 +132,51 @@ def test_strategy_lab_curates_experiments_with_tags_notes_and_archive():
     assert duplicate["archived"] is False
 
 
+def test_strategy_lab_promotes_experiments_with_review_gate():
+    client = TestClient(app)
+
+    experiment = create_experiment(client, "SPY MA review candidate", preview_payload())
+
+    assert experiment["review_status"] == "draft"
+    assert experiment["review_checklist"] == {}
+
+    update_response = client.patch(
+        f"/api/strategy-lab/experiments/{experiment['experiment_id']}",
+        json={
+            "review_status": "candidate",
+            "review_checklist": {
+                "data_range_reviewed": True,
+                "parameters_reviewed": True,
+                "backtest_reviewed": True,
+                "risk_notes_added": True,
+                "human_reviewed": True,
+            },
+        },
+    )
+    assert update_response.status_code == 200
+    candidate = update_response.json()
+    assert candidate["review_status"] == "candidate"
+    assert candidate["review_checklist"]["human_reviewed"] is True
+
+    candidate_list_response = client.get(
+        "/api/strategy-lab/experiments",
+        params={"symbol": "SPY", "review_status": "candidate"},
+    )
+    assert candidate_list_response.status_code == 200
+    assert [row["experiment_id"] for row in candidate_list_response.json()["experiments"]] == [
+        candidate["experiment_id"]
+    ]
+
+    rejected_list_response = client.get(
+        "/api/strategy-lab/experiments",
+        params={"symbol": "SPY", "review_status": "rejected"},
+    )
+    assert rejected_list_response.status_code == 200
+    assert candidate["experiment_id"] not in [
+        row["experiment_id"] for row in rejected_list_response.json()["experiments"]
+    ]
+
+
 def preview_payload(fast_window: int = 2, slow_window: int = 3):
     return {
         "symbol": "SPY",

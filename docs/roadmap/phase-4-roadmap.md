@@ -106,6 +106,31 @@ Out of scope:
 - Live execution.
 - Broker adapters.
 
+### Slice 5: Experiment Review Gate
+
+Status: implemented and validated on 2026-06-19.
+
+Implemented:
+
+- Added research-only review metadata to saved Strategy Lab experiments: `review_status` and `review_checklist`.
+- Review statuses are limited to `draft`, `reviewed`, `candidate`, and `rejected`.
+- New experiments default to `draft` with an empty review checklist.
+- `PATCH /api/strategy-lab/experiments/{experiment_id}` can update review status and checklist fields.
+- `GET /api/strategy-lab/experiments` can filter by review status while preserving existing symbol, tag, and archived filters.
+- Duplicated experiments restart as `draft` so a copied experiment must pass review independently.
+- Frontend Strategy Lab now renders review status in workflow tiles, experiment rail cards, and saved experiment metadata.
+- Frontend experiment rail and saved experiment table include review actions for reviewed, candidate, and rejected states.
+- Frontend experiment rail includes a review-status filter.
+
+Out of scope:
+
+- Paper trading promotion.
+- Live trading approval.
+- Broker adapters.
+- Order intents.
+- Automated ranking or optimization.
+- Statistical significance gates.
+
 ## Validation Evidence
 
 Slice 1 backend validation on 2026-06-19:
@@ -253,4 +278,43 @@ Result:
 
 ```text
 ✓ built in 798ms
+```
+
+Slice 5 backend validation on 2026-06-19:
+
+```bash
+cd /tmp/tradingagents-slice4/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q tests/test_strategy_lab_contracts.py tests/test_strategy_lab_api.py tests/test_strategy_lab_experiments_api.py --tb=short
+```
+
+Result:
+
+```text
+12 passed in 1.30s
+```
+
+Full backend regression on 2026-06-19:
+
+```bash
+cd /tmp/tradingagents-slice4/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
+```
+
+Result:
+
+```text
+139 passed in 3.81s
+```
+
+Slice 5 frontend validation on 2026-06-19:
+
+```bash
+cd /tmp/tradingagents-slice4/frontend
+npm run build
+```
+
+Result:
+
+```text
+✓ built in 430ms
 ```

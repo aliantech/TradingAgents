@@ -16,6 +16,7 @@ import {
   Activity,
   Archive,
   ArchiveRestore,
+  BadgeCheck,
   ChartNoAxesCombined,
   CheckCircle2,
   Copy,
@@ -29,6 +30,7 @@ import {
   Save,
   SlidersHorizontal,
   Tag,
+  XCircle,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -59,6 +61,7 @@ import {
   type StrategyCatalogItem,
   type StrategyExperimentComparison,
   type StrategyExperiment,
+  type StrategyExperimentReviewStatus,
   type StrategyPreviewResponse,
 } from "@/lib/api";
 
@@ -92,6 +95,7 @@ export function StrategyLabPanel({
   const [experimentTags, setExperimentTags] = useState("draft");
   const [experimentNotes, setExperimentNotes] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const [reviewFilter, setReviewFilter] = useState<StrategyExperimentReviewStatus | "all">("all");
   const [showArchived, setShowArchived] = useState(false);
   const [compareBaseId, setCompareBaseId] = useState<string | null>(null);
   const [compareCandidateId, setCompareCandidateId] = useState<string | null>(null);
@@ -108,7 +112,7 @@ export function StrategyLabPanel({
 
   useEffect(() => {
     void loadExperiments();
-  }, [symbol, showArchived, tagFilter]);
+  }, [symbol, showArchived, tagFilter, reviewFilter]);
 
   useEffect(() => {
     setCompareBaseId(null);
@@ -183,6 +187,7 @@ export function StrategyLabPanel({
       const response = await listStrategyExperiments(symbol, {
         includeArchived: showArchived,
         tag: tagFilter.trim() || undefined,
+        reviewStatus: reviewFilter,
       });
       setExperiments(response.experiments);
       if (nextActiveExperimentId) {
@@ -258,6 +263,19 @@ export function StrategyLabPanel({
     }
   }
 
+  async function setExperimentReviewStatus(experiment: StrategyExperiment, reviewStatus: StrategyExperimentReviewStatus) {
+    setExperimentsError(null);
+    try {
+      const updated = await updateStrategyExperiment(experiment.experiment_id, {
+        review_status: reviewStatus,
+        review_checklist: buildReviewChecklist(reviewStatus),
+      });
+      await loadExperiments(updated.experiment_id);
+    } catch (caught) {
+      setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment review update failed.");
+    }
+  }
+
   async function loadComparison(baseId: string, candidateId: string) {
     setComparisonLoading(true);
     setComparisonError(null);
@@ -285,7 +303,7 @@ export function StrategyLabPanel({
   const workflowSteps = [
     { label: "Catalog", value: selectedStrategy?.name ?? "Loading" },
     { label: "Preview", value: loading ? "Updating" : canPreview ? "Live" : "Waiting" },
-    { label: "Experiment", value: activeExperiment ? "Opened" : "Draft" },
+    { label: "Experiment", value: activeExperiment ? reviewStatusLabel(activeExperiment.review_status) : "Draft" },
     { label: "Report", value: latestReport ? "Linked" : "Unlinked" },
   ];
 
@@ -556,6 +574,20 @@ export function StrategyLabPanel({
                   placeholder="draft"
                 />
               </label>
+              <label className="grid gap-1">
+                <span className="text-xs text-muted-foreground">Review status</span>
+                <select
+                  value={reviewFilter}
+                  onChange={(event) => setReviewFilter(event.target.value as StrategyExperimentReviewStatus | "all")}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="draft">Draft</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="candidate">Candidate</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
               {experimentsError ? (
                 <Alert variant="destructive">
                   <AlertDescription>{experimentsError}</AlertDescription>
@@ -579,6 +611,7 @@ export function StrategyLabPanel({
                       onUseAsBase={() => setCompareBaseId(experiment.experiment_id)}
                       onUseAsCandidate={() => setCompareCandidateId(experiment.experiment_id)}
                       onArchive={() => void setExperimentArchived(experiment, !experiment.archived)}
+                      onReview={(status) => void setExperimentReviewStatus(experiment, status)}
                     />
                   ))}
                 </div>
@@ -618,7 +651,7 @@ export function StrategyLabPanel({
                     <TableHead>Windows</TableHead>
                     <TableHead>Final Equity</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="w-[230px]">Actions</TableHead>
+                    <TableHead className="w-[330px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -683,6 +716,24 @@ export function StrategyLabPanel({
                           >
                             {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
                           </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant={experiment.review_status === "candidate" ? "default" : "outline"}
+                            aria-label={`Mark ${experiment.title} as candidate`}
+                            onClick={() => void setExperimentReviewStatus(experiment, "candidate")}
+                          >
+                            <BadgeCheck className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant={experiment.review_status === "rejected" ? "destructive" : "outline"}
+                            aria-label={`Reject ${experiment.title}`}
+                            onClick={() => void setExperimentReviewStatus(experiment, "rejected")}
+                          >
+                            <XCircle className="size-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -719,6 +770,7 @@ function ExperimentRailItem({
   onUseAsBase,
   onUseAsCandidate,
   onArchive,
+  onReview,
 }: {
   experiment: StrategyExperiment;
   selected: boolean;
@@ -729,6 +781,7 @@ function ExperimentRailItem({
   onUseAsBase: () => void;
   onUseAsCandidate: () => void;
   onArchive: () => void;
+  onReview: (status: StrategyExperimentReviewStatus) => void;
 }) {
   return (
     <div
@@ -746,6 +799,9 @@ function ExperimentRailItem({
         <div className="flex shrink-0 flex-col items-end gap-1">
           <Badge variant="outline">{String(experiment.parameters.fast_window ?? "-")}/{String(experiment.parameters.slow_window ?? "-")}</Badge>
           {experiment.archived ? <Badge variant="secondary">Archived</Badge> : null}
+          <Badge variant={experiment.review_status === "candidate" ? "default" : "secondary"}>
+            {reviewStatusLabel(experiment.review_status)}
+          </Badge>
         </div>
       </div>
       <ExperimentMetadata experiment={experiment} />
@@ -798,6 +854,33 @@ function ExperimentRailItem({
         >
           {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
         </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant={experiment.review_status === "reviewed" ? "default" : "outline"}
+          aria-label={`Mark ${experiment.title} as reviewed`}
+          onClick={() => onReview("reviewed")}
+        >
+          <CheckCircle2 className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant={experiment.review_status === "candidate" ? "default" : "outline"}
+          aria-label={`Mark ${experiment.title} as candidate`}
+          onClick={() => onReview("candidate")}
+        >
+          <BadgeCheck className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant={experiment.review_status === "rejected" ? "destructive" : "outline"}
+          aria-label={`Reject ${experiment.title}`}
+          onClick={() => onReview("rejected")}
+        >
+          <XCircle className="size-4" />
+        </Button>
       </div>
     </div>
   );
@@ -823,6 +906,9 @@ function ExperimentMetadata({ experiment }: { experiment: StrategyExperiment }) 
       {experiment.notes ? (
         <div className="line-clamp-2 text-xs text-muted-foreground">{experiment.notes}</div>
       ) : null}
+      <div className="text-xs text-muted-foreground">
+        Review: <span className="font-medium text-foreground">{reviewStatusLabel(experiment.review_status)}</span>
+      </div>
     </div>
   );
 }
@@ -1096,6 +1182,35 @@ function parseTags(value: string): string[] {
     .map((tag) => tag.trim())
     .filter(Boolean);
   return Array.from(new Set(tags)).slice(0, 12);
+}
+
+function reviewStatusLabel(status: StrategyExperimentReviewStatus): string {
+  if (status === "candidate") return "Candidate";
+  if (status === "reviewed") return "Reviewed";
+  if (status === "rejected") return "Rejected";
+  return "Draft";
+}
+
+function buildReviewChecklist(status: StrategyExperimentReviewStatus): Record<string, boolean> {
+  if (status === "candidate") {
+    return {
+      data_range_reviewed: true,
+      parameters_reviewed: true,
+      backtest_reviewed: true,
+      risk_notes_added: true,
+      human_reviewed: true,
+    };
+  }
+  if (status === "reviewed") {
+    return {
+      data_range_reviewed: true,
+      parameters_reviewed: true,
+      backtest_reviewed: true,
+      risk_notes_added: false,
+      human_reviewed: true,
+    };
+  }
+  return {};
 }
 
 function toStrategyCandles(bars: MarketBar[]): CandlestickData<Time>[] {

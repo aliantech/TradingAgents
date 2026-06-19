@@ -358,6 +358,8 @@ export type StrategyCatalogResponse = {
   strategies: StrategyCatalogItem[];
 };
 
+export type StrategyExperimentReviewStatus = "draft" | "reviewed" | "candidate" | "rejected";
+
 export type StrategyExperiment = {
   experiment_id: string;
   title: string;
@@ -373,6 +375,8 @@ export type StrategyExperiment = {
   tags: string[];
   notes: string | null;
   archived: boolean;
+  review_status: StrategyExperimentReviewStatus;
+  review_checklist: Record<string, boolean>;
   report_id: string | null;
   created_at: string;
   updated_at: string;
@@ -397,6 +401,8 @@ export type StrategyExperimentUpdatePayload = {
   tags?: string[];
   notes?: string | null;
   archived?: boolean;
+  review_status?: StrategyExperimentReviewStatus;
+  review_checklist?: Record<string, boolean>;
 };
 
 export type StrategyExperimentComparisonMetric = {
@@ -675,7 +681,7 @@ export function saveStrategyExperiment(payload: StrategyExperimentCreatePayload)
 
 export function listStrategyExperiments(
   symbol?: string,
-  options: { includeArchived?: boolean; tag?: string } = {},
+  options: { includeArchived?: boolean; tag?: string; reviewStatus?: StrategyExperimentReviewStatus | "all" } = {},
 ): Promise<StrategyExperimentListResponse> {
   const params = new URLSearchParams();
   if (symbol) {
@@ -686,6 +692,9 @@ export function listStrategyExperiments(
   }
   if (options.tag) {
     params.set("tag", options.tag);
+  }
+  if (options.reviewStatus && options.reviewStatus !== "all") {
+    params.set("review_status", options.reviewStatus);
   }
   const query = params.toString();
   return requestJson<StrategyExperimentListResponse>(`/api/strategy-lab/experiments${query ? `?${query}` : ""}`);
