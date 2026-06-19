@@ -80,6 +80,30 @@ class PaperTradingRepository:
         model = self.session.get(PaperOrderIntentModel, intent_id)
         return to_order_intent(model) if model else None
 
+    def get_intent_by_idempotency_key(self, account_id: UUID, idempotency_key: str) -> PaperOrderIntent | None:
+        model = self.session.scalar(
+            select(PaperOrderIntentModel)
+            .where(PaperOrderIntentModel.account_id == account_id)
+            .where(PaperOrderIntentModel.idempotency_key == idempotency_key)
+        )
+        return to_order_intent(model) if model else None
+
+    def list_order_intents(self, account_id: UUID | None = None) -> list[PaperOrderIntent]:
+        statement = select(PaperOrderIntentModel).order_by(PaperOrderIntentModel.created_at.desc())
+        if account_id is not None:
+            statement = statement.where(PaperOrderIntentModel.account_id == account_id)
+        models = self.session.scalars(statement.limit(100)).all()
+        return [to_order_intent(model) for model in models]
+
+    def update_order_intent_status(self, intent_id: UUID, status: OrderIntentStatus) -> PaperOrderIntent | None:
+        model = self.session.get(PaperOrderIntentModel, intent_id)
+        if model is None:
+            return None
+        model.status = status.value
+        self.session.commit()
+        self.session.refresh(model)
+        return to_order_intent(model)
+
     def save_risk_decision(self, decision: RiskDecision) -> RiskDecision:
         self.session.merge(
             PaperRiskDecisionModel(
@@ -98,6 +122,18 @@ class PaperTradingRepository:
     def get_risk_decision(self, decision_id: UUID) -> RiskDecision | None:
         model = self.session.get(PaperRiskDecisionModel, decision_id)
         return to_risk_decision(model) if model else None
+
+    def list_risk_decisions_for_intent(self, intent_id: UUID) -> list[RiskDecision]:
+        models = self.session.scalars(
+            select(PaperRiskDecisionModel)
+            .where(PaperRiskDecisionModel.intent_id == intent_id)
+            .order_by(PaperRiskDecisionModel.created_at.desc(), PaperRiskDecisionModel.id.desc())
+        ).all()
+        return [to_risk_decision(model) for model in models]
+
+    def get_latest_risk_decision(self, intent_id: UUID) -> RiskDecision | None:
+        decisions = self.list_risk_decisions_for_intent(intent_id)
+        return decisions[0] if decisions else None
 
     def save_fill(self, fill: PaperFill) -> PaperFill:
         self.session.merge(

@@ -234,13 +234,15 @@ Verification:
 
 ### Slice 5: Paper Intent API
 
-Status: planned; implementation plan written on 2026-06-20.
+Status: implemented and validated on 2026-06-20.
 
-Planned deliverables:
+Implemented:
 
 - API endpoints for creating draft paper intents, running RiskGuard, listing intents, reading intent detail, and human approval/rejection.
 - Idempotency-key replay for intent creation.
-- Agent Gateway remains paper-scoped only if any agent-facing write path is added.
+- Append-only audit events for intent creation, RiskGuard pass/reject, human approval, and human rejection.
+- Repository helpers for idempotency lookup, intent listing, status updates, and latest risk decision lookup.
+- Agent Gateway trading scope, MCP trading tools, paper adapter execution, broker integration, live execution, network calls, and credential handling remain out of scope.
 
 Implementation plan:
 
@@ -248,12 +250,14 @@ Implementation plan:
 
 Verification:
 
-- API tests cover missing token, insufficient scope, invalid idempotency key replay, RiskGuard rejection, and human approval path.
-- Endpoint names and UI copy use paper terminology only.
+- Ubuntu isolated API tests passed: 8 passed in 4.31s.
+- Ubuntu isolated Slice 2+3+4+5 focused tests passed: 62 passed in 4.17s.
+- Ubuntu isolated backend regression passed: 202 passed in 7.59s.
+- Safety grep only matched planned negative broker/live/order_id test assertions and found no broker SDK, broker credentials, live order methods, network libraries, MCP trading tools, or agent trading scope implementation.
 
 ### Slice 6: Paper Adapter and Position Simulation
 
-Status: pending Slice 5.
+Status: pending.
 
 Planned deliverables:
 
