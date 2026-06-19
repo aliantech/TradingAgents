@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID
 
@@ -148,3 +148,26 @@ class PaperAuditEvent(StrictContract):
     reason_code: str = Field(min_length=1, max_length=120)
     message: str = Field(min_length=1, max_length=500)
     created_at: datetime
+
+
+class RiskGuardLimits(StrictContract):
+    max_notional_per_intent: float = Field(gt=0, allow_inf_nan=False)
+    max_daily_notional: float = Field(gt=0, allow_inf_nan=False)
+    current_daily_notional: float = Field(ge=0, allow_inf_nan=False)
+
+
+class OptionIntentMetadata(StrictContract):
+    underlying_symbol: str = Field(min_length=1, max_length=64)
+    expiry: datetime | date
+    strike: float = Field(gt=0, allow_inf_nan=False)
+    option_type: str = Field(pattern="^(call|put)$")
+
+
+class RiskGuardInput(StrictContract):
+    account: PaperAccount
+    intent: PaperOrderIntent
+    allowed_symbols: set[str] = Field(min_length=1)
+    allowed_asset_classes: set[AssetClass] = Field(min_length=1)
+    limits: RiskGuardLimits
+    option_metadata: OptionIntentMetadata | None = None
+    candidate_experiment_ids: set[UUID] = Field(default_factory=set)

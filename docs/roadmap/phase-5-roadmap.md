@@ -183,13 +183,17 @@ Verification:
 
 ### Slice 3: RiskGuard Contract and Tests
 
-Status: planned; implementation plan written on 2026-06-20.
+Status: implemented and validated on 2026-06-20.
 
-Planned deliverables:
+Implemented:
 
-- Pure RiskGuard service.
-- Tests for allowlist, notional, quantity, limit price, option metadata, and candidate-source checks.
-- Deterministic reason codes for denials.
+- Added pure `backend/app/paper_trading/risk_guard.py` evaluator.
+- Added RiskGuard input contracts for limits, option metadata, and evaluation input.
+- Added deterministic reason codes for account, symbol, asset class, quantity, limit price, notional, option metadata, and candidate source reference denials.
+- Added focused tests for pass and rejection paths.
+- Added deterministic rejection timestamps based on the source intent creation time.
+- Added options notional handling with a paper-only contract multiplier.
+- Kept RiskGuard free of database, API, frontend, broker, network, credential, and execution-adapter dependencies.
 
 Implementation plan:
 
@@ -197,8 +201,11 @@ Implementation plan:
 
 Verification:
 
-- RiskGuard tests pass.
-- Rejected intents cannot be marked approved for paper in the contract layer.
+- Ubuntu isolated RiskGuard focused tests passed: 13 passed in 0.30s.
+- Ubuntu isolated Slice 2+3 focused tests passed: 51 passed in 0.35s.
+- Ubuntu isolated backend regression passed: 191 passed in 4.38s.
+- Safety grep returned no broker SDK, broker credentials, live order methods, network libraries, or live execution implementation.
+- No persistence, API route, frontend UI, paper adapter, broker adapter, network dependency, or credential handling was added.
 
 ### Slice 4: Paper Persistence and Audit Log
 

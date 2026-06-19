@@ -8,6 +8,7 @@ from app.paper_trading.contracts import (
     OrderSide,
     OrderSource,
     OrderType,
+    OptionIntentMetadata,
     PaperAccount,
     PaperAccountStatus,
     PaperAuditEvent,
@@ -16,8 +17,11 @@ from app.paper_trading.contracts import (
     PaperPosition,
     RiskDecision,
     RiskDecisionResult,
+    RiskGuardInput,
+    RiskGuardLimits,
     TimeInForce,
 )
+from app.paper_trading.risk_guard import evaluate_order_intent
 
 __all__ = [
     "AssetClass",
@@ -27,6 +31,7 @@ __all__ = [
     "OrderSide",
     "OrderSource",
     "OrderType",
+    "OptionIntentMetadata",
     "PaperAccount",
     "PaperAccountStatus",
     "PaperAuditEvent",
@@ -35,5 +40,8 @@ __all__ = [
     "PaperPosition",
     "RiskDecision",
     "RiskDecisionResult",
+    "RiskGuardInput",
+    "RiskGuardLimits",
     "TimeInForce",
+    "evaluate_order_intent",
 ]
