@@ -121,6 +121,48 @@ def test_paper_intent_create_replays_idempotency_key():
     assert second.json()["replayed"] is True
 
 
+def test_paper_account_api_creates_and_lists_accounts():
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/paper-trading/accounts",
+        json={
+            "name": "UI paper account",
+            "base_currency": "USD",
+            "starting_cash": 100_000,
+        },
+    )
+
+    assert create_response.status_code == 201
+    account = create_response.json()["account"]
+    assert account["name"] == "UI paper account"
+    assert account["base_currency"] == "USD"
+    assert account["starting_cash"] == 100_000
+    assert account["current_cash"] == 100_000
+    assert account["status"] == "active"
+
+    list_response = client.get("/api/paper-trading/accounts")
+    assert list_response.status_code == 200
+    assert [row["account_id"] for row in list_response.json()["accounts"]] == [account["account_id"]]
+
+
+def test_paper_account_api_does_not_expose_broker_or_live_fields():
+    client = TestClient(app)
+    response = client.post(
+        "/api/paper-trading/accounts",
+        json={
+            "name": "Safety paper account",
+            "base_currency": "USD",
+            "starting_cash": 100_000,
+        },
+    )
+
+    text = response.text.lower()
+    assert "broker" not in text
+    assert "live" not in text
+    assert "account_number" not in text
+
+
 def test_paper_intent_api_runs_riskguard_and_sets_review_status():
     client = TestClient(app)
     account_id = seed_account()

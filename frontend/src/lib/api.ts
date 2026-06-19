@@ -451,6 +451,82 @@ export type StrategyExperimentCandidateBoardResponse = {
   candidates: StrategyExperimentCandidate[];
 };
 
+export type PaperAccount = {
+  account_id: string;
+  name: string;
+  base_currency: string;
+  starting_cash: number;
+  current_cash: number;
+  status: "active" | "paused" | "archived";
+  created_at: string;
+};
+
+export type PaperAccountListResponse = {
+  scope: "paper_only";
+  accounts: PaperAccount[];
+};
+
+export type PaperAccountResponse = {
+  scope: "paper_only";
+  account: PaperAccount;
+};
+
+export type PaperIntentStatus =
+  | "draft"
+  | "risk_rejected"
+  | "awaiting_review"
+  | "approved_for_paper"
+  | "paper_submitted"
+  | "paper_filled"
+  | "paper_cancelled";
+
+export type PaperIntent = {
+  intent_id: string;
+  account_id: string;
+  source: string;
+  source_reference_id: string;
+  symbol: string;
+  asset_class: "equity" | "etf" | "index-option" | "equity-option";
+  side: "buy" | "sell";
+  quantity: number;
+  order_type: "market" | "limit";
+  limit_price: number | null;
+  time_in_force: "day" | "gtc";
+  status: PaperIntentStatus;
+  idempotency_key: string;
+  created_at: string;
+};
+
+export type PaperRiskDecision = {
+  decision_id: string;
+  intent_id: string;
+  result: "pass" | "reject";
+  reason_codes: string[];
+  explanation: string;
+  estimated_notional: number;
+  created_at: string;
+};
+
+export type PaperAuditEvent = {
+  event_id: string;
+  actor_type: string;
+  resource_type: string;
+  resource_id: string;
+  action: string;
+  outcome: string;
+  reason_code: string;
+  message: string;
+  created_at: string;
+};
+
+export type PaperIntentResponse = {
+  scope: "paper_only";
+  replayed: boolean;
+  intent: PaperIntent;
+  latest_risk_decision: PaperRiskDecision | null;
+  audit_events: PaperAuditEvent[];
+};
+
 const API_BASE_URL = resolveApiBaseUrl({
   configuredBaseUrl: import.meta.env.VITE_API_BASE_URL,
   pageHostname: globalThis.location?.hostname,
@@ -747,6 +823,80 @@ export function listStrategyExperimentCandidates(options: {
   return requestJson<StrategyExperimentCandidateBoardResponse>(
     `/api/strategy-lab/experiments/candidates${query ? `?${query}` : ""}`,
   );
+}
+
+export function listPaperAccounts(): Promise<PaperAccountListResponse> {
+  return requestJson<PaperAccountListResponse>("/api/paper-trading/accounts");
+}
+
+export function createPaperAccount(): Promise<PaperAccountResponse> {
+  return requestJson<PaperAccountResponse>("/api/paper-trading/accounts", {
+    method: "POST",
+    body: JSON.stringify({
+      name: "Default paper account",
+      base_currency: "USD",
+      starting_cash: 100_000,
+    }),
+  });
+}
+
+export function createPaperIntentDraft(payload: {
+  accountId: string;
+  candidateId: string;
+  symbol: string;
+  assetClass: PaperIntent["asset_class"];
+}): Promise<PaperIntentResponse> {
+  return requestJson<PaperIntentResponse>("/api/paper-trading/intents", {
+    method: "POST",
+    headers: { "Idempotency-Key": `candidate-paper-${payload.candidateId}` },
+    body: JSON.stringify({
+      account_id: payload.accountId,
+      source_reference_id: payload.candidateId,
+      symbol: payload.symbol,
+      asset_class: payload.assetClass,
+      side: "buy",
+      quantity: 1,
+      order_type: "market",
+      time_in_force: "day",
+    }),
+  });
+}
+
+export function runPaperIntentRiskCheck(intent: PaperIntent): Promise<PaperIntentResponse> {
+  return requestJson<PaperIntentResponse>(`/api/paper-trading/intents/${intent.intent_id}/risk-check`, {
+    method: "POST",
+    body: JSON.stringify({
+      allowed_symbols: [intent.symbol],
+      allowed_asset_classes: [intent.asset_class],
+      max_notional_per_intent: 2_000,
+      max_daily_notional: 5_000,
+      current_daily_notional: 0,
+    }),
+  });
+}
+
+export function reviewPaperIntent(intentId: string, decision: "approve" | "reject"): Promise<PaperIntentResponse> {
+  return requestJson<PaperIntentResponse>(`/api/paper-trading/intents/${intentId}/review`, {
+    method: "POST",
+    body: JSON.stringify({
+      decision,
+      message: decision === "approve" ? "Approved from Strategy Lab paper review." : "Rejected from Strategy Lab paper review.",
+    }),
+  });
+}
+
+export function submitPaperIntent(intentId: string): Promise<PaperIntentResponse> {
+  return requestJson<PaperIntentResponse>(`/api/paper-trading/intents/${intentId}/paper-submit`, {
+    method: "POST",
+    body: JSON.stringify({ market_price: 500 }),
+  });
+}
+
+export function cancelPaperIntent(intentId: string): Promise<PaperIntentResponse> {
+  return requestJson<PaperIntentResponse>(`/api/paper-trading/intents/${intentId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify({ message: "Cancelled from Strategy Lab paper review." }),
+  });
 }
 
 export function getStrategyExperiment(experimentId: string): Promise<StrategyExperiment> {

@@ -19,6 +19,7 @@ import {
   BadgeCheck,
   ChartNoAxesCombined,
   CheckCircle2,
+  ClipboardCheck,
   Copy,
   FileText,
   FlaskConical,
@@ -28,6 +29,7 @@ import {
   ListChecks,
   RefreshCw,
   Save,
+  ShieldCheck,
   SlidersHorizontal,
   Tag,
   XCircle,
@@ -49,15 +51,24 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import {
   compareStrategyExperiments,
+  cancelPaperIntent,
+  createPaperAccount,
+  createPaperIntentDraft,
   duplicateStrategyExperiment,
   getStrategyExperiment,
+  listPaperAccounts,
   listStrategyCatalog,
   listStrategyExperimentCandidates,
   listStrategyExperiments,
   previewSignalStrategy,
+  reviewPaperIntent,
+  runPaperIntentRiskCheck,
   saveStrategyExperiment,
+  submitPaperIntent,
   updateStrategyExperiment,
   type MarketBar,
+  type PaperAccount,
+  type PaperIntentResponse,
   type ReportListItem,
   type StrategyCatalogItem,
   type StrategyExperimentCandidate,
@@ -109,12 +120,20 @@ export function StrategyLabPanel({
   const [candidatesError, setCandidatesError] = useState<string | null>(null);
   const [candidateTagFilter, setCandidateTagFilter] = useState("");
   const [candidateSortBy, setCandidateSortBy] = useState<"created_at" | "return_pct">("return_pct");
+  const [paperAccounts, setPaperAccounts] = useState<PaperAccount[]>([]);
+  const [paperIntent, setPaperIntent] = useState<PaperIntentResponse | null>(null);
+  const [paperLoading, setPaperLoading] = useState(false);
+  const [paperError, setPaperError] = useState<string | null>(null);
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
   const selectedStrategy = strategies.find((strategy) => strategy.strategy_id === selectedStrategyId) ?? null;
 
   useEffect(() => {
     void loadCatalog();
+  }, []);
+
+  useEffect(() => {
+    void loadPaperAccounts();
   }, []);
 
   useEffect(() => {
@@ -331,6 +350,95 @@ export function StrategyLabPanel({
       await loadCandidates();
     } catch (caught) {
       setCandidatesError(caught instanceof Error ? caught.message : "Strategy candidate review update failed.");
+    }
+  }
+
+  async function loadPaperAccounts() {
+    setPaperError(null);
+    try {
+      const response = await listPaperAccounts();
+      setPaperAccounts(response.accounts);
+    } catch (caught) {
+      setPaperError(caught instanceof Error ? caught.message : "Paper accounts failed to load.");
+    }
+  }
+
+  async function ensurePaperAccount(): Promise<PaperAccount> {
+    const existing = paperAccounts.find((account) => account.status === "active");
+    if (existing) return existing;
+    const created = await createPaperAccount();
+    setPaperAccounts([created.account]);
+    return created.account;
+  }
+
+  async function createPaperDraftFromCandidate(candidate: StrategyExperimentCandidate) {
+    setPaperLoading(true);
+    setPaperError(null);
+    try {
+      const account = await ensurePaperAccount();
+      const response = await createPaperIntentDraft({
+        accountId: account.account_id,
+        candidateId: candidate.experiment_id,
+        symbol: candidate.symbol,
+        assetClass: ["SPY", "QQQ"].includes(candidate.symbol.toUpperCase()) ? "etf" : "equity",
+      });
+      setPaperIntent(response);
+    } catch (caught) {
+      setPaperError(caught instanceof Error ? caught.message : "Paper draft creation failed.");
+    } finally {
+      setPaperLoading(false);
+    }
+  }
+
+  async function runSelectedPaperRiskCheck() {
+    if (!paperIntent) return;
+    setPaperLoading(true);
+    setPaperError(null);
+    try {
+      setPaperIntent(await runPaperIntentRiskCheck(paperIntent.intent));
+    } catch (caught) {
+      setPaperError(caught instanceof Error ? caught.message : "Paper RiskGuard check failed.");
+    } finally {
+      setPaperLoading(false);
+    }
+  }
+
+  async function reviewSelectedPaperIntent(decision: "approve" | "reject") {
+    if (!paperIntent) return;
+    setPaperLoading(true);
+    setPaperError(null);
+    try {
+      setPaperIntent(await reviewPaperIntent(paperIntent.intent.intent_id, decision));
+    } catch (caught) {
+      setPaperError(caught instanceof Error ? caught.message : "Paper review update failed.");
+    } finally {
+      setPaperLoading(false);
+    }
+  }
+
+  async function submitSelectedPaperIntent() {
+    if (!paperIntent) return;
+    setPaperLoading(true);
+    setPaperError(null);
+    try {
+      setPaperIntent(await submitPaperIntent(paperIntent.intent.intent_id));
+    } catch (caught) {
+      setPaperError(caught instanceof Error ? caught.message : "Paper simulation submit failed.");
+    } finally {
+      setPaperLoading(false);
+    }
+  }
+
+  async function cancelSelectedPaperIntent() {
+    if (!paperIntent) return;
+    setPaperLoading(true);
+    setPaperError(null);
+    try {
+      setPaperIntent(await cancelPaperIntent(paperIntent.intent.intent_id));
+    } catch (caught) {
+      setPaperError(caught instanceof Error ? caught.message : "Paper cancellation failed.");
+    } finally {
+      setPaperLoading(false);
     }
   }
 
@@ -754,12 +862,118 @@ export function StrategyLabPanel({
                       onUseAsCandidate={() => setCompareCandidateId(candidate.experiment_id)}
                       onReject={() => void setCandidateReviewStatus(candidate.experiment_id, "rejected")}
                       onArchive={() => void archiveCandidate(candidate.experiment_id)}
+                      onCreatePaperDraft={() => void createPaperDraftFromCandidate(candidate)}
+                      paperLoading={paperLoading}
                     />
                   ))}
                 </TableBody>
               </Table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldCheck className="size-4" />
+            Paper Review
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {paperError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{paperError}</AlertDescription>
+            </Alert>
+          ) : null}
+          {!paperIntent ? (
+            <p className="text-sm text-muted-foreground">Select Paper Draft from a candidate experiment to start a paper-only review.</p>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="rounded-md border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{paperIntent.scope}</Badge>
+                  <Badge variant="secondary">{paperIntent.intent.status}</Badge>
+                  <span className="text-sm font-medium">{paperIntent.intent.symbol}</span>
+                </div>
+                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  <MetricTile label="Side" value={paperIntent.intent.side} compact />
+                  <MetricTile label="Qty" value={String(paperIntent.intent.quantity)} compact />
+                  <MetricTile label="Type" value={paperIntent.intent.order_type} compact />
+                  <MetricTile label="TIF" value={paperIntent.intent.time_in_force} compact />
+                </div>
+                {paperIntent.latest_risk_decision ? (
+                  <div className="mt-3 rounded-md bg-muted/30 p-3 text-sm">
+                    <div className="font-medium">RiskGuard: {paperIntent.latest_risk_decision.result}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {paperIntent.latest_risk_decision.reason_codes.join(", ")}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Estimated notional: {formatCurrency(paperIntent.latest_risk_decision.estimated_notional)}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <div className="grid content-start gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void runSelectedPaperRiskCheck()}
+                  disabled={paperLoading || paperIntent.intent.status === "paper_filled" || paperIntent.intent.status === "paper_cancelled"}
+                >
+                  Run RiskGuard
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void reviewSelectedPaperIntent("approve")}
+                  disabled={paperLoading || paperIntent.latest_risk_decision?.result !== "pass"}
+                >
+                  Approve Paper
+                </Button>
+                <Button type="button" variant="outline" onClick={() => void reviewSelectedPaperIntent("reject")} disabled={paperLoading}>
+                  Reject Paper
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void submitSelectedPaperIntent()}
+                  disabled={paperLoading || paperIntent.intent.status !== "approved_for_paper"}
+                >
+                  Paper Submit
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void cancelSelectedPaperIntent()}
+                  disabled={paperLoading || paperIntent.intent.status === "paper_filled" || paperIntent.intent.status === "paper_cancelled"}
+                >
+                  Cancel Paper
+                </Button>
+              </div>
+            </div>
+          )}
+          {paperIntent ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Audit</TableHead>
+                    <TableHead>Outcome</TableHead>
+                    <TableHead>Message</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paperIntent.audit_events.map((event) => (
+                    <TableRow key={event.event_id}>
+                      <TableCell>{event.reason_code}</TableCell>
+                      <TableCell>{event.outcome}</TableCell>
+                      <TableCell>{event.message}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -1054,6 +1268,8 @@ function CandidateBoardRow({
   onUseAsCandidate,
   onReject,
   onArchive,
+  onCreatePaperDraft,
+  paperLoading,
 }: {
   candidate: StrategyExperimentCandidate;
   onOpen: () => void;
@@ -1061,6 +1277,8 @@ function CandidateBoardRow({
   onUseAsCandidate: () => void;
   onReject: () => void;
   onArchive: () => void;
+  onCreatePaperDraft: () => void;
+  paperLoading: boolean;
 }) {
   return (
     <TableRow>
@@ -1103,6 +1321,17 @@ function CandidateBoardRow({
           </Button>
           <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison B`} onClick={onUseAsCandidate}>
             B
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            disabled={paperLoading}
+            onClick={onCreatePaperDraft}
+          >
+            <ClipboardCheck className="size-4" />
+            Paper Draft
           </Button>
           <Button
             type="button"

@@ -54,6 +54,12 @@ class PaperTradingRepository:
         model = self.session.get(PaperAccountModel, account_id)
         return to_account(model) if model else None
 
+    def list_accounts(self) -> list[PaperAccount]:
+        models = self.session.scalars(
+            select(PaperAccountModel).order_by(PaperAccountModel.created_at.asc())
+        ).all()
+        return [to_account(model) for model in models]
+
     def update_account_cash(self, account_id: UUID, current_cash: float) -> PaperAccount | None:
         model = self.session.get(PaperAccountModel, account_id)
         if model is None:

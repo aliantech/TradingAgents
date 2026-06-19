@@ -17,6 +17,8 @@ from app.paper_trading.contracts import (
     OrderSide,
     OrderSource,
     OrderType,
+    PaperAccount,
+    PaperAccountStatus,
     PaperAuditEvent,
     PaperOrderIntent,
     RiskDecision,
@@ -64,6 +66,32 @@ class PaperSubmitRequest(BaseModel):
 
 class PaperCancelRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500)
+
+
+class PaperAccountCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    base_currency: str = Field(default="USD", min_length=3, max_length=3)
+    starting_cash: float = Field(gt=0, allow_inf_nan=False)
+
+
+class PaperAccountItem(BaseModel):
+    account_id: UUID
+    name: str
+    base_currency: str
+    starting_cash: float
+    current_cash: float
+    status: str
+    created_at: str
+
+
+class PaperAccountResponse(BaseModel):
+    scope: str = "paper_only"
+    account: PaperAccountItem
+
+
+class PaperAccountListResponse(BaseModel):
+    scope: str = "paper_only"
+    accounts: list[PaperAccountItem]
 
 
 class PaperIntentItem(BaseModel):
@@ -116,6 +144,31 @@ class PaperIntentResponse(BaseModel):
 class PaperIntentListResponse(BaseModel):
     scope: str = "paper_only"
     intents: list[PaperIntentItem]
+
+
+@router.get("/accounts", response_model=PaperAccountListResponse)
+def list_paper_accounts(session: Session = Depends(get_db_session)):
+    repository = PaperTradingRepository(session)
+    return PaperAccountListResponse(accounts=[to_account_item(account) for account in repository.list_accounts()])
+
+
+@router.post("/accounts", response_model=PaperAccountResponse, status_code=status.HTTP_201_CREATED)
+def create_paper_account(
+    request: PaperAccountCreateRequest,
+    session: Session = Depends(get_db_session),
+):
+    account = PaperAccount(
+        account_id=uuid4(),
+        name=request.name,
+        base_currency=request.base_currency.upper(),
+        starting_cash=request.starting_cash,
+        current_cash=request.starting_cash,
+        status=PaperAccountStatus.ACTIVE,
+        created_at=utc_now(),
+    )
+    repository = PaperTradingRepository(session)
+    repository.save_account(account)
+    return PaperAccountResponse(account=to_account_item(account))
 
 
 @router.post("/intents", response_model=PaperIntentResponse, status_code=status.HTTP_201_CREATED)
@@ -336,6 +389,18 @@ def require_intent(intent: PaperOrderIntent | None) -> PaperOrderIntent:
     if intent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="paper intent not found")
     return intent
+
+
+def to_account_item(account: PaperAccount) -> PaperAccountItem:
+    return PaperAccountItem(
+        account_id=account.account_id,
+        name=account.name,
+        base_currency=account.base_currency,
+        starting_cash=account.starting_cash,
+        current_cash=account.current_cash,
+        status=account.status.value,
+        created_at=account.created_at.isoformat(),
+    )
 
 
 def to_intent_item(intent: PaperOrderIntent) -> PaperIntentItem:

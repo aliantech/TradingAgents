@@ -283,13 +283,15 @@ Verification:
 
 ### Slice 7: Candidate-to-Paper UI
 
-Status: planned; implementation plan written on 2026-06-20.
+Status: implemented and validated on 2026-06-20.
 
-Planned deliverables:
+Implemented:
 
 - Candidate Review Board action to create a paper intent draft.
-- Paper review page with RiskGuard decision, audit timeline, and explicit human approval controls.
-- No buy/sell broker buttons.
+- Paper Review panel with intent status, RiskGuard result, audit timeline, and explicit human paper controls.
+- Paper-only RiskGuard, approval/rejection, submit, and cancel actions.
+- Minimal paper account bootstrap API for the Strategy Lab UI.
+- UI copy uses paper simulation terminology and avoids broker/live trading language.
 
 Implementation plan:
 
@@ -297,8 +299,11 @@ Implementation plan:
 
 Verification:
 
-- Frontend build passes.
-- UI copy says paper simulation and does not imply live trading.
+- Ubuntu isolated backend account/API tests passed: 14 passed in 3.90s.
+- Ubuntu isolated Slice 2+3+4+5+6+7 focused paper tests passed: 77 passed in 4.70s.
+- Ubuntu isolated backend regression passed: 217 passed in 6.69s.
+- Ubuntu isolated frontend build passed with `npm run build`.
+- Safety grep only matched planned negative broker/live/account_number/order_id test assertions and found no broker SDK, broker credentials, live order methods, network libraries, MCP trading tools, agent trading scope implementation, or live-trading UI copy.
 
 ## Explicit Non-Goals
 
