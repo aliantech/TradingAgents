@@ -92,6 +92,8 @@ class ProviderSyncRunModel(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     provider: Mapped[str] = mapped_column(String(64), index=True)
     sync_type: Mapped[str] = mapped_column(String(64), index=True)
+    target_symbol: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    target_expiry: Mapped[date | None] = mapped_column(Date, index=True, nullable=True)
     status: Mapped[str] = mapped_column(String(32), index=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

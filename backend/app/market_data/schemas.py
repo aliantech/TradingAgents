@@ -25,6 +25,8 @@ class ProviderSyncRunItem(BaseModel):
     id: str
     provider: str
     sync_type: str
+    target_symbol: str | None = None
+    target_expiry: date | None = None
     status: str
     started_at: datetime
     finished_at: datetime | None

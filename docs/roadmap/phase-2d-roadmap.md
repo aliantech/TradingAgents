@@ -107,8 +107,8 @@ Purpose:
 Implemented surface:
 
 - `ResearchReport` includes `evidence_labels`.
-- Generated reports include `market-bars`, `options-chain`, `provider-readiness`, and `tradingagents-debate` labels.
-- Generated Markdown includes a `证据标签` section.
+- Persisted real reports can include evidence labels.
+- The checked-in analysis path no longer generates sample reports or sample evidence labels.
 - Reports UI displays evidence labels as badges below risk tags.
 
 ## Slice 6: Safe Retry Flow

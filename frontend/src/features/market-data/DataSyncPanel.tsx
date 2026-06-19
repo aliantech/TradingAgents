@@ -33,7 +33,7 @@ type DataSyncPanelProps = {
   onStartedBeforeFilterChange: (startedBefore: string) => void;
   onConfigureProvider: () => void;
   onRefresh: () => void;
-  onSyncSample: () => void;
+  onSyncCurrent: () => void;
 };
 
 export function DataSyncPanel({
@@ -55,7 +55,7 @@ export function DataSyncPanel({
   onStartedBeforeFilterChange,
   onConfigureProvider,
   onRefresh,
-  onSyncSample,
+  onSyncCurrent,
 }: DataSyncPanelProps) {
   const { t } = useTranslation();
   return (
@@ -63,8 +63,8 @@ export function DataSyncPanel({
       <CardHeader>
         <CardTitle>{t("market.syncTitle")}</CardTitle>
         <CardAction className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onSyncSample} disabled={syncing || loading || !readiness?.ready}>
-            {syncing ? t("market.syncing") : t("market.syncSample")}
+          <Button type="button" variant="outline" onClick={onSyncCurrent} disabled={syncing || loading || !readiness?.ready}>
+            {syncing ? t("market.syncing") : t("market.syncCurrent")}
           </Button>
           <Button type="button" variant="outline" onClick={onRefresh} disabled={loading || syncing}>
             {loading ? t("market.refreshing") : t("market.refresh")}

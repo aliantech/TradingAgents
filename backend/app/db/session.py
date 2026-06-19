@@ -19,6 +19,7 @@ def initialize_database() -> None:
         return
     Base.metadata.create_all(bind=engine)
     _ensure_analysis_run_columns()
+    _ensure_provider_sync_run_columns()
     _seed_default_settings()
     _initialized = True
 
@@ -44,6 +45,22 @@ def _ensure_analysis_run_columns() -> None:
             connection.execute(
                 text("ALTER TABLE analysis_runs ADD COLUMN research_template VARCHAR(64) NOT NULL DEFAULT 'general'")
             )
+
+
+def _ensure_provider_sync_run_columns() -> None:
+    inspector = inspect(engine)
+    if "provider_sync_runs" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("provider_sync_runs")}
+    needs_target_symbol = "target_symbol" not in columns
+    needs_target_expiry = "target_expiry" not in columns
+    if not needs_target_symbol and not needs_target_expiry:
+        return
+    with engine.begin() as connection:
+        if needs_target_symbol:
+            connection.execute(text("ALTER TABLE provider_sync_runs ADD COLUMN target_symbol VARCHAR(64)"))
+        if needs_target_expiry:
+            connection.execute(text("ALTER TABLE provider_sync_runs ADD COLUMN target_expiry DATE"))
 
 
 def _seed_default_settings() -> None:

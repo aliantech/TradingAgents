@@ -6,11 +6,12 @@ from fastapi.testclient import TestClient
 
 from app.agent_gateway.auth import RATE_LIMIT_BUCKETS
 from app.analysis.repository import AnalysisRepository
-from app.analysis.schemas import AnalysisDepth, AnalysisRequest, AssetType, ReportLanguage
-from app.analysis.service import start_analysis
+from app.analysis.schemas import AnalysisDepth, AnalysisProgressEvent, AnalysisRequest, AssetType, ReportLanguage
+from app.analysis.store import AnalysisRun
 from app.db.models import AgentAuditModel, AgentTokenModel
 from app.db.session import SessionLocal, initialize_database
 from app.main import app
+from app.reports.schemas import ResearchReport
 
 
 def test_agent_gateway_whoami_requires_agent_token():
@@ -61,18 +62,7 @@ def test_agent_gateway_reports_require_read_scope_and_return_research_reports():
     raw_token = seed_agent_token(scopes="R", instruments="SPY")
     session = SessionLocal()
     try:
-        run = start_analysis(
-            AnalysisRequest(
-                symbol="SPY",
-                asset_type=AssetType.etf,
-                analysis_date="2026-06-19",
-                language=ReportLanguage.zh,
-                llm_provider="openai",
-                model="gpt-5.5",
-                depth=AnalysisDepth.standard,
-            ),
-            repository=AnalysisRepository(session),
-        )
+        run = create_report(session, "SPY")
     finally:
         session.close()
 
@@ -179,10 +169,10 @@ def test_agent_gateway_submits_and_polls_research_analysis_job():
     assert submit_response.status_code == 202
     submitted_job = submit_response.json()
     assert submitted_job["job_type"] == "research_analysis"
-    assert submitted_job["status"] == "completed"
+    assert submitted_job["status"] == "failed"
     assert submitted_job["result"]["symbol"] == "SPY"
     assert submitted_job["result"]["analysis_id"]
-    assert submitted_job["result"]["report_id"]
+    assert submitted_job["result"]["report_id"] is None
     assert any(event["step"] == "report" for event in submitted_job["progress"])
 
     poll_response = client.get(f"/api/agent/v1/jobs/{submitted_job['job_id']}", headers=headers)
@@ -190,9 +180,9 @@ def test_agent_gateway_submits_and_polls_research_analysis_job():
 
     assert poll_response.status_code == 200
     assert poll_response.json()["job_id"] == submitted_job["job_id"]
-    assert poll_response.json()["status"] == "completed"
-    assert result_response.status_code == 200
-    assert result_response.json() == submitted_job["result"]
+    assert poll_response.json()["status"] == "failed"
+    assert result_response.status_code == 409
+    assert result_response.json()["detail"] == "job result is not ready"
 
 
 def test_agent_gateway_replays_research_analysis_job_with_idempotency_key():
@@ -264,18 +254,49 @@ def analysis_payload(symbol: str) -> dict[str, str]:
 
 
 def create_report(session, symbol: str):
-    return start_analysis(
-        AnalysisRequest(
-            symbol=symbol,
-            asset_type=AssetType.etf,
-            analysis_date="2026-06-19",
-            language=ReportLanguage.zh,
-            llm_provider="openai",
-            model="gpt-5.5",
-            depth=AnalysisDepth.standard,
-        ),
-        repository=AnalysisRepository(session),
+    analysis_id = uuid4()
+    report_id = uuid4()
+    request = AnalysisRequest(
+        symbol=symbol,
+        asset_type=AssetType.etf,
+        analysis_date="2026-06-19",
+        language=ReportLanguage.zh,
+        llm_provider="openai",
+        model="gpt-5.5",
+        depth=AnalysisDepth.standard,
     )
+    report = ResearchReport(
+        report_id=report_id,
+        analysis_id=analysis_id,
+        symbol=symbol,
+        language=ReportLanguage.zh,
+        analyst_set="macro-options",
+        research_template="general",
+        summary=f"{symbol} persisted test report",
+        market_background="Persisted report fixture.",
+        fundamental_analysis="Persisted report fixture.",
+        technical_analysis="Persisted report fixture.",
+        sentiment_analysis="Persisted report fixture.",
+        options_observation="Persisted report fixture.",
+        bull_case="Persisted report fixture.",
+        bear_case="Persisted report fixture.",
+        risk_factors=[],
+        evidence_labels=["persisted-report"],
+        trade_plan="Research only.",
+        position_sizing="Research only.",
+        take_profit_stop_loss="Research only.",
+        confidence=0.5,
+        markdown=f"# {symbol} persisted test report",
+    )
+    run = AnalysisRun(
+        analysis_id=analysis_id,
+        request=request,
+        status="completed",
+        progress=[AnalysisProgressEvent(step="report", status="completed", message="persisted report fixture")],
+        report=report,
+    )
+    AnalysisRepository(session).save_run(run)
+    return run
 
 
 def latest_audit_status(route: str) -> int:

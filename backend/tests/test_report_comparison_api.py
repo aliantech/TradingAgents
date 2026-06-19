@@ -6,11 +6,11 @@ from app.analysis.store import analysis_store
 from app.main import app
 
 
-def test_report_comparison_returns_previous_report_for_same_symbol():
+def test_report_comparison_has_no_mock_reports_for_analysis_runs():
     client = TestClient(app)
     symbol = f"T{uuid4().hex[:7]}".upper()
 
-    first_response = client.post(
+    response = client.post(
         "/api/analysis",
         json={
             "symbol": symbol,
@@ -23,36 +23,14 @@ def test_report_comparison_returns_previous_report_for_same_symbol():
             "analyst_set": "macro-options",
         },
     )
-    second_response = client.post(
-        "/api/analysis",
-        json={
-            "symbol": symbol,
-            "asset_type": "etf",
-            "analysis_date": "2026-06-18",
-            "language": "zh",
-            "llm_provider": "openai",
-            "model": "gpt-5.5",
-            "depth": "deep",
-            "analyst_set": "full",
-        },
-    )
-    assert first_response.status_code == 202
-    assert second_response.status_code == 202
+    assert response.status_code == 202
 
     analysis_store._runs.clear()
-    current_status = client.get(f"/api/analysis/{second_response.json()['analysis_id']}")
-    previous_status = client.get(f"/api/analysis/{first_response.json()['analysis_id']}")
+    status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
+    reports_response = client.get("/api/reports")
 
-    comparison_response = client.get(f"/api/reports/{current_status.json()['report_id']}/comparison")
-
-    assert comparison_response.status_code == 200
-    comparison = comparison_response.json()
-    assert comparison["current"]["report_id"] == current_status.json()["report_id"]
-    assert comparison["previous"]["report_id"] == previous_status.json()["report_id"]
-    assert comparison["symbol"] == symbol
-    assert comparison["confidence_delta"] == 0
-    assert comparison["risk_factor_changes"] == {"added": [], "removed": []}
-    assert comparison["section_changes"]["summary"]["changed"] is False
+    assert status_response.json()["report_id"] is None
+    assert all(report["symbol"] != symbol for report in reports_response.json())
 
 
 def test_report_comparison_returns_404_when_no_prior_symbol_report_exists():
@@ -73,9 +51,7 @@ def test_report_comparison_returns_404_when_no_prior_symbol_report_exists():
     )
     assert response.status_code == 202
     analysis_store._runs.clear()
-    status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
-
-    comparison_response = client.get(f"/api/reports/{status_response.json()['report_id']}/comparison")
+    comparison_response = client.get(f"/api/reports/{uuid4()}/comparison")
 
     assert comparison_response.status_code == 404
-    assert comparison_response.json()["detail"] == "previous report not found"
+    assert comparison_response.json()["detail"] == "report not found"

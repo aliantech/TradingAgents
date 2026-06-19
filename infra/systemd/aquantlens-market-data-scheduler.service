@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/yasin/workspace/TradingAgents/backend
-Environment=AQUANTLENS_MARKET_DATA_PROVIDER=sample
+Environment=AQUANTLENS_MARKET_DATA_PROVIDER=polygon
 Environment=AQUANTLENS_SCHEDULER_TARGETS=SPY:1d:2
 Environment=AQUANTLENS_SCHEDULER_INTERVAL_SECONDS=300
 EnvironmentFile=-/home/yasin/workspace/TradingAgents/backend/.env

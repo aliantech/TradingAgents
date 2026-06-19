@@ -12,7 +12,7 @@ Backend settings use the `AQUANTLENS_` prefix.
 
 ```bash
 export AQUANTLENS_DATABASE_URL="sqlite:///./aquantlens_us.db"
-export AQUANTLENS_MARKET_DATA_PROVIDER="sample"
+export AQUANTLENS_MARKET_DATA_PROVIDER="polygon"
 export AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED="true"
 export AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED="false"
 export AQUANTLENS_REDIS_URL="redis://127.0.0.1:6379/0"
@@ -77,23 +77,18 @@ RUN_LIVE_SMOKE=1 scripts/phase2b_preflight.sh
 
 The preflight script does not read `.env` or print runtime env vars.
 
-## Sample Provider Smoke
+## Provider Smoke
 
 ```bash
 cd backend
 . .venv/bin/activate
-python -m app.market_data.cli sync-daily-bars \
-  --symbol SPY \
-  --start 2026-06-17 \
-  --end 2026-06-17 \
-  --provider sample \
-  --timeframe 5m
+python -m app.market_data.cli provider-readiness --provider polygon
 ```
 
-Expected result:
+Expected result when runtime configuration is missing:
 
 ```json
-{"status": "succeeded", "rows_written": 1, "error_message": null}
+{"provider": "polygon", "ready": false, "missing": ["AQUANTLENS_POLYGON_API_KEY"], "message": "Polygon provider is missing required runtime configuration."}
 ```
 
 ## Polygon Live Smoke
@@ -181,7 +176,7 @@ python -m app.market_data.cli sync-daily-bars \
   --symbol SPY \
   --start 2026-06-17 \
   --end 2026-06-17 \
-  --provider sample \
+  --provider polygon \
   --timeframe 1m
 ```
 

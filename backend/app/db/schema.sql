@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS provider_sync_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   provider text NOT NULL,
   sync_type text NOT NULL,
+  target_symbol text,
+  target_expiry date,
   status text NOT NULL,
   started_at timestamptz NOT NULL DEFAULT now(),
   finished_at timestamptz,

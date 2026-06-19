@@ -89,6 +89,8 @@ def test_option_chain_sync_service_persists_contracts_snapshots_and_audit_run():
     runs = ProviderSyncRepository(session).list_runs(provider="polygon", sync_type="options_chain")
     assert len(runs) == 1
     assert runs[0].status == "succeeded"
+    assert runs[0].target_symbol == "SPY"
+    assert runs[0].target_expiry == date(2024, 6, 21)
     assert runs[0].rows_written == 1
 
 
@@ -108,4 +110,6 @@ def test_option_chain_sync_service_marks_empty_chain_as_empty_audit_run():
     runs = ProviderSyncRepository(session).list_runs(provider="polygon", sync_type="options_chain")
     assert len(runs) == 1
     assert runs[0].status == "empty"
+    assert runs[0].target_symbol == "SPX"
+    assert runs[0].target_expiry == date(2024, 6, 21)
     assert runs[0].rows_written == 0

@@ -58,9 +58,11 @@ As of 2026-06-19, the branch has moved beyond the original Phase 1 foundation in
 
 - Phase 1: architecture, product scope, API/UI module plan, and research-only safety boundary are documented.
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
-- Phase 2B: provider sync, Polygon/sample provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete.
+- Phase 2B: provider sync, Polygon provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete; legacy sample-provider behavior has been removed from runtime paths.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
 - Current Phase 4 state: Phase 3 is complete, and Phase 4 Slice 3 is implemented. The branch now has a Research Agent Gateway with token-hash persistence, `whoami`, gateway health, read-scoped report endpoints, append-only audit records, token expiry enforcement, instrument allowlist enforcement, report-list filtering, a local rate-limit guard, a durable agent-facing research analysis job contract with idempotency-key replay, an MCP thin wrapper that forwards tools through `/api/agent/v1`, a WYSIWYG Strategy Lab with a research-only strategy catalog boundary, backend preview API, deterministic research backtest, chart overlay, and report-linked notes, research-only Strategy Lab experiment persistence with save, list, detail, duplicate, and frontend history/open flows, plus A/B saved-experiment comparison for parameters, final equity, return, trades, markers, and signal counts. The gateway, MCP wrapper, and Strategy Lab remain research-only and do not expose trading, broker credentials, or live execution.
+- The checked-in analysis endpoint no longer emits sample or mock research reports. Until the real TradingAgents execution chain is connected, analysis runs are persisted as failed/no-report instead of writing placeholder report content.
+- Runtime DB hygiene is documented in `docs/operations/runtime-db-hygiene.md`; pytest defaults to a temporary SQLite database and the cleanup script backs up before removing mock/test/legacy task rows.
 
 Current code shape:
 

@@ -55,14 +55,11 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
 ## Completed in Fourth Slice
 
 - Connected `GET /api/options/chain` to `OptionRepository`.
-- Added deterministic sample option-chain seeding for empty chains:
-  - `SPY`;
-  - `QQQ`;
-  - `SPX`.
-- API now returns persisted provider data when available and only seeds sample data when the requested chain is empty.
+- Removed deterministic sample option-chain seeding for empty chains.
+- API now returns persisted provider data when available and an empty chain when no provider snapshots exist.
 - Added API tests for:
   - persisted snapshot response;
-  - deterministic SPX sample fallback.
+  - empty response when no provider snapshots exist.
 
 ## Completed in Fifth Slice
 
@@ -305,10 +302,10 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
   - `GET /api/options/bars`;
   - timeframe support for `1m`, `5m`, and `1d`;
   - persisted option bars through the existing market-bar repository when available;
-  - deterministic sample fallback when no contract bars exist yet.
+  - empty response when no contract bars exist yet.
 - Added backend tests for:
   - persisted option-bar reads;
-  - sample fallback behavior.
+  - no-fallback behavior.
 - Connected the Options selected-contract panel to the new contract bars API:
   - selected contract loads bars on Bid / Ask / Last inspection;
   - timeframe toggle reloads selected option bars;

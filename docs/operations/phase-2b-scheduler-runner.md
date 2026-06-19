@@ -38,20 +38,20 @@ AQUANTLENS_SCHEDULER_TARGETS=SPY:1d:2
 AQUANTLENS_SCHEDULER_INTERVAL_SECONDS=300
 ```
 
-Provider config still uses:
+Provider config uses the live market-data provider:
 
 ```text
-AQUANTLENS_MARKET_DATA_PROVIDER=sample
+AQUANTLENS_MARKET_DATA_PROVIDER=polygon
 ```
 
-Use `polygon` only after provider environment variables are available in the runtime environment. Do not print or log secret values.
+Run scheduler sync only after provider environment variables are available in the runtime environment. Do not print or log secret values.
 
 ## Run Once
 
 From the backend environment:
 
 ```bash
-python -m app.market_data.cli run-scheduler-once --provider sample --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
+python -m app.market_data.cli run-scheduler-once --provider polygon --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
 ```
 
 The command prints JSON, one item per configured target:
@@ -72,13 +72,13 @@ Exit code:
 For a bounded smoke test:
 
 ```bash
-python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
+python -m app.market_data.cli run-scheduler-loop --provider polygon --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
 ```
 
 For a long-running local worker:
 
 ```bash
-python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --interval-seconds 300
+python -m app.market_data.cli run-scheduler-loop --provider polygon --targets "SPY:1d:2" --interval-seconds 300
 ```
 
 Use an external supervisor such as systemd for restarts, logs, and process lifecycle. Keep `--max-iterations` for smoke tests and CI-like checks.
@@ -123,7 +123,7 @@ systemctl --user stop aquantlens-market-data-scheduler.service
 systemctl --user disable --now aquantlens-market-data-scheduler.timer
 ```
 
-The checked-in service defaults to the `sample` provider. Override provider, targets, database, Redis, and vendor settings in `/home/yasin/workspace/TradingAgents/backend/.env` without printing secret values.
+The checked-in service defaults to the `polygon` provider. Override provider, targets, database, Redis, and vendor settings in `/home/yasin/workspace/TradingAgents/backend/.env` without printing secret values.
 
 ## Observability
 

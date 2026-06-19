@@ -11,7 +11,7 @@ Branch: `aquantlens-us`
 - Added `instruments` and `market_bars` ORM models.
 - Added `MarketDataRepository` with idempotent market-bar upserts.
 - Added `MarketDataIngestionService` as the provider-to-repository entrypoint.
-- Updated market-data API to read persisted bars first and deterministic sample bars as fallback.
+- Updated market-data API to read persisted bars and return an empty list when no provider bars exist.
 
 ## Verification Commands
 

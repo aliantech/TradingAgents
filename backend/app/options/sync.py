@@ -54,6 +54,8 @@ class OptionChainSyncService:
         self.sync_repository.record_run(
             provider=self.provider_name,
             sync_type="options_chain",
+            target_symbol=normalized_underlying,
+            target_expiry=expiry,
             status=status,
             started_at=started_at,
             finished_at=datetime.now(tz=UTC),

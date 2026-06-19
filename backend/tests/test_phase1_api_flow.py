@@ -20,7 +20,7 @@ def _start_spy_analysis(client: TestClient) -> dict:
     return response.json()
 
 
-def test_phase_one_analysis_report_flow():
+def test_phase_one_analysis_flow_does_not_create_mock_report():
     client = TestClient(app)
     queued = _start_spy_analysis(client)
 
@@ -28,21 +28,14 @@ def test_phase_one_analysis_report_flow():
     assert status_response.status_code == 200
     status_payload = status_response.json()
     assert status_payload["symbol"] == "SPY"
-    assert status_payload["status"] == "completed"
-    assert status_payload["report_id"]
-    assert len(status_payload["progress"]) >= 4
+    assert status_payload["status"] == "failed"
+    assert status_payload["report_id"] is None
+    assert len(status_payload["progress"]) >= 3
 
     reports_response = client.get("/api/reports")
     assert reports_response.status_code == 200
     reports = reports_response.json()
-    assert any(report["report_id"] == status_payload["report_id"] for report in reports)
-
-    report_response = client.get(f"/api/reports/{status_payload['report_id']}")
-    assert report_response.status_code == 200
-    report = report_response.json()
-    assert report["language"] == "zh"
-    assert "不构成投资建议" in report["markdown"]
-    assert "期权" in report["options_observation"]
+    assert all(report["analysis_id"] != queued["analysis_id"] for report in reports)
 
 
 def test_phase_one_market_and_options_context():
@@ -53,15 +46,14 @@ def test_phase_one_market_and_options_context():
     bars = bars_response.json()
     assert bars["symbol"] == "SPY"
     assert bars["timeframe"] == "1m"
-    assert len(bars["bars"]) >= 5
+    assert bars["bars"] == []
 
-    chain_response = client.get("/api/options/chain?underlying=SPX&expiry=2026-06-17")
+    chain_response = client.get("/api/options/chain?underlying=SPX&expiry=2026-06-26")
     assert chain_response.status_code == 200
     chain = chain_response.json()
     assert chain["underlying_symbol"] == "SPX"
-    assert chain["expiry"] == "2026-06-17"
-    assert len(chain["snapshots"]) >= 5
-    assert "delta" in chain["snapshots"][0]
+    assert chain["expiry"] == "2026-06-26"
+    assert chain["snapshots"] == []
 
 
 def test_phase_one_progress_events_stream():
@@ -71,4 +63,4 @@ def test_phase_one_progress_events_stream():
     response = client.get(f"/api/analysis/{queued['analysis_id']}/events")
     assert response.status_code == 200
     assert "text/event-stream" in response.headers["content-type"]
-    assert "中文结构化报告已生成" in response.text
+    assert "不再写入样例或 mock 报告" in response.text

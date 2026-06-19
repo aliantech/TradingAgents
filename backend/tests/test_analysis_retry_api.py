@@ -49,7 +49,8 @@ def test_analysis_retry_creates_new_run_from_failed_run():
 
     retried_status = client.get(f"/api/analysis/{retry['analysis_id']}")
     assert retried_status.status_code == 200
-    assert retried_status.json()["status"] == "completed"
+    assert retried_status.json()["status"] == "failed"
+    assert retried_status.json()["report_id"] is None
 
     original_status = client.get(f"/api/analysis/{analysis_id}")
     assert original_status.status_code == 200
@@ -60,7 +61,7 @@ def test_analysis_retry_creates_new_run_from_failed_run():
     assert retried_run["research_template"] == "technical-setup"
 
 
-def test_analysis_retry_rejects_completed_run():
+def test_analysis_retry_allows_generated_failed_run():
     client = TestClient(app)
     response = client.post(
         "/api/analysis",
@@ -76,7 +77,9 @@ def test_analysis_retry_rejects_completed_run():
     )
     assert response.status_code == 202
 
+    status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
+    assert status_response.json()["status"] == "failed"
+
     retry_response = client.post(f"/api/analysis/{response.json()['analysis_id']}/retry")
 
-    assert retry_response.status_code == 409
-    assert retry_response.json()["detail"] == "only failed analysis runs can be retried"
+    assert retry_response.status_code == 202

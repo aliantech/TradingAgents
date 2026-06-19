@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -13,6 +13,8 @@ class ProviderSyncRun:
     id: UUID
     provider: str
     sync_type: str
+    target_symbol: str | None
+    target_expiry: date | None
     status: str
     started_at: datetime
     finished_at: datetime | None
@@ -72,11 +74,15 @@ class ProviderSyncRepository:
         started_at: datetime,
         finished_at: datetime | None,
         rows_written: int,
+        target_symbol: str | None = None,
+        target_expiry: date | None = None,
         error_message: str | None = None,
     ) -> ProviderSyncRun:
         model = ProviderSyncRunModel(
             provider=provider,
             sync_type=sync_type,
+            target_symbol=target_symbol.upper() if target_symbol else None,
+            target_expiry=target_expiry,
             status=status,
             started_at=started_at,
             finished_at=finished_at,
@@ -245,6 +251,8 @@ class ProviderSyncRepository:
             id=model.id,
             provider=model.provider,
             sync_type=model.sync_type,
+            target_symbol=model.target_symbol,
+            target_expiry=model.target_expiry,
             status=model.status,
             started_at=model.started_at,
             finished_at=model.finished_at,

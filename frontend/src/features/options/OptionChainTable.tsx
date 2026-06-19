@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import {
@@ -50,7 +49,6 @@ type OptionChainTableProps = {
   selectedBarsLoading: boolean;
   selectedBarsError: string | null;
   selectedBarsTimeframe: MarketTimeframe;
-  onUnderlyingChange: (value: string) => void;
   onExpiryChange: (value: string) => void;
   onSelectedContractChange: (optionSymbol: string) => void;
   onSelectedBarsTimeframeChange: (timeframe: MarketTimeframe) => void;
@@ -93,8 +91,6 @@ const COLUMN_PRESETS: Record<ColumnPreset, { call: OptionColumn[]; put: OptionCo
   },
 };
 
-const SUGGESTED_EXPIRIES = ["2026-06-17", "2026-06-24", "2026-07-17", "2026-09-18"];
-
 export function OptionChainTable({
   snapshots,
   contracts,
@@ -112,7 +108,6 @@ export function OptionChainTable({
   selectedBarsLoading,
   selectedBarsError,
   selectedBarsTimeframe,
-  onUnderlyingChange,
   onExpiryChange,
   onSelectedContractChange,
   onSelectedBarsTimeframeChange,
@@ -148,6 +143,7 @@ export function OptionChainTable({
   const averageIv = average(snapshots.map((snapshot) => snapshot.implied_volatility));
   const surface = useMemo(() => buildOptionSurface(snapshots), [snapshots]);
   const contractUniverse = useMemo(() => buildContractUniverse(contracts), [contracts]);
+  const availableExpiries = contractUniverse.expiries;
   const activeExpiry = buildExpiryMeta(expiry);
   const expiryTabs = buildExpiryTabs(expiry);
 
@@ -166,7 +162,7 @@ export function OptionChainTable({
             {loading ? t("options.loading") : t("options.refresh")}
           </Button>
           <Button type="button" onClick={onSync} disabled={loading || syncing}>
-            {syncing ? t("options.syncing") : t("options.sync")}
+            {syncing ? t("options.syncing") : t("options.syncCurrent", { symbol: underlying })}
           </Button>
         </CardAction>
       </CardHeader>
@@ -199,25 +195,16 @@ export function OptionChainTable({
           label={t("options.latestRun")}
           value={latestSyncRun?.status && latestSyncRun.status !== "empty" ? latestSyncRun.status : t("options.noRecord")}
           status={latestSyncRun?.status ?? "missing"}
-          detail={latestSyncRun ? `${latestSyncRun.rows_written.toLocaleString()} rows · ${formatDate(latestSyncRun.finished_at ?? latestSyncRun.started_at)}` : t("options.noLatestSync")}
+          detail={latestSyncRun ? formatSyncRunDetail(latestSyncRun) : t("options.noLatestSync")}
         />
       </div>
 
       <div className="mt-4 grid grid-cols-[minmax(140px,180px)_minmax(150px,190px)_minmax(220px,auto)_minmax(230px,1fr)] items-end gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">Underlying</span>
-          <Select value={underlying} onValueChange={onUnderlyingChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t("options.selectUnderlying")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="SPX">SPX</SelectItem>
-                <SelectItem value="SPY">SPY</SelectItem>
-                <SelectItem value="QQQ">QQQ</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm font-semibold">
+            {underlying}
+          </div>
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">{t("options.expiry")}</span>
@@ -344,6 +331,7 @@ export function OptionChainTable({
           syncHealth={syncHealth}
           latestSyncRun={latestSyncRun}
           contractsCount={contracts.length}
+          availableExpiries={availableExpiries}
           syncing={syncing}
           onConfigureProvider={onConfigureProvider}
           onRefresh={onRefresh}
@@ -718,6 +706,7 @@ function OptionsEmptyState({
   syncHealth,
   latestSyncRun,
   contractsCount,
+  availableExpiries,
   syncing,
   onConfigureProvider,
   onRefresh,
@@ -729,6 +718,7 @@ function OptionsEmptyState({
   syncHealth: ProviderSyncHealth | null;
   latestSyncRun: ProviderSyncRunItem | null;
   contractsCount: number;
+  availableExpiries: string[];
   syncing: boolean;
   onConfigureProvider: () => void;
   onRefresh: () => void;
@@ -751,9 +741,14 @@ function OptionsEmptyState({
           <h3 className="mt-3 text-base font-semibold">{t("options.emptyTitle")}</h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {contractsCount > 0
-              ? t("options.emptyWithContractsDescription", { count: contractsCount.toLocaleString() })
-              : t("options.emptyDescription")}
+              ? t("options.emptyWithContractsDescription", { count: contractsCount.toLocaleString(), symbol: underlying, expiry })
+              : t("options.emptyDescription", { symbol: underlying, expiry })}
           </p>
+          {availableExpiries.length > 0 && !availableExpiries.includes(expiry) ? (
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {t("options.availableExpiries", { symbol: underlying, expiries: availableExpiries.join(", ") })}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {!readiness?.ready ? (
@@ -765,7 +760,7 @@ function OptionsEmptyState({
             {t("options.refresh")}
           </Button>
           <Button type="button" variant={readiness?.ready ? "default" : "outline"} onClick={onSync} disabled={!canSync}>
-            {syncing ? t("options.syncing") : t("options.sync")}
+            {syncing ? t("options.syncing") : t("options.syncCurrent", { symbol: underlying })}
           </Button>
         </div>
       </div>
@@ -784,11 +779,17 @@ function OptionsEmptyState({
         <StatusCardLite
           label={t("options.latestRun")}
           value={latestSyncRun?.status && latestSyncRun.status !== "empty" ? latestSyncRun.status : t("options.noRecord")}
-          detail={latestSyncRun ? `${latestSyncRun.rows_written.toLocaleString()} rows · ${formatDate(latestSyncRun.finished_at ?? latestSyncRun.started_at)}` : t("options.noLatestSync")}
+          detail={latestSyncRun ? formatSyncRunDetail(latestSyncRun) : t("options.noLatestSyncForSymbol", { symbol: underlying })}
         />
       </div>
     </div>
   );
+}
+
+function formatSyncRunDetail(run: ProviderSyncRunItem) {
+  const target = [run.target_symbol, run.target_expiry].filter(Boolean).join(" · ");
+  const prefix = target ? `${target} · ` : "";
+  return `${prefix}${run.rows_written.toLocaleString()} rows · ${formatDate(run.finished_at ?? run.started_at)}`;
 }
 
 function StatusCardLite({ label, value, detail }: { label: string; value: string; detail: string }) {
@@ -1001,10 +1002,30 @@ function buildExpiryMeta(expiry: string) {
 }
 
 function buildExpiryTabs(activeExpiry: string) {
-  return Array.from(new Set([activeExpiry, ...SUGGESTED_EXPIRIES]))
+  return Array.from(new Set([activeExpiry, ...nextFridayExpiries(4)]))
     .filter(Boolean)
     .sort()
     .map(buildExpiryMeta);
+}
+
+function nextFridayExpiries(count: number) {
+  const expiries: string[] = [];
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  const daysUntilFriday = (5 - cursor.getDay() + 7) % 7 || 7;
+  cursor.setDate(cursor.getDate() + daysUntilFriday);
+  for (let index = 0; index < count; index += 1) {
+    expiries.push(formatLocalDate(cursor));
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return expiries;
+}
+
+function formatLocalDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function inferOptionSideLabel(snapshot: OptionSnapshot) {

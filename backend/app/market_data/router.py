@@ -59,6 +59,8 @@ def list_sync_runs(
                 id=str(run.id),
                 provider=run.provider,
                 sync_type=run.sync_type,
+                target_symbol=run.target_symbol,
+                target_expiry=run.target_expiry,
                 status=run.status,
                 started_at=run.started_at,
                 finished_at=run.finished_at,

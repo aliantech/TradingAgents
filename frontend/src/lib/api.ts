@@ -123,6 +123,8 @@ export type ProviderSyncRunItem = {
   id: string;
   provider: string;
   sync_type: string;
+  target_symbol: string | null;
+  target_expiry: string | null;
   status: string;
   started_at: string;
   finished_at: string | null;
@@ -542,20 +544,39 @@ export function getProviderReadiness(provider: string): Promise<ProviderReadines
 }
 
 export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {
+  const end = formatLocalDate(new Date());
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 1);
+  const start = formatLocalDate(startDate);
   return requestJson<DailyBarSyncResponse>("/api/market-data/sync-daily-bars", {
     method: "POST",
     body: JSON.stringify({
       symbol,
-      start: "2026-06-16",
-      end: "2026-06-17",
+      start,
+      end,
     }),
   });
 }
 
-export function getOptionChain(underlying: string, expiry = "2026-06-17"): Promise<OptionChainResponse> {
+function formatLocalDate(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getOptionChain(underlying: string, expiry = nextFridayLocalDate()): Promise<OptionChainResponse> {
   return requestJson<OptionChainResponse>(
     `/api/options/chain?underlying=${encodeURIComponent(underlying)}&expiry=${encodeURIComponent(expiry)}`,
   );
+}
+
+function nextFridayLocalDate(): string {
+  const value = new Date();
+  value.setHours(0, 0, 0, 0);
+  const daysUntilFriday = (5 - value.getDay() + 7) % 7 || 7;
+  value.setDate(value.getDate() + daysUntilFriday);
+  return formatLocalDate(value);
 }
 
 export function listOptionContracts(underlying: string, expiry?: string): Promise<OptionContractsResponse> {

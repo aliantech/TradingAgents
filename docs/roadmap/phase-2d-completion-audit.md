@@ -66,8 +66,8 @@ Implemented:
 Implemented:
 
 - `ResearchReport.evidence_labels`.
-- Generated labels: `market-bars`, `options-chain`, `provider-readiness`, `tradingagents-debate`.
-- Markdown includes a `证据标签` section.
+- Persisted real report labels are supported by schema and UI.
+- The checked-in analysis path no longer generates sample reports or sample evidence labels.
 - Reports UI displays evidence labels as badges.
 
 ### Slice 6: Safe Retry Flow

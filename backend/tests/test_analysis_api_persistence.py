@@ -4,7 +4,7 @@ from app.analysis.store import analysis_store
 from app.main import app
 
 
-def test_analysis_api_persists_report_history_through_repository():
+def test_analysis_api_persists_failed_run_without_mock_report():
     client = TestClient(app)
 
     response = client.post(
@@ -26,15 +26,14 @@ def test_analysis_api_persists_report_history_through_repository():
 
     status_response = client.get(f"/api/analysis/{analysis_id}")
     assert status_response.status_code == 200
-    report_id = status_response.json()["report_id"]
+    status_payload = status_response.json()
+    assert status_payload["status"] == "failed"
+    assert status_payload["report_id"] is None
+    assert status_payload["progress"][-1]["status"] == "failed"
 
     reports_response = client.get("/api/reports")
     assert reports_response.status_code == 200
-    assert any(report["report_id"] == report_id for report in reports_response.json())
-
-    report_response = client.get(f"/api/reports/{report_id}")
-    assert report_response.status_code == 200
-    assert report_response.json()["symbol"] == "QQQ"
+    assert all(report["analysis_id"] != analysis_id for report in reports_response.json())
 
 
 def test_analysis_api_lists_persisted_runs_for_task_center():
@@ -62,17 +61,17 @@ def test_analysis_api_lists_persisted_runs_for_task_center():
     runs = runs_response.json()["runs"]
     run = next(item for item in runs if item["analysis_id"] == analysis_id)
     assert run["symbol"] == "SPY"
-    assert run["status"] == "completed"
+    assert run["status"] == "failed"
     assert run["llm_provider"] == "openai"
     assert run["model"] == "gpt-5.5"
     assert run["depth"] == "deep"
     assert run["analyst_set"] == "macro-options"
     assert run["created_at"]
     assert run["updated_at"]
-    assert run["report_id"]
+    assert run["report_id"] is None
 
 
-def test_analysis_api_persists_analyst_set_into_report_metadata():
+def test_analysis_api_persists_analyst_set_without_report_metadata():
     client = TestClient(app)
 
     response = client.post(
@@ -92,21 +91,15 @@ def test_analysis_api_persists_analyst_set_into_report_metadata():
     assert response.status_code == 202
     analysis_id = response.json()["analysis_id"]
     status_response = client.get(f"/api/analysis/{analysis_id}")
-    report_id = status_response.json()["report_id"]
+    assert status_response.json()["report_id"] is None
 
     analysis_store._runs.clear()
     runs_response = client.get("/api/analysis/runs")
     run = next(item for item in runs_response.json()["runs"] if item["analysis_id"] == analysis_id)
     assert run["analyst_set"] == "full"
 
-    report_response = client.get(f"/api/reports/{report_id}")
-    assert report_response.status_code == 200
-    report = report_response.json()
-    assert report["analyst_set"] == "full"
-    assert "研究团队：full" in report["markdown"]
 
-
-def test_analysis_api_persists_research_template_into_run_and_report():
+def test_analysis_api_persists_research_template_into_run_without_report():
     client = TestClient(app)
 
     response = client.post(
@@ -127,21 +120,15 @@ def test_analysis_api_persists_research_template_into_run_and_report():
     assert response.status_code == 202
     analysis_id = response.json()["analysis_id"]
     status_response = client.get(f"/api/analysis/{analysis_id}")
-    report_id = status_response.json()["report_id"]
+    assert status_response.json()["report_id"] is None
 
     analysis_store._runs.clear()
     runs_response = client.get("/api/analysis/runs")
     run = next(item for item in runs_response.json()["runs"] if item["analysis_id"] == analysis_id)
     assert run["research_template"] == "earnings-preview"
 
-    report_response = client.get(f"/api/reports/{report_id}")
-    assert report_response.status_code == 200
-    report = report_response.json()
-    assert report["research_template"] == "earnings-preview"
-    assert "研究模板：earnings-preview" in report["markdown"]
 
-
-def test_analysis_report_includes_evidence_labels_for_quality_review():
+def test_analysis_does_not_emit_mock_report_evidence_labels():
     client = TestClient(app)
 
     response = client.post(
@@ -161,15 +148,4 @@ def test_analysis_report_includes_evidence_labels_for_quality_review():
 
     assert response.status_code == 202
     status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
-    report_response = client.get(f"/api/reports/{status_response.json()['report_id']}")
-
-    assert report_response.status_code == 200
-    report = report_response.json()
-    assert report["evidence_labels"] == [
-        "market-bars",
-        "options-chain",
-        "provider-readiness",
-        "tradingagents-debate",
-    ]
-    assert "## 证据标签" in report["markdown"]
-    assert "- options-chain" in report["markdown"]
+    assert status_response.json()["report_id"] is None

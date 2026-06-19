@@ -106,6 +106,7 @@ const OptionChainTable = lazy(() =>
 const NAV_KEYS: PageKey[] = ["dashboard", "analysis", "reports", "market", "options", "strategy", "runs", "settings"];
 
 const DEFAULT_ANALYSIS_DATE = new Date().toISOString().slice(0, 10);
+const DEFAULT_OPTION_EXPIRY = nextFridayDate();
 const SUPPORTED_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META"];
 const WATCHLIST_SETTING_KEY = "research.watchlist";
 const MARKET_PULSE_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX"];
@@ -117,6 +118,17 @@ const MARKET_COLORS = {
 function pageFromLocationHash(): PageKey {
   const page = window.location.hash.replace(/^#/, "") as PageKey;
   return NAV_KEYS.includes(page) ? page : "dashboard";
+}
+
+function nextFridayDate() {
+  const value = new Date();
+  value.setHours(0, 0, 0, 0);
+  const daysUntilFriday = (5 - value.getDay() + 7) % 7 || 7;
+  value.setDate(value.getDate() + daysUntilFriday);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function normalizeWatchlist(symbols: string[]) {
@@ -173,8 +185,7 @@ export function App() {
   const [optionContracts, setOptionContracts] = useState<OptionContract[]>([]);
   const [optionContractsLoading, setOptionContractsLoading] = useState(false);
   const [optionContractsError, setOptionContractsError] = useState<string | null>(null);
-  const [optionUnderlying, setOptionUnderlying] = useState("SPX");
-  const [optionExpiry, setOptionExpiry] = useState("2026-06-17");
+  const [optionExpiry, setOptionExpiry] = useState(DEFAULT_OPTION_EXPIRY);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [optionsSyncing, setOptionsSyncing] = useState(false);
   const [optionsError, setOptionsError] = useState<string | null>(null);
@@ -191,7 +202,7 @@ export function App() {
   const [optionsSyncHealth, setOptionsSyncHealth] = useState<ProviderSyncHealth | null>(null);
   const [optionsProviderReadiness, setOptionsProviderReadiness] = useState<ProviderReadiness | null>(null);
   const [latestOptionsSyncRun, setLatestOptionsSyncRun] = useState<ProviderSyncRunItem | null>(null);
-  const [syncProviderFilter, setSyncProviderFilter] = useState("");
+  const [syncProviderFilter, setSyncProviderFilter] = useState("polygon");
   const [syncTypeFilter, setSyncTypeFilter] = useState("");
   const [syncStartedAfterFilter, setSyncStartedAfterFilter] = useState("");
   const [syncStartedBeforeFilter, setSyncStartedBeforeFilter] = useState("");
@@ -217,6 +228,7 @@ export function App() {
     [t],
   );
   const marketSession = getMarketSessionState(t);
+  const optionUnderlying = symbol.trim().toUpperCase() || "SPY";
 
   useEffect(() => {
     void loadInitialState();
@@ -233,6 +245,13 @@ export function App() {
     window.localStorage.setItem("aquantlens-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (activePage !== "options") return;
+    resetSelectedOptionContext();
+    void loadOptionChain(optionUnderlying, optionExpiry);
+    void refreshSyncRuns();
+  }, [activePage, optionUnderlying]);
+
   function navigateToPage(page: PageKey) {
     setActivePage(page);
     if (window.location.hash !== `#${page}`) {
@@ -246,6 +265,17 @@ export function App() {
 
   function toggleTheme() {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
+  }
+
+  function handleSymbolChange(value: string) {
+    const normalized = value.toUpperCase();
+    setSymbol(normalized);
+    if (normalized !== symbol) {
+      setOptionSnapshots([]);
+      setOptionContracts([]);
+      setLatestOptionsSyncRun(null);
+      resetSelectedOptionContext();
+    }
   }
 
   async function loadInitialState() {
@@ -350,11 +380,9 @@ export function App() {
       ]);
       if (chainResult.status === "fulfilled") {
         setOptionSnapshots(chainResult.value.snapshots);
-        setOptionUnderlying(chainResult.value.underlying_symbol);
         setOptionExpiry(chainResult.value.expiry);
       } else {
         setOptionSnapshots([]);
-        setOptionUnderlying(nextUnderlying.toUpperCase());
         setOptionExpiry(nextExpiry);
         setOptionsError(chainResult.reason instanceof Error ? chainResult.reason.message : t("errors.optionsLoad"));
       }
@@ -374,12 +402,6 @@ export function App() {
 
   async function handleRefreshOptions() {
     await loadOptionChain(optionUnderlying, optionExpiry);
-  }
-
-  function handleOptionUnderlyingChange(value: string) {
-    setOptionUnderlying(value);
-    resetSelectedOptionContext();
-    void loadOptionChain(value, optionExpiry);
   }
 
   function handleOptionExpiryChange(value: string) {
@@ -464,11 +486,12 @@ export function App() {
     };
   }
 
-  async function handleSyncSampleBars() {
+  async function handleSyncCurrentBars() {
     setSyncing(true);
     setSyncError(null);
+    const syncSymbol = symbol.toUpperCase() === "SPX" ? "SPY" : symbol;
     try {
-      const response = await syncDailyBars("SPY");
+      const response = await syncDailyBars(syncSymbol);
       if (response.status !== "succeeded") {
         setSyncError(response.error_message ?? t("market.syncIncomplete"));
       }
@@ -506,7 +529,11 @@ export function App() {
       setProviderReadiness(readiness);
       setOptionsSyncHealth(optionHealth);
       setOptionsProviderReadiness(optionReadiness);
-      setLatestOptionsSyncRun(optionRuns.runs[0] ?? null);
+      setLatestOptionsSyncRun(
+        optionRuns.runs.find((run) => run.target_symbol === optionUnderlying && run.target_expiry === optionExpiry)
+          ?? optionRuns.runs.find((run) => run.target_symbol === optionUnderlying)
+          ?? null,
+      );
     } catch (caught) {
       setSyncError(caught instanceof Error ? caught.message : t("market.syncHistoryError"));
     } finally {
@@ -643,7 +670,7 @@ export function App() {
               </div>
             </div>
             <div className="flex min-w-0 items-end gap-3 max-xl:flex-wrap max-sm:flex-col max-sm:items-stretch">
-              <SymbolSearch value={symbol} onChange={setSymbol} />
+              <SymbolSearch value={symbol} onChange={handleSymbolChange} />
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={marketSession.status === "open" ? "default" : "secondary"} className="h-9 px-3">
                   {marketSession.label}
@@ -677,7 +704,7 @@ export function App() {
             watchlist={watchlist}
             watchlistSaving={watchlistSaving}
             watchlistError={watchlistError}
-            onSymbolChange={setSymbol}
+            onSymbolChange={handleSymbolChange}
             onSaveWatchlist={(symbols) => void saveResearchWatchlist(symbols)}
             onOpenReport={(reportId) => void handleOpenReportFromRun(reportId)}
             onNavigate={navigateToPage}
@@ -694,7 +721,7 @@ export function App() {
                 error={error}
                 status={analysisStatus}
                 config={analysisConfig}
-                onSymbolChange={setSymbol}
+                onSymbolChange={handleSymbolChange}
 	                onConfigChange={setAnalysisConfig}
 	                onRunAnalysis={handleRunAnalysis}
 	              />
@@ -730,7 +757,7 @@ export function App() {
               loading={marketLoading}
               error={marketError}
               bars={bars}
-              onSymbolChange={setSymbol}
+              onSymbolChange={handleSymbolChange}
               onTimeframeChange={(timeframe) => void handleMarketTimeframeChange(timeframe)}
               onRefresh={() => void loadMarketContext(symbol, marketTimeframe)}
             />
@@ -757,7 +784,7 @@ export function App() {
               onStartedBeforeFilterChange={setSyncStartedBeforeFilter}
               onConfigureProvider={() => navigateToPage("settings")}
               onRefresh={() => void handleRefreshSyncRuns()}
-              onSyncSample={() => void handleSyncSampleBars()}
+              onSyncCurrent={() => void handleSyncCurrentBars()}
             />
           </div>
         ) : null}
@@ -782,7 +809,6 @@ export function App() {
                 selectedBarsLoading={selectedOptionBarsLoading}
                 selectedBarsError={selectedOptionBarsError}
                 selectedBarsTimeframe={selectedOptionBarsTimeframe}
-                onUnderlyingChange={handleOptionUnderlyingChange}
                 onExpiryChange={handleOptionExpiryChange}
                 onSelectedContractChange={(optionSymbol) => void loadSelectedOptionBars(optionSymbol)}
                 onSelectedBarsTimeframeChange={(timeframe) => void handleSelectedOptionBarsTimeframeChange(timeframe)}
@@ -1777,11 +1803,14 @@ function RunsPage({
         : analysisRuns.filter((run) => normalizeRunStatus(run.status) === analysisStatusFilter),
     [analysisRuns, analysisStatusFilter],
   );
+  const visibleAnalysisRuns = useMemo(() => filteredAnalysisRuns.slice(0, 40), [filteredAnalysisRuns]);
+  const visibleSyncRuns = useMemo(() => runs.filter(isProductSyncRun).slice(0, 20), [runs]);
+  const visibleGroups = useMemo(() => groups.filter(isProductSyncGroup).slice(0, 8), [groups]);
 	  const completedRuns = analysisRuns.filter((run) => normalizeRunStatus(run.status) === "completed").length;
 	  const failedRuns = analysisRuns.filter((run) => normalizeRunStatus(run.status) === "failed").length;
 	  const runningRuns = analysisRuns.filter((run) => normalizeRunStatus(run.status) === "running").length;
 	  const latestAnalysisRun = analysisRuns[0] ?? null;
-	  const latestProviderRun = runs[0] ?? null;
+	  const latestProviderRun = visibleSyncRuns[0] ?? null;
 
   async function handleInspectRun(run: AnalysisRunItem) {
     setSelectedRunLoading(true);
@@ -1836,7 +1865,7 @@ function RunsPage({
           </TabsList>
         </Tabs>
         <AnalysisRunTable
-          runs={filteredAnalysisRuns}
+          runs={visibleAnalysisRuns}
           onOpenReport={onOpenReport}
           onRetryAnalysis={onRetryAnalysis}
           onInspectRun={(run) => void handleInspectRun(run)}
@@ -1852,18 +1881,18 @@ function RunsPage({
             <WorkbenchMetric label={t("runs.averageDuration")} value={`${summary.average_duration_ms} ms`} />
           </div>
         ) : null}
-        <SyncRunTable runs={runs} />
+        <SyncRunTable runs={visibleSyncRuns} />
         </CardContent>
       </Card>
 
-      {groups.length > 0 ? (
+      {visibleGroups.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>{t("runs.providerGroups")}</CardTitle>
           </CardHeader>
           <CardContent>
-          <div className="flex flex-col gap-2">
-            {groups.map((group) => (
+          <div className="flex max-h-[360px] flex-col gap-2 overflow-auto">
+            {visibleGroups.map((group) => (
               <article key={`${group.provider}:${group.sync_type}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
                 <div className="flex items-center gap-2">
                   <strong>{group.provider}</strong>
@@ -2297,7 +2326,7 @@ function SettingsCatalogRow({
 }) {
   const { t } = useTranslation();
   return (
-    <article className="grid gap-4 p-4 lg:grid-cols-[minmax(260px,0.75fr)_minmax(0,1fr)] lg:items-start">
+    <article className="grid gap-4 p-4 lg:grid-cols-[minmax(260px,0.68fr)_minmax(0,1fr)] lg:items-start">
       <div className="min-w-0 lg:pr-4">
         <div className="flex flex-wrap items-start gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2 lg:flex-1">
@@ -2309,38 +2338,108 @@ function SettingsCatalogRow({
           </Badge>
         </div>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           <Badge variant="outline">{source}</Badge>
-          {configKeys.map((configKey) => (
-            <Badge key={configKey} variant="secondary" className="font-mono text-[0.68rem]">
-              {configKey}
-            </Badge>
-          ))}
+          <Badge variant={dirtyKeys.some((configKey) => configKeys.includes(configKey)) ? "outline" : "secondary"}>
+            {dirtyKeys.some((configKey) => configKeys.includes(configKey)) ? t("settings.dirty") : t("settings.persisted")}
+          </Badge>
         </div>
       </div>
-      <div className="grid gap-3">
+      <div className="grid gap-3 rounded-lg border bg-muted/10 p-3">
         {configKeys.map((configKey) => {
           const secret = isSecretConfigKey(configKey);
+          const saved = Boolean(persistedSettings[configKey]?.has_value);
           return (
-            <label key={configKey} className="grid gap-2 sm:grid-cols-[minmax(180px,0.48fr)_minmax(0,1fr)] sm:items-start">
-              <span className="pt-2 font-mono text-[0.68rem] text-muted-foreground">{configKey}</span>
+            <label key={configKey} className="grid gap-2 sm:grid-cols-[minmax(150px,0.38fr)_minmax(0,1fr)] sm:items-start">
+              <span className="pt-2 text-sm font-medium text-foreground">{configDisplayLabel(configKey)}</span>
               <div className="grid gap-1.5">
-              <Input
-                type={secret ? "password" : configInputType(configKey)}
-                value={secret ? secretValues[configKey] ?? "" : settingValues[configKey] ?? defaultConfigValue(configKey)}
-                placeholder={secret && persistedSettings[configKey]?.has_value ? t("settings.secretAlreadySaved") : configPlaceholder(configKey)}
-                onChange={(event) => onValueChange(configKey, event.target.value)}
-              />
-              <span className="text-xs text-muted-foreground">
-                {dirtyKeys.includes(configKey) ? t("settings.dirty") : persistedSettings[configKey] ? t("settings.persisted") : t("settings.defaultValue")}
-                {secret ? ` · ${t("settings.secretWriteOnly")}` : ""}
-              </span>
+                <ConfigValueControl
+                  configKey={configKey}
+                  secret={secret}
+                  value={secret ? secretValues[configKey] ?? "" : settingValues[configKey] ?? ""}
+                  placeholder={secret && saved ? t("settings.secretAlreadySaved") : configPlaceholder(configKey)}
+                  onValueChange={onValueChange}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {dirtyKeys.includes(configKey)
+                    ? t("settings.dirty")
+                    : saved
+                      ? secret
+                        ? t("settings.secretAlreadySaved")
+                        : t("settings.persisted")
+                      : t("settings.defaultValue")}
+                  {secret ? ` · ${t("settings.secretWriteOnly")}` : ""}
+                </span>
               </div>
             </label>
           );
         })}
+        <details className="group rounded-md border bg-background px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+            高级标识
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {configKeys.map((configKey) => (
+              <Badge key={configKey} variant="secondary" className="font-mono text-[0.68rem]">
+                {configKey}
+              </Badge>
+            ))}
+          </div>
+        </details>
       </div>
     </article>
+  );
+}
+
+function ConfigValueControl({
+  configKey,
+  secret,
+  value,
+  placeholder,
+  onValueChange,
+}: {
+  configKey: string;
+  secret: boolean;
+  value: string;
+  placeholder: string;
+  onValueChange: (configKey: string, value: string) => void;
+}) {
+  if (configKey === "AQUANTLENS_MARKET_DATA_PROVIDER") {
+    return (
+      <Select value={value || "polygon"} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="polygon">Polygon</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
+  if (/ENABLED$/i.test(configKey)) {
+    return (
+      <Select value={(value || defaultConfigValue(configKey)).toLowerCase()} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="true">开启</SelectItem>
+            <SelectItem value="false">关闭</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
+  return (
+    <Input
+      type={secret ? "password" : configInputType(configKey)}
+      value={value}
+      placeholder={placeholder}
+      onChange={(event) => onValueChange(configKey, event.target.value)}
+    />
   );
 }
 
@@ -2356,8 +2455,41 @@ function configInputType(configKey: string) {
 }
 
 function configPlaceholder(configKey: string) {
-  if (isSecretConfigKey(configKey)) return "••••••••";
-  return defaultConfigValue(configKey) || configKey;
+  if (isSecretConfigKey(configKey)) return "输入密钥";
+  return defaultConfigValue(configKey);
+}
+
+function configDisplayLabel(configKey: string) {
+  const labels: Record<string, string> = {
+    AQUANTLENS_MARKET_DATA_PROVIDER: "行情 Provider",
+    AQUANTLENS_POLYGON_API_KEY: "Polygon API Key",
+    AQUANTLENS_POLYGON_BASE_URL: "API Base URL",
+    VITE_API_BASE_URL: "前端 API 地址",
+    AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED: "手动同步",
+    OPENAI_API_KEY: "OpenAI API Key",
+    TRADINGAGENTS_LLM_PROVIDER: "默认模型服务",
+    TRADINGAGENTS_DEEP_THINK_LLM: "深度推理模型",
+    ANTHROPIC_API_KEY: "Anthropic API Key",
+    GOOGLE_API_KEY: "Google API Key",
+    OPENAI_COMPATIBLE_API_KEY: "兼容端点 Key",
+    TRADINGAGENTS_LLM_BACKEND_URL: "兼容端点 URL",
+    TRADINGAGENTS_QUICK_THINK_LLM: "快速推理模型",
+    TRADINGAGENTS_MAX_DEBATE_ROUNDS: "辩论轮数",
+    TRADINGAGENTS_MAX_RISK_ROUNDS: "风控轮数",
+    TRADINGAGENTS_TEMPERATURE: "生成温度",
+    AQUANTLENS_PROVIDER_MAX_RETRIES: "最大重试",
+    AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS: "重试间隔",
+    AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES: "过期阈值",
+    AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD: "失败率阈值",
+    AQUANTLENS_SCHEDULER_TARGETS: "同步目标",
+    AQUANTLENS_SCHEDULER_INTERVAL_SECONDS: "同步间隔",
+    AQUANTLENS_SERVICE_NAME: "服务名称",
+    AQUANTLENS_DATABASE_URL: "数据库地址",
+    AQUANTLENS_REDIS_URL: "Redis 地址",
+    AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED: "实时发布",
+    AQUANTLENS_REALTIME_MARKET_TTL_SECONDS: "实时缓存 TTL",
+  };
+  return labels[configKey] ?? configKey.replace(/^AQUANTLENS_/, "").replace(/^TRADINGAGENTS_/, "").replace(/_/g, " ");
 }
 
 function defaultConfigValue(configKey: string) {
@@ -2812,6 +2944,7 @@ function AnalysisRunTable({
 
   if (!runs.length) return <p className="text-sm text-muted-foreground">{t("runs.noAnalysisRuns")}</p>;
   return (
+    <div className="max-h-[520px] overflow-auto rounded-lg border">
     <Table>
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
@@ -2834,6 +2967,7 @@ function AnalysisRunTable({
         ))}
       </TableBody>
     </Table>
+    </div>
   );
 }
 
@@ -2901,7 +3035,7 @@ function SyncRunTable({ runs, compact = false }: { runs: ProviderSyncRunItem[]; 
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => (
-          <Badge variant={row.original.status === "succeeded" ? "secondary" : "destructive"}>{row.original.status}</Badge>
+          <Badge variant={row.original.status === "failed" ? "destructive" : "secondary"}>{row.original.status}</Badge>
         ),
       },
       {
@@ -2911,6 +3045,11 @@ function SyncRunTable({ runs, compact = false }: { runs: ProviderSyncRunItem[]; 
       {
         accessorKey: "sync_type",
         header: t("runs.table.type"),
+      },
+      {
+        id: "target",
+        header: "Target",
+        cell: ({ row }) => formatSyncRunTarget(row.original),
       },
       {
         accessorKey: "rows_written",
@@ -2933,6 +3072,7 @@ function SyncRunTable({ runs, compact = false }: { runs: ProviderSyncRunItem[]; 
 
   if (!runs.length) return <p className="text-sm text-muted-foreground">{t("runs.noTaskRuns")}</p>;
   return (
+    <div className="max-h-[360px] overflow-auto rounded-lg border">
     <Table className={compact ? "text-xs" : ""}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -2953,8 +3093,9 @@ function SyncRunTable({ runs, compact = false }: { runs: ProviderSyncRunItem[]; 
               ))}
             </TableRow>
           ))}
-        </TableBody>
-      </Table>
+      </TableBody>
+    </Table>
+    </div>
   );
 }
 
@@ -2963,6 +3104,27 @@ function normalizeRunStatus(status: string) {
   if (["failed", "error", "cancelled"].includes(status)) return "failed";
   if (["queued", "running", "in_progress"].includes(status)) return "running";
   return status;
+}
+
+function isProductSyncRun(run: ProviderSyncRunItem) {
+  return isProductProvider(run.provider);
+}
+
+function isProductSyncGroup(group: ProviderSyncSummaryGroup) {
+  return isProductProvider(group.provider);
+}
+
+function isProductProvider(provider: string) {
+  const normalized = provider.trim().toLowerCase();
+  if (!normalized) return false;
+  if (normalized === "sample" || normalized === "future") return false;
+  if (normalized.startsWith("unit-test-provider")) return false;
+  return true;
+}
+
+function formatSyncRunTarget(run: ProviderSyncRunItem) {
+  const target = [run.target_symbol, run.target_expiry].filter(Boolean).join(" · ");
+  return target || "-";
 }
 
 function formatDuration(startedAt: string, finishedAt: string) {

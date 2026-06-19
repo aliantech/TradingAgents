@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.analysis.repository import AnalysisRepository, build_report_comparison
+from app.analysis.repository import AnalysisRepository, build_report_comparison, is_legacy_mock_report
 from app.analysis.store import analysis_store
 from app.db.session import get_db_session
 from app.reports.schemas import ReportComparison, ReportListItem, ResearchReport
@@ -24,6 +24,8 @@ def list_reports(repository: AnalysisRepository = Depends(get_analysis_repositor
     reports: list[ReportListItem] = []
     for run in analysis_store.list_runs():
         if run.report is None or run.report.report_id is None:
+            continue
+        if is_legacy_mock_report(run.report.model_dump(mode="json")):
             continue
         reports.append(
             ReportListItem(
@@ -49,6 +51,8 @@ def get_report(
 
     for run in analysis_store.list_runs():
         if run.report and run.report.report_id == report_id:
+            if is_legacy_mock_report(run.report.model_dump(mode="json")):
+                break
             return run.report
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
 
@@ -68,6 +72,8 @@ def get_report_comparison(
     previous = None
     for run in analysis_store.list_runs():
         if run.report and run.report.report_id == report_id:
+            if is_legacy_mock_report(run.report.model_dump(mode="json")):
+                break
             current = run
             break
     if current is None or current.report is None:
@@ -79,6 +85,7 @@ def get_report_comparison(
             and run.report.report_id != report_id
             and run.report.symbol == current.report.symbol
             and run.request.analysis_date < current.request.analysis_date
+            and not is_legacy_mock_report(run.report.model_dump(mode="json"))
         ):
             if previous is None or run.request.analysis_date > previous.request.analysis_date:
                 previous = run

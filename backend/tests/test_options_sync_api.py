@@ -93,6 +93,8 @@ def test_options_sync_chain_api_persists_chain_and_records_audit(monkeypatch):
     assert snapshots[0].source == "polygon"
     runs = ProviderSyncRepository(session).list_runs(provider="polygon", sync_type="options_chain")
     assert len(runs) == 1
+    assert runs[0].target_symbol == "SPX"
+    assert runs[0].target_expiry == date(2024, 6, 21)
 
 
 def test_options_sync_chain_api_rejects_when_disabled(monkeypatch):

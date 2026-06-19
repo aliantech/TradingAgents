@@ -69,17 +69,22 @@ class AnalysisRepository:
                 confidence=model.confidence,
             )
             for model in models
+            if not is_legacy_mock_report(model.report_json)
         ]
 
     def get_report(self, report_id: UUID) -> ResearchReport | None:
         model = self.session.get(AnalysisReportModel, report_id)
         if model is None:
             return None
+        if is_legacy_mock_report(model.report_json):
+            return None
         return ResearchReport(**model.report_json)
 
     def get_report_comparison(self, report_id: UUID) -> ReportComparison | None:
         current = self.session.get(AnalysisReportModel, report_id)
         if current is None:
+            return None
+        if is_legacy_mock_report(current.report_json):
             return None
 
         previous = self.session.scalars(
@@ -89,8 +94,8 @@ class AnalysisRepository:
             .where(AnalysisReportModel.symbol == current.symbol)
             .where(AnalysisRunModel.analysis_date < current.run.analysis_date)
             .order_by(AnalysisRunModel.analysis_date.desc(), AnalysisReportModel.created_at.desc())
-            .limit(1)
-        ).first()
+        ).all()
+        previous = next((model for model in previous if not is_legacy_mock_report(model.report_json)), None)
         if previous is None:
             return None
 
@@ -111,7 +116,11 @@ class AnalysisRepository:
             analyst_set=model.analyst_set,
             research_template=getattr(model, "research_template", "general"),
         )
-        report = ResearchReport(**model.report.report_json) if model.report else None
+        report = (
+            ResearchReport(**model.report.report_json)
+            if model.report and not is_legacy_mock_report(model.report.report_json)
+            else None
+        )
         return AnalysisRun(
             analysis_id=model.id,
             request=request,
@@ -136,6 +145,42 @@ COMPARISON_SECTION_FIELDS = (
     "position_sizing",
     "take_profit_stop_loss",
 )
+
+
+LEGACY_MOCK_SUMMARY = "当前趋势中性偏强，但需要结合 IV、成交量和宏观事件确认方向。"
+LEGACY_MOCK_EVIDENCE_LABELS = {
+    "market-bars",
+    "options-chain",
+    "provider-readiness",
+    "tradingagents-debate",
+}
+LEGACY_MOCK_RISK_FACTORS = {
+    "FOMC",
+    "earnings risk",
+    "VIX spike",
+    "0DTE gamma risk",
+}
+
+
+def is_legacy_mock_report(report_json: dict) -> bool:
+    evidence_labels = set(report_json.get("evidence_labels") or [])
+    risk_factors = set(report_json.get("risk_factors") or [])
+    markdown = str(report_json.get("markdown") or "")
+    sentiment = str(report_json.get("sentiment_analysis") or "")
+    summary = str(report_json.get("summary") or "")
+    return (
+        summary == f"{report_json.get('symbol', '').upper()} {LEGACY_MOCK_SUMMARY}"
+        or "当前样例报告不接入实时社媒数据" in sentiment
+        or sentiment == "新闻与市场情绪暂按中性处理，等待外部新闻源接入后增强。"
+        or "AQuantLens Phase 1 sample report" in evidence_labels
+        or "AQuantLens Phase 1 sample report" in markdown
+        or (
+            evidence_labels == LEGACY_MOCK_EVIDENCE_LABELS
+            and risk_factors == LEGACY_MOCK_RISK_FACTORS
+            and "# " in markdown
+            and "AI 投研报告" in markdown
+        )
+    )
 
 
 def build_report_comparison(*, current: ResearchReport, previous: ResearchReport) -> ReportComparison:

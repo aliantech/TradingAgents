@@ -58,7 +58,7 @@ Phase 2C should be marked complete only after these are done:
 - Run backend tests on the Ubuntu runtime workspace. Done on 2026-06-19.
 - Run frontend build on the Ubuntu runtime workspace. Done on 2026-06-19.
 - Verify preview API routing on the deployed or proxied preview URL when that surface is in use.
-- Run a non-live Phase 2C smoke path using sample or deterministic fallback data.
+- Run a non-live Phase 2C smoke path against empty provider-data responses.
 - Run guarded live options smoke only when user-provided runtime env vars and vendor entitlements are available. Readiness gate verified; live sync not ready because `AQUANTLENS_POLYGON_API_KEY` is missing.
 - Confirm smoke output never prints API keys, tokens, `.env` contents, browser sessions, or credential values. Readiness and not-ready smoke output verified.
 - Confirm `PROJECT.md`, `docs/roadmap/phase-2c-roadmap.md`, and this audit agree on the final status.
