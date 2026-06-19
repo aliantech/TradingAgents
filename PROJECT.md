@@ -133,5 +133,6 @@ Initial storage scope:
 - `docs/roadmap/phase-4-completion-audit.md`
 - `docs/roadmap/phase-5-roadmap.md`
 - `docs/superpowers/specs/2026-06-20-aquantlens-us-phase-5-paper-only-design.md`
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-2-paper-contracts.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`

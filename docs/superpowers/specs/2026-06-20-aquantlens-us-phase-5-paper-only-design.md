@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Draft for review
+Status: Approved for Slice 2 planning
 Last Reviewed: 2026-06-20
 Owner: Yasin
 

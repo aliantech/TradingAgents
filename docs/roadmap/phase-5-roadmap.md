@@ -158,13 +158,17 @@ Verification:
 
 ### Slice 2: Paper Trading Domain Contracts
 
-Status: pending Slice 1 approval.
+Status: planned; implementation plan written on 2026-06-20.
 
 Planned deliverables:
 
 - Backend domain schemas for paper accounts, order intents, risk decisions, paper fills, and paper positions.
 - Unit tests for valid and invalid contract objects.
 - No persistence or API mutation yet unless the implementation plan explicitly scopes it.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-2-paper-contracts.md`
 
 Verification:
 
