@@ -52,6 +52,7 @@ import {
   duplicateStrategyExperiment,
   getStrategyExperiment,
   listStrategyCatalog,
+  listStrategyExperimentCandidates,
   listStrategyExperiments,
   previewSignalStrategy,
   saveStrategyExperiment,
@@ -59,6 +60,7 @@ import {
   type MarketBar,
   type ReportListItem,
   type StrategyCatalogItem,
+  type StrategyExperimentCandidate,
   type StrategyExperimentComparison,
   type StrategyExperiment,
   type StrategyExperimentReviewStatus,
@@ -102,6 +104,11 @@ export function StrategyLabPanel({
   const [comparison, setComparison] = useState<StrategyExperimentComparison | null>(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [comparisonError, setComparisonError] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<StrategyExperimentCandidate[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [candidatesError, setCandidatesError] = useState<string | null>(null);
+  const [candidateTagFilter, setCandidateTagFilter] = useState("");
+  const [candidateSortBy, setCandidateSortBy] = useState<"created_at" | "return_pct">("return_pct");
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
   const selectedStrategy = strategies.find((strategy) => strategy.strategy_id === selectedStrategyId) ?? null;
@@ -113,6 +120,10 @@ export function StrategyLabPanel({
   useEffect(() => {
     void loadExperiments();
   }, [symbol, showArchived, tagFilter, reviewFilter]);
+
+  useEffect(() => {
+    void loadCandidates();
+  }, [symbol, candidateTagFilter, candidateSortBy]);
 
   useEffect(() => {
     setCompareBaseId(null);
@@ -200,6 +211,24 @@ export function StrategyLabPanel({
     }
   }
 
+  async function loadCandidates() {
+    setCandidatesLoading(true);
+    setCandidatesError(null);
+    try {
+      const response = await listStrategyExperimentCandidates({
+        symbol,
+        tag: candidateTagFilter.trim() || undefined,
+        sortBy: candidateSortBy,
+        sortOrder: "desc",
+      });
+      setCandidates(response.candidates);
+    } catch (caught) {
+      setCandidatesError(caught instanceof Error ? caught.message : "Strategy candidates failed to load.");
+    } finally {
+      setCandidatesLoading(false);
+    }
+  }
+
   async function saveCurrentExperiment() {
     if (!preview) return;
     setSaving(true);
@@ -217,6 +246,7 @@ export function StrategyLabPanel({
       });
       setActiveExperimentId(saved.experiment_id);
       await loadExperiments(saved.experiment_id);
+      await loadCandidates();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Strategy experiment save failed.");
     } finally {
@@ -245,6 +275,7 @@ export function StrategyLabPanel({
       const duplicated = await duplicateStrategyExperiment(experimentId);
       setActiveExperimentId(duplicated.experiment_id);
       await loadExperiments(duplicated.experiment_id);
+      await loadCandidates();
     } catch (caught) {
       setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment duplicate failed.");
     }
@@ -258,6 +289,7 @@ export function StrategyLabPanel({
         setActiveExperimentId(null);
       }
       await loadExperiments(archived ? null : updated.experiment_id);
+      await loadCandidates();
     } catch (caught) {
       setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment archive update failed.");
     }
@@ -271,8 +303,34 @@ export function StrategyLabPanel({
         review_checklist: buildReviewChecklist(reviewStatus),
       });
       await loadExperiments(updated.experiment_id);
+      await loadCandidates();
     } catch (caught) {
       setExperimentsError(caught instanceof Error ? caught.message : "Strategy experiment review update failed.");
+    }
+  }
+
+  async function archiveCandidate(experimentId: string) {
+    setCandidatesError(null);
+    try {
+      await updateStrategyExperiment(experimentId, { archived: true });
+      await loadExperiments(activeExperimentId);
+      await loadCandidates();
+    } catch (caught) {
+      setCandidatesError(caught instanceof Error ? caught.message : "Strategy candidate archive failed.");
+    }
+  }
+
+  async function setCandidateReviewStatus(experimentId: string, reviewStatus: StrategyExperimentReviewStatus) {
+    setCandidatesError(null);
+    try {
+      await updateStrategyExperiment(experimentId, {
+        review_status: reviewStatus,
+        review_checklist: buildReviewChecklist(reviewStatus),
+      });
+      await loadExperiments(activeExperimentId);
+      await loadCandidates();
+    } catch (caught) {
+      setCandidatesError(caught instanceof Error ? caught.message : "Strategy candidate review update failed.");
     }
   }
 
@@ -631,6 +689,82 @@ export function StrategyLabPanel({
 
       <Card>
         <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BadgeCheck className="size-4" />
+              Candidate Review Board
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={() => void loadCandidates()} className="gap-2">
+              <RefreshCw className="size-4" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+            <label className="grid gap-1">
+              <span className="text-xs text-muted-foreground">Candidate tag</span>
+              <Input
+                value={candidateTagFilter}
+                onChange={(event) => setCandidateTagFilter(event.target.value)}
+                placeholder="breakout"
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs text-muted-foreground">Sort</span>
+              <select
+                value={candidateSortBy}
+                onChange={(event) => setCandidateSortBy(event.target.value as "created_at" | "return_pct")}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="return_pct">Return</option>
+                <option value="created_at">Created</option>
+              </select>
+            </label>
+          </div>
+          {candidatesError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{candidatesError}</AlertDescription>
+            </Alert>
+          ) : null}
+          {candidatesLoading ? (
+            <p className="text-sm text-muted-foreground">Loading candidates.</p>
+          ) : candidates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No candidate experiments for {symbol.toUpperCase()}.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Candidate</TableHead>
+                    <TableHead>Return</TableHead>
+                    <TableHead>Trades</TableHead>
+                    <TableHead>Checklist</TableHead>
+                    <TableHead>Tags</TableHead>
+                    <TableHead className="w-[280px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {candidates.map((candidate) => (
+                    <CandidateBoardRow
+                      key={candidate.experiment_id}
+                      candidate={candidate}
+                      onOpen={() => void openExperiment(candidate.experiment_id)}
+                      onUseAsBase={() => setCompareBaseId(candidate.experiment_id)}
+                      onUseAsCandidate={() => setCompareCandidateId(candidate.experiment_id)}
+                      onReject={() => void setCandidateReviewStatus(candidate.experiment_id, "rejected")}
+                      onArchive={() => void archiveCandidate(candidate.experiment_id)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Layers3 className="size-4" />
             Saved Experiment Table
@@ -908,6 +1042,103 @@ function ExperimentMetadata({ experiment }: { experiment: StrategyExperiment }) 
       ) : null}
       <div className="text-xs text-muted-foreground">
         Review: <span className="font-medium text-foreground">{reviewStatusLabel(experiment.review_status)}</span>
+      </div>
+    </div>
+  );
+}
+
+function CandidateBoardRow({
+  candidate,
+  onOpen,
+  onUseAsBase,
+  onUseAsCandidate,
+  onReject,
+  onArchive,
+}: {
+  candidate: StrategyExperimentCandidate;
+  onOpen: () => void;
+  onUseAsBase: () => void;
+  onUseAsCandidate: () => void;
+  onReject: () => void;
+  onArchive: () => void;
+}) {
+  return (
+    <TableRow>
+      <TableCell className="min-w-[220px]">
+        <div className="font-medium">{candidate.title}</div>
+        <div className="text-xs text-muted-foreground">
+          {candidate.symbol} · {candidate.strategy_id}
+        </div>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">
+        <div className={candidate.return_pct >= 0 ? "font-medium text-emerald-600 dark:text-emerald-400" : "font-medium text-red-600 dark:text-red-400"}>
+          {candidate.return_pct}%
+        </div>
+        <div className="text-xs text-muted-foreground">{formatCurrency(candidate.final_equity)}</div>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">
+        {candidate.trade_count}
+        <div className="text-xs text-muted-foreground">{candidate.marker_count} markers</div>
+      </TableCell>
+      <TableCell className="min-w-[160px]">
+        <ChecklistSummary checklist={candidate.review_checklist} />
+      </TableCell>
+      <TableCell className="min-w-[180px]">
+        <div className="flex flex-wrap gap-1">
+          {candidate.tags.length > 0 ? candidate.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-1">
+              <Tag className="size-3" />
+              {tag}
+            </Badge>
+          )) : <span className="text-xs text-muted-foreground">No tags</span>}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={onOpen}>
+            Open
+          </Button>
+          <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison A`} onClick={onUseAsBase}>
+            A
+          </Button>
+          <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison B`} onClick={onUseAsCandidate}>
+            B
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            aria-label={`Archive ${candidate.title}`}
+            onClick={onArchive}
+          >
+            <Archive className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="destructive"
+            aria-label={`Reject ${candidate.title}`}
+            onClick={onReject}
+          >
+            <XCircle className="size-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function ChecklistSummary({ checklist }: { checklist: Record<string, boolean> }) {
+  const entries = Object.entries(checklist);
+  if (entries.length === 0) {
+    return <span className="text-xs text-muted-foreground">No checklist</span>;
+  }
+  const completeCount = entries.filter(([, value]) => value).length;
+  return (
+    <div className="text-xs text-muted-foreground">
+      <div className="font-medium text-foreground">{completeCount}/{entries.length} checked</div>
+      <div className="mt-1 line-clamp-2">
+        {entries.filter(([, value]) => value).map(([key]) => key.split("_").join(" ")).join(", ")}
       </div>
     </div>
   );

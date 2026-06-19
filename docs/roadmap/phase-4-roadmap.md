@@ -131,6 +131,30 @@ Out of scope:
 - Automated ranking or optimization.
 - Statistical significance gates.
 
+### Slice 6: Candidate Review Board
+
+Status: implemented and validated on 2026-06-20.
+
+Implemented:
+
+- Added a research-only candidate board endpoint: `GET /api/strategy-lab/experiments/candidates`.
+- Candidate board returns only active, non-archived experiments with `review_status=candidate`.
+- Candidate board supports filtering by symbol, strategy id, and tag.
+- Candidate board supports sorting by created time or return percentage.
+- Candidate rows expose saved experiment identifiers, strategy, symbol, final equity, return percentage, trade count, marker count, signal count, tags, checklist, and creation time.
+- Frontend Strategy Lab now renders a Candidate Review Board from the candidate endpoint.
+- Candidate board supports tag filtering and return/created sorting.
+- Candidate board actions can open a candidate, use it as comparison A/B, reject it, or archive it.
+
+Out of scope:
+
+- Paper trading promotion.
+- Live trading approval.
+- Broker adapters.
+- Order intents.
+- Automated optimization.
+- Statistical significance ranking.
+
 ## Validation Evidence
 
 Slice 1 backend validation on 2026-06-19:
@@ -317,4 +341,43 @@ Result:
 
 ```text
 ✓ built in 430ms
+```
+
+Slice 6 backend validation on 2026-06-20:
+
+```bash
+cd /tmp/tradingagents-slice4/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q tests/test_strategy_lab_contracts.py tests/test_strategy_lab_api.py tests/test_strategy_lab_experiments_api.py --tb=short
+```
+
+Result:
+
+```text
+13 passed in 2.64s
+```
+
+Full backend regression on 2026-06-20:
+
+```bash
+cd /tmp/tradingagents-slice4/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
+```
+
+Result:
+
+```text
+140 passed in 5.03s
+```
+
+Slice 6 frontend validation on 2026-06-20:
+
+```bash
+cd /tmp/tradingagents-slice4/frontend
+npm run build
+```
+
+Result:
+
+```text
+✓ built in 767ms
 ```

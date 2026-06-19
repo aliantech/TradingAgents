@@ -122,6 +122,26 @@ class StrategyExperimentComparisonResponse(BaseModel):
     parameter_deltas: dict
 
 
+class StrategyExperimentCandidateItem(BaseModel):
+    experiment_id: UUID
+    title: str
+    symbol: str
+    strategy_id: str
+    final_equity: float
+    return_pct: float
+    trade_count: int
+    marker_count: int
+    signal_count: int
+    tags: list[str]
+    review_checklist: dict
+    created_at: str
+
+
+class StrategyExperimentCandidateBoardResponse(BaseModel):
+    scope: str = "research_only"
+    candidates: list[StrategyExperimentCandidateItem]
+
+
 @router.get("/strategies", response_model=StrategyCatalogResponse)
 def list_strategies() -> StrategyCatalogResponse:
     return StrategyCatalogResponse(
@@ -230,6 +250,39 @@ def list_strategy_experiments(
     return StrategyExperimentListResponse(
         experiments=[to_experiment_response(experiment) for experiment in experiments[:50]]
     )
+
+
+@router.get("/experiments/candidates", response_model=StrategyExperimentCandidateBoardResponse)
+def list_strategy_experiment_candidates(
+    symbol: str | None = None,
+    strategy_id: str | None = None,
+    tag: str | None = None,
+    sort_by: Literal["created_at", "return_pct"] = "created_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+    session: Session = Depends(get_db_session),
+) -> StrategyExperimentCandidateBoardResponse:
+    statement = select(StrategyExperimentModel).where(
+        StrategyExperimentModel.review_status == "candidate",
+        StrategyExperimentModel.archived.is_(False),
+    )
+    if symbol:
+        statement = statement.where(StrategyExperimentModel.symbol == symbol.upper())
+    if strategy_id:
+        statement = statement.where(StrategyExperimentModel.strategy_id == strategy_id)
+
+    experiments = session.scalars(statement.limit(100)).all()
+    if tag:
+        experiments = [
+            experiment for experiment in experiments if tag.strip() in (experiment.tags or [])
+        ]
+
+    candidates = [to_candidate_item(experiment) for experiment in experiments]
+    reverse = sort_order == "desc"
+    if sort_by == "return_pct":
+        candidates = sorted(candidates, key=lambda candidate: candidate.return_pct, reverse=reverse)
+    else:
+        candidates = sorted(candidates, key=lambda candidate: candidate.created_at, reverse=reverse)
+    return StrategyExperimentCandidateBoardResponse(candidates=candidates[:50])
 
 
 @router.get("/experiments/compare", response_model=StrategyExperimentComparisonResponse)
@@ -354,6 +407,24 @@ def to_experiment_response(experiment: StrategyExperimentModel) -> StrategyExper
         report_id=experiment.report_id,
         created_at=experiment.created_at.isoformat(),
         updated_at=experiment.updated_at.isoformat(),
+    )
+
+
+def to_candidate_item(experiment: StrategyExperimentModel) -> StrategyExperimentCandidateItem:
+    metric = build_comparison_metric(experiment)
+    return StrategyExperimentCandidateItem(
+        experiment_id=experiment.id,
+        title=experiment.title,
+        symbol=experiment.symbol,
+        strategy_id=experiment.strategy_id,
+        final_equity=metric.final_equity,
+        return_pct=metric.return_pct,
+        trade_count=metric.trade_count,
+        marker_count=metric.marker_count,
+        signal_count=metric.signal_count,
+        tags=experiment.tags or [],
+        review_checklist=experiment.review_checklist or {},
+        created_at=experiment.created_at.isoformat(),
     )
 
 

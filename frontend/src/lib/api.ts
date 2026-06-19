@@ -431,6 +431,26 @@ export type StrategyExperimentComparison = {
   parameter_deltas: Record<string, { base: unknown; candidate: unknown; changed: boolean }>;
 };
 
+export type StrategyExperimentCandidate = {
+  experiment_id: string;
+  title: string;
+  symbol: string;
+  strategy_id: string;
+  final_equity: number;
+  return_pct: number;
+  trade_count: number;
+  marker_count: number;
+  signal_count: number;
+  tags: string[];
+  review_checklist: Record<string, boolean>;
+  created_at: string;
+};
+
+export type StrategyExperimentCandidateBoardResponse = {
+  scope: "research_only";
+  candidates: StrategyExperimentCandidate[];
+};
+
 const API_BASE_URL = resolveApiBaseUrl({
   configuredBaseUrl: import.meta.env.VITE_API_BASE_URL,
   pageHostname: globalThis.location?.hostname,
@@ -698,6 +718,35 @@ export function listStrategyExperiments(
   }
   const query = params.toString();
   return requestJson<StrategyExperimentListResponse>(`/api/strategy-lab/experiments${query ? `?${query}` : ""}`);
+}
+
+export function listStrategyExperimentCandidates(options: {
+  symbol?: string;
+  strategyId?: string;
+  tag?: string;
+  sortBy?: "created_at" | "return_pct";
+  sortOrder?: "asc" | "desc";
+} = {}): Promise<StrategyExperimentCandidateBoardResponse> {
+  const params = new URLSearchParams();
+  if (options.symbol) {
+    params.set("symbol", options.symbol);
+  }
+  if (options.strategyId) {
+    params.set("strategy_id", options.strategyId);
+  }
+  if (options.tag) {
+    params.set("tag", options.tag);
+  }
+  if (options.sortBy) {
+    params.set("sort_by", options.sortBy);
+  }
+  if (options.sortOrder) {
+    params.set("sort_order", options.sortOrder);
+  }
+  const query = params.toString();
+  return requestJson<StrategyExperimentCandidateBoardResponse>(
+    `/api/strategy-lab/experiments/candidates${query ? `?${query}` : ""}`,
+  );
 }
 
 export function getStrategyExperiment(experimentId: string): Promise<StrategyExperiment> {

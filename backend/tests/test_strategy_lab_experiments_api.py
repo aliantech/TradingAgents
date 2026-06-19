@@ -177,6 +177,57 @@ def test_strategy_lab_promotes_experiments_with_review_gate():
     ]
 
 
+def test_strategy_lab_lists_candidate_review_board():
+    client = TestClient(app)
+
+    baseline = create_experiment(
+        client,
+        "SPY MA candidate baseline",
+        preview_payload(fast_window=2, slow_window=3),
+        tags=["breakout"],
+    )
+    stronger = create_experiment(
+        client,
+        "SPY MA candidate flat",
+        preview_payload(fast_window=5, slow_window=5),
+        tags=["breakout", "watchlist"],
+    )
+    rejected = create_experiment(client, "SPY MA rejected", preview_payload(), tags=["breakout"])
+    archived = create_experiment(client, "SPY MA archived candidate", preview_payload(), tags=["breakout"])
+
+    for experiment in [baseline, stronger, archived]:
+        response = client.patch(
+            f"/api/strategy-lab/experiments/{experiment['experiment_id']}",
+            json={"review_status": "candidate", "review_checklist": {"human_reviewed": True}},
+        )
+        assert response.status_code == 200
+    rejected_response = client.patch(
+        f"/api/strategy-lab/experiments/{rejected['experiment_id']}",
+        json={"review_status": "rejected"},
+    )
+    assert rejected_response.status_code == 200
+    archived_response = client.patch(
+        f"/api/strategy-lab/experiments/{archived['experiment_id']}",
+        json={"archived": True},
+    )
+    assert archived_response.status_code == 200
+
+    board_response = client.get(
+        "/api/strategy-lab/experiments/candidates",
+        params={"symbol": "SPY", "tag": "breakout", "sort_by": "return_pct", "sort_order": "desc"},
+    )
+    assert board_response.status_code == 200
+    board = board_response.json()
+    assert board["scope"] == "research_only"
+    assert [row["experiment_id"] for row in board["candidates"]] == [
+        stronger["experiment_id"],
+        baseline["experiment_id"],
+    ]
+    assert board["candidates"][0]["return_pct"] >= board["candidates"][1]["return_pct"]
+    assert board["candidates"][0]["trade_count"] == 0
+    assert board["candidates"][0]["tags"] == ["breakout", "watchlist"]
+
+
 def preview_payload(fast_window: int = 2, slow_window: int = 3):
     return {
         "symbol": "SPY",
