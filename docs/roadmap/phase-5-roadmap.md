@@ -158,13 +158,17 @@ Verification:
 
 ### Slice 2: Paper Trading Domain Contracts
 
-Status: planned; implementation plan written on 2026-06-20.
+Status: implemented and validated on 2026-06-20.
 
-Planned deliverables:
+Implemented:
 
-- Backend domain schemas for paper accounts, order intents, risk decisions, paper fills, and paper positions.
-- Unit tests for valid and invalid contract objects.
-- No persistence or API mutation yet unless the implementation plan explicitly scopes it.
+- Added `backend/app/paper_trading/contracts.py` for paper-only domain contracts.
+- Added `PaperAccount`, `PaperOrderIntent`, `RiskDecision`, `PaperFill`, `PaperPosition`, and `PaperAuditEvent`.
+- Added enum boundaries for account status, source, asset class, side, order type, time in force, intent status, risk decision result, audit resource type, and audit outcome.
+- Added strict extra-field rejection so broker route payloads and other unplanned fields are rejected.
+- Added order-type validation so limit orders require `limit_price` and market orders reject `limit_price`.
+- Added finite-number validation for cash, quantity, price, notional, and average price fields.
+- Added contract tests for valid objects, rejected invalid cash, rejected missing limit price, rejected market order with limit price, rejected broker-route extra fields, rejected non-finite numeric values, simulated fills/positions, audit events, UUID coercion, and package exports.
 
 Implementation plan:
 
@@ -172,8 +176,10 @@ Implementation plan:
 
 Verification:
 
-- Contract tests pass.
-- Search confirms no broker SDK, broker credentials, or live order methods were introduced.
+- Ubuntu isolated focused contract tests passed: 38 passed in 0.31s.
+- Ubuntu isolated backend regression passed: 178 passed in 3.47s.
+- Safety grep only matched planned negative broker-route tests and found no broker SDK, broker credentials, live order methods, or live execution implementation.
+- No persistence, API route, frontend UI, RiskGuard service logic, paper adapter, broker adapter, or credential handling was added.
 
 ### Slice 3: RiskGuard Contract and Tests
 
