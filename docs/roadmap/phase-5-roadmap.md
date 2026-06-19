@@ -234,13 +234,17 @@ Verification:
 
 ### Slice 5: Paper Intent API
 
-Status: pending Slice 4.
+Status: planned; implementation plan written on 2026-06-20.
 
 Planned deliverables:
 
 - API endpoints for creating draft paper intents, running RiskGuard, listing intents, reading intent detail, and human approval/rejection.
 - Idempotency-key replay for intent creation.
 - Agent Gateway remains paper-scoped only if any agent-facing write path is added.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-5-paper-intent-api.md`
 
 Verification:
 
