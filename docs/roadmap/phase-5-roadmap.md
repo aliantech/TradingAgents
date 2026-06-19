@@ -209,12 +209,16 @@ Verification:
 
 ### Slice 4: Paper Persistence and Audit Log
 
-Status: pending Slice 3.
+Status: planned; implementation plan written on 2026-06-20.
 
 Planned deliverables:
 
 - SQLAlchemy models and migrations for paper accounts, intents, risk decisions, fills, positions, and audit events.
 - Append-only audit helper for trading-class actions.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-4-paper-persistence-audit.md`
 
 Verification:
 
