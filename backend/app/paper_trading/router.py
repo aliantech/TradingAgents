@@ -25,6 +25,7 @@ from app.paper_trading.contracts import (
     RiskGuardLimits,
     TimeInForce,
 )
+from app.paper_trading.adapter import PaperExecutionError, cancel_paper_intent, execute_paper_intent
 from app.paper_trading.repository import PaperTradingRepository
 from app.paper_trading.risk_guard import evaluate_order_intent
 
@@ -54,6 +55,14 @@ class PaperRiskCheckRequest(BaseModel):
 
 class PaperReviewRequest(BaseModel):
     decision: Literal["approve", "reject"]
+    message: str = Field(min_length=1, max_length=500)
+
+
+class PaperSubmitRequest(BaseModel):
+    market_price: float = Field(gt=0, allow_inf_nan=False)
+
+
+class PaperCancelRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500)
 
 
@@ -240,6 +249,39 @@ def review_paper_intent(
     updated = repository.update_order_intent_status(intent.intent_id, next_status)
     repository.append_audit_event(audit_event(intent.intent_id, reason_code, request.message))
     return build_response(repository, require_intent(updated))
+
+
+@router.post("/intents/{intent_id}/paper-submit", response_model=PaperIntentResponse)
+def submit_paper_intent(
+    intent_id: UUID,
+    request: PaperSubmitRequest,
+    session: Session = Depends(get_db_session),
+):
+    repository = PaperTradingRepository(session)
+    try:
+        result = execute_paper_intent(
+            repository,
+            intent_id,
+            market_price=request.market_price,
+            filled_at=utc_now(),
+        )
+    except PaperExecutionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return build_response(repository, result.intent)
+
+
+@router.post("/intents/{intent_id}/cancel", response_model=PaperIntentResponse)
+def cancel_paper_intent_endpoint(
+    intent_id: UUID,
+    request: PaperCancelRequest,
+    session: Session = Depends(get_db_session),
+):
+    repository = PaperTradingRepository(session)
+    try:
+        result = cancel_paper_intent(repository, intent_id, message=request.message, cancelled_at=utc_now())
+    except PaperExecutionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return build_response(repository, result.intent)
 
 
 def list_candidate_experiment_ids(session: Session) -> set[UUID]:

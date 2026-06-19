@@ -257,13 +257,17 @@ Verification:
 
 ### Slice 6: Paper Adapter and Position Simulation
 
-Status: planned; implementation plan written on 2026-06-20.
+Status: implemented and validated on 2026-06-20.
 
-Planned deliverables:
+Implemented:
 
-- Local paper adapter that creates deterministic simulated fills.
-- Cash and position updates.
-- Cancel flow for intents that have not filled.
+- Local deterministic paper adapter for approved paper intents.
+- Simulated paper fills with caller-supplied deterministic market prices.
+- Cash and position updates for buy and sell flows.
+- Rejection paths for insufficient cash, insufficient position, and non-approved intents.
+- Cancel flow for unfilled intents.
+- Human-facing paper submit and cancel API endpoints.
+- Broker integration, live execution, network calls, broker credentials, agent trading scope, and MCP trading tools remain out of scope.
 
 Implementation plan:
 
@@ -271,12 +275,15 @@ Implementation plan:
 
 Verification:
 
-- Adapter tests prove no network or broker dependency is required.
-- Position and cash tests cover buy, sell, rejected insufficient cash, and cancellation.
+- Ubuntu isolated adapter tests passed: 9 passed in 0.49s.
+- Ubuntu isolated API tests passed: 12 passed in 2.86s.
+- Ubuntu isolated Slice 2+3+4+5+6 focused tests passed: 75 passed in 3.45s.
+- Ubuntu isolated backend regression passed: 215 passed in 5.73s.
+- Safety grep only matched planned negative broker/live/order_id test assertions and found no broker SDK, broker credentials, live order methods, network libraries, MCP trading tools, or agent trading scope implementation.
 
 ### Slice 7: Candidate-to-Paper UI
 
-Status: pending Slice 6.
+Status: pending.
 
 Planned deliverables:
 

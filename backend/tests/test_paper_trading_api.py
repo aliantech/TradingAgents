@@ -1,5 +1,5 @@
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -209,6 +209,102 @@ def test_paper_intent_api_approves_and_rejects_after_review():
     assert reject_response.status_code == 200
     assert reject_response.json()["intent"]["status"] == "risk_rejected"
     assert reject_response.json()["audit_events"][-1]["reason_code"] == "human_rejected"
+
+
+def test_paper_intent_api_submits_approved_intent_to_local_simulation():
+    client = TestClient(app)
+    account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="submit-flow")
+    run_passing_risk_check(client, intent_id)
+    approve_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/review",
+        json={"decision": "approve", "message": "Approved for paper simulation."},
+    )
+    assert approve_response.status_code == 200
+
+    submit_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/paper-submit",
+        json={"market_price": 500},
+    )
+
+    assert submit_response.status_code == 200
+    body = submit_response.json()
+    assert body["intent"]["status"] == "paper_filled"
+    assert body["latest_risk_decision"]["result"] == "pass"
+    assert body["audit_events"][-1]["reason_code"] == "paper_filled"
+
+    session = SessionLocal()
+    try:
+        repository = PaperTradingRepository(session)
+        account = repository.get_account(account_id)
+        fills = repository.list_fills_for_intent(UUID(intent_id))
+        positions = repository.list_positions_for_account(account_id)
+        assert account.current_cash == 99_000
+        assert len(fills) == 1
+        assert fills[0].fill_price == 500
+        assert positions[0].quantity == 2
+        assert positions[0].average_price == 500
+    finally:
+        session.close()
+
+
+def test_paper_intent_api_rejects_submit_before_approval():
+    client = TestClient(app)
+    account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="submit-before-approval")
+
+    submit_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/paper-submit",
+        json={"market_price": 500},
+    )
+
+    assert submit_response.status_code == 409
+    assert submit_response.json()["detail"] == "intent_not_approved_for_paper"
+
+
+def test_paper_intent_api_cancels_unfilled_intent():
+    client = TestClient(app)
+    account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="cancel-flow")
+
+    cancel_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/cancel",
+        json={"message": "Cancelling paper draft."},
+    )
+
+    assert cancel_response.status_code == 200
+    body = cancel_response.json()
+    assert body["intent"]["status"] == "paper_cancelled"
+    assert body["audit_events"][-1]["reason_code"] == "paper_cancelled"
+
+
+def test_paper_intent_api_rejects_cancel_after_fill():
+    client = TestClient(app)
+    account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="cancel-after-fill")
+    run_passing_risk_check(client, intent_id)
+    approve_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/review",
+        json={"decision": "approve", "message": "Approved for paper simulation."},
+    )
+    assert approve_response.status_code == 200
+    submit_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/paper-submit",
+        json={"market_price": 500},
+    )
+    assert submit_response.status_code == 200
+
+    cancel_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/cancel",
+        json={"message": "Too late."},
+    )
+
+    assert cancel_response.status_code == 409
+    assert cancel_response.json()["detail"] == "intent_cannot_be_cancelled"
 
 
 def test_paper_intent_api_does_not_expose_broker_or_live_fields():

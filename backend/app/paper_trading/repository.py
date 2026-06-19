@@ -54,6 +54,15 @@ class PaperTradingRepository:
         model = self.session.get(PaperAccountModel, account_id)
         return to_account(model) if model else None
 
+    def update_account_cash(self, account_id: UUID, current_cash: float) -> PaperAccount | None:
+        model = self.session.get(PaperAccountModel, account_id)
+        if model is None:
+            return None
+        model.current_cash = current_cash
+        self.session.commit()
+        self.session.refresh(model)
+        return to_account(model)
+
     def save_order_intent(self, intent: PaperOrderIntent) -> PaperOrderIntent:
         self.session.merge(
             PaperOrderIntentModel(
@@ -178,6 +187,28 @@ class PaperTradingRepository:
     def get_position(self, position_id: UUID) -> PaperPosition | None:
         model = self.session.get(PaperPositionModel, position_id)
         return to_position(model) if model else None
+
+    def get_position_by_account_symbol_asset(
+        self,
+        account_id: UUID,
+        symbol: str,
+        asset_class: AssetClass,
+    ) -> PaperPosition | None:
+        model = self.session.scalar(
+            select(PaperPositionModel)
+            .where(PaperPositionModel.account_id == account_id)
+            .where(PaperPositionModel.symbol == symbol)
+            .where(PaperPositionModel.asset_class == asset_class.value)
+        )
+        return to_position(model) if model else None
+
+    def list_positions_for_account(self, account_id: UUID) -> list[PaperPosition]:
+        models = self.session.scalars(
+            select(PaperPositionModel)
+            .where(PaperPositionModel.account_id == account_id)
+            .order_by(PaperPositionModel.symbol.asc(), PaperPositionModel.asset_class.asc())
+        ).all()
+        return [to_position(model) for model in models]
 
     def append_audit_event(self, event: PaperAuditEvent) -> PaperAuditEvent:
         self.session.add(
