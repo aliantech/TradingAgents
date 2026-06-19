@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 4 Complete
+Status: Phase 5 Planning
 Last Reviewed: 2026-06-20
 Owner: Yasin
 
@@ -60,7 +60,7 @@ As of 2026-06-20, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2A: SQLAlchemy persistence for analysis runs, reports, instruments, and market bars is implemented and documented as verified.
 - Phase 2B: provider sync, Polygon provider boundary, scheduler, sync audit, readiness gates, guarded smoke commands, and frontend sync visibility are documented as complete; legacy sample-provider behavior has been removed from runtime paths.
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
-- Current Phase 4 state: Phase 4 is complete for the approved research-only Strategy Lab experiment workbench scope. The branch now has a Research Agent Gateway with token-hash persistence, `whoami`, gateway health, read-scoped report endpoints, append-only audit records, token expiry enforcement, instrument allowlist enforcement, report-list filtering, a local rate-limit guard, a durable agent-facing research analysis job contract with idempotency-key replay, an MCP thin wrapper that forwards tools through `/api/agent/v1`, a WYSIWYG Strategy Lab with a research-only strategy catalog boundary, backend preview API, deterministic research backtest, chart overlay, and report-linked notes, research-only Strategy Lab experiment persistence with save, list, detail, duplicate, and frontend history/open flows, A/B saved-experiment comparison for parameters, final equity, return, trades, markers, and signal counts, experiment curation with tags, notes, archived state, tag filtering, and archived visibility controls, a research-only experiment review gate with draft/reviewed/candidate/rejected states and checklist metadata, plus a Candidate Review Board for active candidate experiments. The gateway, MCP wrapper, and Strategy Lab remain research-only and do not expose trading, broker credentials, order intents, or live execution.
+- Current Phase 5 state: Phase 5 is in paper-only planning. Phase 4 completed the approved research-only Strategy Lab experiment workbench scope, including Research Agent Gateway, MCP thin wrapper, WYSIWYG Strategy Lab, saved experiments, A/B comparison, curation, review gate, and Candidate Review Board. Phase 5 starts with paper account, order intent, RiskGuard, paper adapter, audit, and review-flow design only. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, and automatic paper-to-live promotion remain out of scope.
 - The checked-in analysis endpoint no longer emits sample or mock research reports. Until the real TradingAgents execution chain is connected, analysis runs are persisted as failed/no-report instead of writing placeholder report content.
 - Runtime DB hygiene is documented in `docs/operations/runtime-db-hygiene.md`; pytest defaults to a temporary SQLite database and the cleanup script backs up before removing mock/test/legacy task rows.
 
@@ -131,5 +131,7 @@ Initial storage scope:
 - `docs/roadmap/phase-3-completion-audit.md`
 - `docs/roadmap/phase-4-roadmap.md`
 - `docs/roadmap/phase-4-completion-audit.md`
+- `docs/roadmap/phase-5-roadmap.md`
+- `docs/superpowers/specs/2026-06-20-aquantlens-us-phase-5-paper-only-design.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`
