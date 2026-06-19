@@ -183,13 +183,17 @@ Verification:
 
 ### Slice 3: RiskGuard Contract and Tests
 
-Status: pending Slice 2.
+Status: planned; implementation plan written on 2026-06-20.
 
 Planned deliverables:
 
 - Pure RiskGuard service.
 - Tests for allowlist, notional, quantity, limit price, option metadata, and candidate-source checks.
 - Deterministic reason codes for denials.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-3-riskguard.md`
 
 Verification:
 
