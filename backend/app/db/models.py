@@ -238,3 +238,92 @@ class OptionSnapshotModel(Base):
     inserted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     contract: Mapped[OptionContractModel] = relationship(back_populates="snapshots")
+
+
+class PaperAccountModel(Base):
+    __tablename__ = "paper_accounts"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    base_currency: Mapped[str] = mapped_column(String(3), default="USD")
+    starting_cash: Mapped[float] = mapped_column(Float)
+    current_cash: Mapped[float] = mapped_column(Float)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PaperOrderIntentModel(Base):
+    __tablename__ = "paper_order_intents"
+    __table_args__ = (
+        UniqueConstraint("account_id", "idempotency_key", name="uq_paper_intents_account_idempotency"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    account_id: Mapped[UUID] = mapped_column(ForeignKey("paper_accounts.id"), index=True)
+    source: Mapped[str] = mapped_column(String(32), index=True)
+    source_reference_id: Mapped[UUID] = mapped_column(index=True)
+    symbol: Mapped[str] = mapped_column(String(64), index=True)
+    asset_class: Mapped[str] = mapped_column(String(32), index=True)
+    side: Mapped[str] = mapped_column(String(8))
+    quantity: Mapped[float] = mapped_column(Float)
+    order_type: Mapped[str] = mapped_column(String(16))
+    limit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    time_in_force: Mapped[str] = mapped_column(String(16))
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(160), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PaperRiskDecisionModel(Base):
+    __tablename__ = "paper_risk_decisions"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    intent_id: Mapped[UUID] = mapped_column(ForeignKey("paper_order_intents.id"), index=True)
+    result: Mapped[str] = mapped_column(String(16), index=True)
+    reason_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    explanation: Mapped[str] = mapped_column(Text)
+    estimated_notional: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PaperFillModel(Base):
+    __tablename__ = "paper_fills"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    intent_id: Mapped[UUID] = mapped_column(ForeignKey("paper_order_intents.id"), index=True)
+    account_id: Mapped[UUID] = mapped_column(ForeignKey("paper_accounts.id"), index=True)
+    symbol: Mapped[str] = mapped_column(String(64), index=True)
+    asset_class: Mapped[str] = mapped_column(String(32), index=True)
+    side: Mapped[str] = mapped_column(String(8))
+    quantity: Mapped[float] = mapped_column(Float)
+    fill_price: Mapped[float] = mapped_column(Float)
+    filled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class PaperPositionModel(Base):
+    __tablename__ = "paper_positions"
+    __table_args__ = (
+        UniqueConstraint("account_id", "symbol", "asset_class", name="uq_paper_positions_account_symbol_asset"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    account_id: Mapped[UUID] = mapped_column(ForeignKey("paper_accounts.id"), index=True)
+    symbol: Mapped[str] = mapped_column(String(64), index=True)
+    asset_class: Mapped[str] = mapped_column(String(32), index=True)
+    quantity: Mapped[float] = mapped_column(Float)
+    average_price: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PaperAuditEventModel(Base):
+    __tablename__ = "paper_audit_events"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    actor_type: Mapped[str] = mapped_column(String(64), index=True)
+    resource_type: Mapped[str] = mapped_column(String(64), index=True)
+    resource_id: Mapped[UUID] = mapped_column(index=True)
+    action: Mapped[str] = mapped_column(String(120), index=True)
+    outcome: Mapped[str] = mapped_column(String(32), index=True)
+    reason_code: Mapped[str] = mapped_column(String(120), index=True)
+    message: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)

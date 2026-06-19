@@ -181,6 +181,79 @@ CREATE TABLE IF NOT EXISTS strategy_experiments (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS paper_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  base_currency text NOT NULL DEFAULT 'USD',
+  starting_cash numeric(18, 6) NOT NULL,
+  current_cash numeric(18, 6) NOT NULL,
+  status text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS paper_order_intents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES paper_accounts(id),
+  source text NOT NULL,
+  source_reference_id uuid NOT NULL,
+  symbol text NOT NULL,
+  asset_class text NOT NULL,
+  side text NOT NULL,
+  quantity numeric(18, 6) NOT NULL,
+  order_type text NOT NULL,
+  limit_price numeric(18, 6),
+  time_in_force text NOT NULL,
+  status text NOT NULL,
+  idempotency_key text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_paper_intents_account_idempotency UNIQUE (account_id, idempotency_key)
+);
+
+CREATE TABLE IF NOT EXISTS paper_risk_decisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  intent_id uuid NOT NULL REFERENCES paper_order_intents(id),
+  result text NOT NULL,
+  reason_codes jsonb NOT NULL DEFAULT '[]'::jsonb,
+  explanation text NOT NULL,
+  estimated_notional numeric(18, 6) NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS paper_fills (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  intent_id uuid NOT NULL REFERENCES paper_order_intents(id),
+  account_id uuid NOT NULL REFERENCES paper_accounts(id),
+  symbol text NOT NULL,
+  asset_class text NOT NULL,
+  side text NOT NULL,
+  quantity numeric(18, 6) NOT NULL,
+  fill_price numeric(18, 6) NOT NULL,
+  filled_at timestamptz NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS paper_positions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES paper_accounts(id),
+  symbol text NOT NULL,
+  asset_class text NOT NULL,
+  quantity numeric(18, 6) NOT NULL,
+  average_price numeric(18, 6) NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_paper_positions_account_symbol_asset UNIQUE (account_id, symbol, asset_class)
+);
+
+CREATE TABLE IF NOT EXISTS paper_audit_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_type text NOT NULL,
+  resource_type text NOT NULL,
+  resource_id uuid NOT NULL,
+  action text NOT NULL,
+  outcome text NOT NULL,
+  reason_code text NOT NULL,
+  message text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_instruments_symbol ON instruments(symbol);
 CREATE INDEX IF NOT EXISTS idx_option_contracts_underlying_expiry ON option_contracts(underlying_instrument_id, expiry_date);
 CREATE INDEX IF NOT EXISTS idx_analysis_reports_symbol_created ON analysis_reports(symbol, created_at DESC);
@@ -190,3 +263,10 @@ CREATE INDEX IF NOT EXISTS idx_agent_jobs_token_created ON agent_jobs(agent_toke
 CREATE INDEX IF NOT EXISTS idx_strategy_experiments_symbol_created ON strategy_experiments(symbol, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_strategy_experiments_archived ON strategy_experiments(archived);
 CREATE INDEX IF NOT EXISTS idx_strategy_experiments_review_status ON strategy_experiments(review_status);
+CREATE INDEX IF NOT EXISTS idx_paper_accounts_status ON paper_accounts(status);
+CREATE INDEX IF NOT EXISTS idx_paper_order_intents_account_created ON paper_order_intents(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_paper_order_intents_status ON paper_order_intents(status);
+CREATE INDEX IF NOT EXISTS idx_paper_risk_decisions_intent_created ON paper_risk_decisions(intent_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_paper_fills_intent_filled ON paper_fills(intent_id, filled_at ASC);
+CREATE INDEX IF NOT EXISTS idx_paper_positions_account_symbol ON paper_positions(account_id, symbol);
+CREATE INDEX IF NOT EXISTS idx_paper_audit_events_resource_created ON paper_audit_events(resource_id, created_at ASC);

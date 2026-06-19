@@ -209,12 +209,15 @@ Verification:
 
 ### Slice 4: Paper Persistence and Audit Log
 
-Status: planned; implementation plan written on 2026-06-20.
+Status: implemented and validated on 2026-06-20.
 
-Planned deliverables:
+Implemented:
 
-- SQLAlchemy models and migrations for paper accounts, intents, risk decisions, fills, positions, and audit events.
-- Append-only audit helper for trading-class actions.
+- Added SQLAlchemy models and SQL DDL for paper accounts, order intents, risk decisions, fills, positions, and audit events.
+- Added `PaperTradingRepository` for contract-to-model persistence.
+- Added append-only audit event insertion and resource-scoped audit listing.
+- Added SQLite-backed repository tests for persistence and audit append behavior.
+- Kept Slice 4 free of API routes, frontend UI, paper adapter execution, broker integration, live execution, network calls, and credential handling.
 
 Implementation plan:
 
@@ -222,8 +225,12 @@ Implementation plan:
 
 Verification:
 
-- Backend persistence tests pass against temporary SQLite and project database target.
-- Audit tests prove all state transitions create records.
+- Ubuntu isolated repository tests passed: 3 passed in 0.34s.
+- Ubuntu isolated Slice 2+3+4 focused tests passed: 54 passed in 0.44s.
+- Ubuntu isolated backend regression passed: 194 passed in 6.00s.
+- Static SQL grep confirmed six paper tables and seven paper indexes in `backend/app/db/schema.sql`.
+- Safety grep only matched planned negative broker/live test assertions and found no broker SDK, broker credentials, live order methods, network libraries, or live execution implementation.
+- No API route, frontend UI, paper adapter, broker adapter, network dependency, or credential handling was added.
 
 ### Slice 5: Paper Intent API
 
