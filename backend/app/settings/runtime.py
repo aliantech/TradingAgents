@@ -23,6 +23,14 @@ _RUNTIME_SETTING_FIELDS: dict[str, tuple[str, type]] = {
     "AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED": ("realtime_market_publish_enabled", bool),
     "AQUANTLENS_REALTIME_MARKET_TTL_SECONDS": ("realtime_market_ttl_seconds", int),
     "AQUANTLENS_REDIS_URL": ("redis_url", str),
+    "AQUANTLENS_TRADINGAGENTS_RUNNER_MODE": ("tradingagents_runner_mode", str),
+    "AQUANTLENS_TRADINGAGENTS_LLM_PROVIDER": ("tradingagents_llm_provider", str),
+    "AQUANTLENS_TRADINGAGENTS_DEEP_THINK_LLM": ("tradingagents_deep_think_llm", str),
+    "AQUANTLENS_TRADINGAGENTS_QUICK_THINK_LLM": ("tradingagents_quick_think_llm", str),
+    "AQUANTLENS_TRADINGAGENTS_OUTPUT_LANGUAGE": ("tradingagents_output_language", str),
+    "AQUANTLENS_TRADINGAGENTS_SELECTED_ANALYSTS": ("tradingagents_selected_analysts", str),
+    "AQUANTLENS_TRADINGAGENTS_MAX_DEBATE_ROUNDS": ("tradingagents_max_debate_rounds", int),
+    "AQUANTLENS_TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS": ("tradingagents_max_risk_discuss_rounds", int),
 }
 
 STATIC_DEFAULT_DATABASE_SETTINGS: dict[str, tuple[str, str, bool]] = {
@@ -41,6 +49,14 @@ STATIC_DEFAULT_DATABASE_SETTINGS: dict[str, tuple[str, str, bool]] = {
     "AQUANTLENS_REALTIME_MARKET_TTL_SECONDS": ("300", "system", False),
     "AQUANTLENS_REDIS_URL": ("redis://127.0.0.1:6379/0", "system", False),
     "AQUANTLENS_DATABASE_URL": ("sqlite:///./aquantlens_us.db", "system", False),
+    "AQUANTLENS_TRADINGAGENTS_RUNNER_MODE": ("deterministic", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_LLM_PROVIDER": ("openai", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_DEEP_THINK_LLM": ("gpt-5.5", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_QUICK_THINK_LLM": ("gpt-5.4-mini", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_OUTPUT_LANGUAGE": ("Chinese", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_SELECTED_ANALYSTS": ("market,news,fundamentals", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_MAX_DEBATE_ROUNDS": ("1", "ai", False),
+    "AQUANTLENS_TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS": ("1", "ai", False),
     "VITE_API_BASE_URL": ("http://127.0.0.1:8022", "api", False),
 }
 
@@ -93,6 +109,18 @@ def _bootstrap_database_settings() -> dict[str, tuple[str, str, bool]]:
         "AQUANTLENS_REALTIME_MARKET_TTL_SECONDS": (str(settings.realtime_market_ttl_seconds), "system", False),
         "AQUANTLENS_REDIS_URL": (settings.redis_url, "system", False),
         "AQUANTLENS_DATABASE_URL": (settings.database_url, "system", False),
+        "AQUANTLENS_TRADINGAGENTS_RUNNER_MODE": (settings.tradingagents_runner_mode, "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_LLM_PROVIDER": (settings.tradingagents_llm_provider, "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_DEEP_THINK_LLM": (settings.tradingagents_deep_think_llm, "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_QUICK_THINK_LLM": (settings.tradingagents_quick_think_llm, "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_OUTPUT_LANGUAGE": (settings.tradingagents_output_language, "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_SELECTED_ANALYSTS": (settings.tradingagents_selected_analysts, "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_MAX_DEBATE_ROUNDS": (str(settings.tradingagents_max_debate_rounds), "ai", False),
+        "AQUANTLENS_TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS": (
+            str(settings.tradingagents_max_risk_discuss_rounds),
+            "ai",
+            False,
+        ),
     }
 
 

@@ -125,7 +125,7 @@ Verification completed:
 
 ### Slice 4: Real TradingAgents Runner Integration
 
-Status: planned.
+Status: implemented and focused-verified.
 
 Goal:
 
@@ -143,6 +143,21 @@ Verification:
 - Tests use mocked TradingAgents execution, not live providers.
 - Smoke command is documented for manual local/Ubuntu verification when credentials are intentionally configured.
 - Safety grep proves no secrets are read or printed by tests/docs.
+
+Implemented:
+
+- `backend/app/analysis/tradingagents_runner.py`.
+- `backend/app/analysis/service.py` now dispatches through runtime-gated runner selection.
+- `backend/app/core/config.py` and `backend/app/settings/runtime.py` expose non-secret TradingAgents runtime settings.
+- `backend/tests/test_tradingagents_runner.py`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-4-real-runner-gate.md`.
+
+Verification completed:
+
+- Local compile check passed for runner, service, config, runtime settings, and runner tests.
+- Ubuntu temp-copy focused regression passed: 17 tests.
+- Ubuntu temp-copy settings/runner regression passed: 6 tests.
+- Ubuntu temp-copy full backend regression passed: 235 tests.
 
 ### Slice 5: Analysis Run Observability UI
 
