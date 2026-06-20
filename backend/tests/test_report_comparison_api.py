@@ -29,8 +29,9 @@ def test_report_comparison_has_no_mock_reports_for_analysis_runs():
     status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
     reports_response = client.get("/api/reports")
 
-    assert status_response.json()["report_id"] is None
-    assert all(report["symbol"] != symbol for report in reports_response.json())
+    assert status_response.json()["report_id"] is not None
+    report = next(report for report in reports_response.json() if report["symbol"] == symbol)
+    assert report["analysis_id"] == response.json()["analysis_id"]
 
 
 def test_report_comparison_returns_404_when_no_prior_symbol_report_exists():

@@ -28,14 +28,15 @@ def test_phase_one_analysis_flow_does_not_create_mock_report():
     assert status_response.status_code == 200
     status_payload = status_response.json()
     assert status_payload["symbol"] == "SPY"
-    assert status_payload["status"] == "failed"
-    assert status_payload["report_id"] is None
+    assert status_payload["status"] == "completed"
+    assert status_payload["report_id"] is not None
     assert len(status_payload["progress"]) >= 3
 
     reports_response = client.get("/api/reports")
     assert reports_response.status_code == 200
     reports = reports_response.json()
-    assert all(report["analysis_id"] != queued["analysis_id"] for report in reports)
+    report = next(report for report in reports if report["analysis_id"] == queued["analysis_id"])
+    assert report["summary"].startswith("SPY 中文 AI 投研摘要")
 
 
 def test_phase_one_market_and_options_context():
@@ -63,4 +64,4 @@ def test_phase_one_progress_events_stream():
     response = client.get(f"/api/analysis/{queued['analysis_id']}/events")
     assert response.status_code == 200
     assert "text/event-stream" in response.headers["content-type"]
-    assert "不再写入样例或 mock 报告" in response.text
+    assert "中文研究报告已生成并准备持久化" in response.text

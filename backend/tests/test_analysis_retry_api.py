@@ -49,8 +49,8 @@ def test_analysis_retry_creates_new_run_from_failed_run():
 
     retried_status = client.get(f"/api/analysis/{retry['analysis_id']}")
     assert retried_status.status_code == 200
-    assert retried_status.json()["status"] == "failed"
-    assert retried_status.json()["report_id"] is None
+    assert retried_status.json()["status"] == "completed"
+    assert retried_status.json()["report_id"] is not None
 
     original_status = client.get(f"/api/analysis/{analysis_id}")
     assert original_status.status_code == 200
@@ -66,7 +66,7 @@ def test_analysis_retry_allows_generated_failed_run():
     response = client.post(
         "/api/analysis",
         json={
-            "symbol": "MSFT",
+            "symbol": "FAIL",
             "asset_type": "equity",
             "analysis_date": "2026-06-19",
             "language": "zh",
@@ -83,3 +83,7 @@ def test_analysis_retry_allows_generated_failed_run():
     retry_response = client.post(f"/api/analysis/{response.json()['analysis_id']}/retry")
 
     assert retry_response.status_code == 202
+
+    retried_status = client.get(f"/api/analysis/{retry_response.json()['analysis_id']}")
+    assert retried_status.json()["status"] == "failed"
+    assert retried_status.json()["report_id"] is None

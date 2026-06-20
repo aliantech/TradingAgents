@@ -3,6 +3,12 @@ from uuid import uuid4
 from app.analysis.repository import AnalysisRepository
 from app.analysis.schemas import AnalysisProgressEvent, AnalysisRequest
 from app.analysis.store import AnalysisRun, analysis_store
+from app.analysis.deterministic_runner import run_deterministic_research_fixture
+from app.analysis.tradingagents_adapter import (
+    build_tradingagents_request,
+    map_tradingagents_error,
+    tradingagents_result_to_report,
+)
 
 
 def _build_progress(symbol: str) -> list[AnalysisProgressEvent]:
@@ -16,12 +22,28 @@ def _build_progress(symbol: str) -> list[AnalysisProgressEvent]:
 def start_analysis(request: AnalysisRequest, repository: AnalysisRepository | None = None) -> AnalysisRun:
     analysis_id = uuid4()
     normalized_request = request.model_copy(update={"symbol": request.symbol.upper()})
-    run = AnalysisRun(
-        analysis_id=analysis_id,
-        request=normalized_request,
-        status="failed",
-        progress=_build_progress(normalized_request.symbol),
-    )
+    execution_request = build_tradingagents_request(analysis_id, normalized_request)
+    try:
+        result = run_deterministic_research_fixture(execution_request)
+        report = tradingagents_result_to_report(
+            execution_request=execution_request,
+            result=result,
+            report_id=uuid4(),
+        )
+        run = AnalysisRun(
+            analysis_id=analysis_id,
+            request=normalized_request,
+            status="completed",
+            progress=result.progress,
+            report=report,
+        )
+    except Exception as error:
+        run = AnalysisRun(
+            analysis_id=analysis_id,
+            request=normalized_request,
+            status="failed",
+            progress=_build_progress(normalized_request.symbol) + [map_tradingagents_error(error)],
+        )
     if repository is not None:
         repository.save_run(run)
     return analysis_store.save(run)

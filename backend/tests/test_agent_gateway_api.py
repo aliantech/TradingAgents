@@ -169,10 +169,10 @@ def test_agent_gateway_submits_and_polls_research_analysis_job():
     assert submit_response.status_code == 202
     submitted_job = submit_response.json()
     assert submitted_job["job_type"] == "research_analysis"
-    assert submitted_job["status"] == "failed"
+    assert submitted_job["status"] == "completed"
     assert submitted_job["result"]["symbol"] == "SPY"
     assert submitted_job["result"]["analysis_id"]
-    assert submitted_job["result"]["report_id"] is None
+    assert submitted_job["result"]["report_id"] is not None
     assert any(event["step"] == "report" for event in submitted_job["progress"])
 
     poll_response = client.get(f"/api/agent/v1/jobs/{submitted_job['job_id']}", headers=headers)
@@ -180,9 +180,9 @@ def test_agent_gateway_submits_and_polls_research_analysis_job():
 
     assert poll_response.status_code == 200
     assert poll_response.json()["job_id"] == submitted_job["job_id"]
-    assert poll_response.json()["status"] == "failed"
-    assert result_response.status_code == 409
-    assert result_response.json()["detail"] == "job result is not ready"
+    assert poll_response.json()["status"] == "completed"
+    assert result_response.status_code == 200
+    assert result_response.json()["report_id"] == submitted_job["result"]["report_id"]
 
 
 def test_agent_gateway_replays_research_analysis_job_with_idempotency_key():

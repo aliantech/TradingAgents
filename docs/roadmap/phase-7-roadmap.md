@@ -36,7 +36,7 @@ Known product gap:
 
 ### Slice 1: Phase 7 Roadmap and Execution Boundary
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -90,7 +90,7 @@ Verification completed:
 
 ### Slice 3: Deterministic Research Runner Fixture
 
-Status: planned.
+Status: implemented and focused-verified.
 
 Goal:
 
@@ -108,6 +108,20 @@ Verification:
 - Backend API tests cover successful completed analysis and persisted report.
 - Backend API tests cover deterministic failure.
 - Existing failed/no-report safety behavior remains available when execution fails.
+
+Implemented:
+
+- `backend/app/analysis/deterministic_runner.py`.
+- `backend/app/analysis/service.py` now routes analysis execution through the deterministic fixture and Slice 2 adapter contract.
+- `backend/tests/test_analysis_api_persistence.py`.
+- `backend/tests/test_analysis_retry_api.py`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-3-deterministic-runner.md`.
+
+Verification completed:
+
+- Local compile check passed for the service, deterministic runner, and updated tests.
+- Ubuntu temp-copy focused regression passed: 16 tests.
+- Ubuntu temp-copy full backend regression passed: 230 tests.
 
 ### Slice 4: Real TradingAgents Runner Integration
 
