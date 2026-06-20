@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-20T00:00:00+08:00",
+  "title": "Design System: AQuantLens US Options Workbench",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Workbench Ink",
+        "canonical": "oklch(0.205 0 0)",
+        "tonalRamp": ["oklch(0.145 0 0)", "oklch(0.205 0 0)", "oklch(0.269 0 0)"]
+      },
+      "neutral": {
+        "role": "neutral",
+        "displayName": "Institution Neutral",
+        "canonical": "oklch(0.97 0 0)",
+        "tonalRamp": ["oklch(1 0 0)", "oklch(0.97 0 0)", "oklch(0.922 0 0)", "oklch(0.556 0 0)", "oklch(0.145 0 0)"]
+      },
+      "positive": {
+        "role": "semantic",
+        "displayName": "Pass Green",
+        "canonical": "#16a34a",
+        "tonalRamp": ["rgba(22, 163, 74, 0.10)", "#16a34a", "rgba(22, 163, 74, 0.28)"]
+      },
+      "negative": {
+        "role": "semantic",
+        "displayName": "Block Red",
+        "canonical": "#dc2626",
+        "tonalRamp": ["rgba(220, 38, 38, 0.10)", "#dc2626", "rgba(220, 38, 38, 0.28)"]
+      },
+      "chart-axis": {
+        "role": "chart",
+        "displayName": "Axis Slate",
+        "canonical": "#64748b",
+        "tonalRamp": ["rgba(148, 163, 184, 0.16)", "rgba(148, 163, 184, 0.22)", "#64748b"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page and major panel titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles and compact section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Operational copy, tables, status explanations."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, metric captions, badges, metadata."
+      }
+    },
+    "elevation": {
+      "strategy": "flat-by-default",
+      "tokens": {
+        "card": "ring-1 ring-foreground/10",
+        "border": "border border-border",
+        "focus": "focus-visible:ring-3 focus-visible:ring-ring/50"
+      }
+    },
+    "motion": {
+      "duration": {
+        "fast": "150ms",
+        "normal": "200ms",
+        "slow": "250ms"
+      },
+      "rule": "Motion conveys state change only and must respect prefers-reduced-motion."
+    },
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px",
+      "2xl": "1536px"
+    },
+    "rules": [
+      "Make paper-only boundaries unmistakable.",
+      "Put research evidence before visual drama.",
+      "Use color for state and selection, not decoration.",
+      "Do not suggest live trading or broker execution."
+    ]
+  }
+}
