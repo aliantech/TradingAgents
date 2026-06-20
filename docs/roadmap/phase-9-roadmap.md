@@ -88,7 +88,7 @@ Verification:
 
 ### Slice 3: Report Review Contract
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -101,10 +101,17 @@ Expected coverage:
 - Review storage through existing database boundaries.
 - No investment correctness scoring and no automated trading authority.
 
+Deliverables:
+
+- `report_reviews` database model and schema.
+- Report review create/list APIs under `/api/reports/{report_id}/reviews`.
+- Focused repository and API tests.
+
 Verification:
 
 - Backend tests cover creating and listing reviews.
 - Existing report APIs still pass.
+- The contract does not score investment correctness or grant trading authority.
 
 ### Slice 4: Review UI for Reports and Runs
 

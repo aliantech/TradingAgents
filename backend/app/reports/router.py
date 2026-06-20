@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.analysis.repository import AnalysisRepository, build_report_comparison, is_legacy_mock_report
 from app.analysis.store import analysis_store
 from app.db.session import get_db_session
-from app.reports.schemas import ReportComparison, ReportListItem, ResearchReport
+from app.reports.schemas import ReportComparison, ReportListItem, ReportReview, ReportReviewCreate, ResearchReport
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -55,6 +55,29 @@ def get_report(
                 break
             return run.report
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+
+
+@router.post("/{report_id}/reviews", response_model=ReportReview, status_code=status.HTTP_201_CREATED)
+def create_report_review(
+    report_id: UUID,
+    review: ReportReviewCreate,
+    repository: AnalysisRepository = Depends(get_analysis_repository),
+) -> ReportReview:
+    created = repository.create_report_review(report_id, review)
+    if created is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+    return created
+
+
+@router.get("/{report_id}/reviews", response_model=list[ReportReview])
+def list_report_reviews(
+    report_id: UUID,
+    repository: AnalysisRepository = Depends(get_analysis_repository),
+) -> list[ReportReview]:
+    reviews = repository.list_report_reviews(report_id)
+    if reviews is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+    return reviews
 
 
 @router.get("/{report_id}/comparison", response_model=ReportComparison)

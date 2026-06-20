@@ -56,3 +56,20 @@ class ReportComparison(BaseModel):
     confidence_delta: float
     risk_factor_changes: ReportRiskFactorChanges
     section_changes: dict[str, ReportComparisonSection]
+
+
+class ReportReviewCreate(BaseModel):
+    reviewer: str = Field(default="operator", min_length=1, max_length=80)
+    evidence_clarity: int = Field(ge=1, le=5)
+    consistency: int = Field(ge=1, le=5)
+    risk_coverage: int = Field(ge=1, le=5)
+    options_relevance: int = Field(ge=1, le=5)
+    chinese_readability: int = Field(ge=1, le=5)
+    research_only_safety: int = Field(ge=1, le=5)
+    notes: str = Field(default="", max_length=2000)
+
+
+class ReportReview(ReportReviewCreate):
+    review_id: UUID
+    report_id: UUID
+    created_at: str

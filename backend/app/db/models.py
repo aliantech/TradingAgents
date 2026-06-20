@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, ForeignKey, JSON, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -49,6 +49,22 @@ class AnalysisReportModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     run: Mapped[AnalysisRunModel] = relationship(back_populates="report")
+
+
+class ReportReviewModel(Base):
+    __tablename__ = "report_reviews"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    report_id: Mapped[UUID] = mapped_column(ForeignKey("analysis_reports.id"), index=True)
+    reviewer: Mapped[str] = mapped_column(String(80), default="operator")
+    evidence_clarity: Mapped[int] = mapped_column(Integer)
+    consistency: Mapped[int] = mapped_column(Integer)
+    risk_coverage: Mapped[int] = mapped_column(Integer)
+    options_relevance: Mapped[int] = mapped_column(Integer)
+    chinese_readability: Mapped[int] = mapped_column(Integer)
+    research_only_safety: Mapped[int] = mapped_column(Integer)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class InstrumentModel(Base):

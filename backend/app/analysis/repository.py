@@ -5,8 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.analysis.schemas import AnalysisDepth, AnalysisProgressEvent, AnalysisRequest, AssetType, ReportLanguage
 from app.analysis.store import AnalysisRun
-from app.db.models import AnalysisReportModel, AnalysisRunModel
-from app.reports.schemas import ReportComparison, ReportComparisonSection, ReportListItem, ReportRiskFactorChanges, ResearchReport
+from app.db.models import AnalysisReportModel, AnalysisRunModel, ReportReviewModel
+from app.reports.schemas import (
+    ReportComparison,
+    ReportComparisonSection,
+    ReportListItem,
+    ReportReview,
+    ReportReviewCreate,
+    ReportRiskFactorChanges,
+    ResearchReport,
+)
 
 
 class AnalysisRepository:
@@ -79,6 +87,37 @@ class AnalysisRepository:
         if is_legacy_mock_report(model.report_json):
             return None
         return ResearchReport(**model.report_json)
+
+    def create_report_review(self, report_id: UUID, review: ReportReviewCreate) -> ReportReview | None:
+        report = self.session.get(AnalysisReportModel, report_id)
+        if report is None or is_legacy_mock_report(report.report_json):
+            return None
+        model = ReportReviewModel(
+            report_id=report_id,
+            reviewer=review.reviewer,
+            evidence_clarity=review.evidence_clarity,
+            consistency=review.consistency,
+            risk_coverage=review.risk_coverage,
+            options_relevance=review.options_relevance,
+            chinese_readability=review.chinese_readability,
+            research_only_safety=review.research_only_safety,
+            notes=review.notes,
+        )
+        self.session.add(model)
+        self.session.commit()
+        self.session.refresh(model)
+        return _report_review(model)
+
+    def list_report_reviews(self, report_id: UUID) -> list[ReportReview] | None:
+        report = self.session.get(AnalysisReportModel, report_id)
+        if report is None or is_legacy_mock_report(report.report_json):
+            return None
+        models = self.session.scalars(
+            select(ReportReviewModel)
+            .where(ReportReviewModel.report_id == report_id)
+            .order_by(ReportReviewModel.created_at.desc())
+        ).all()
+        return [_report_review(model) for model in models]
 
     def get_report_comparison(self, report_id: UUID) -> ReportComparison | None:
         current = self.session.get(AnalysisReportModel, report_id)
@@ -217,4 +256,20 @@ def _report_list_item(report: ResearchReport) -> ReportListItem:
         research_template=report.research_template,
         summary=report.summary,
         confidence=report.confidence,
+    )
+
+
+def _report_review(model: ReportReviewModel) -> ReportReview:
+    return ReportReview(
+        review_id=model.id,
+        report_id=model.report_id,
+        reviewer=model.reviewer,
+        evidence_clarity=model.evidence_clarity,
+        consistency=model.consistency,
+        risk_coverage=model.risk_coverage,
+        options_relevance=model.options_relevance,
+        chinese_readability=model.chinese_readability,
+        research_only_safety=model.research_only_safety,
+        notes=model.notes,
+        created_at=model.created_at.isoformat(),
     )

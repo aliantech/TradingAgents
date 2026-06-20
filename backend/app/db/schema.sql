@@ -98,6 +98,20 @@ CREATE TABLE IF NOT EXISTS analysis_reports (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS report_reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id uuid NOT NULL REFERENCES analysis_reports(id),
+  reviewer text NOT NULL DEFAULT 'operator',
+  evidence_clarity smallint NOT NULL CHECK (evidence_clarity BETWEEN 1 AND 5),
+  consistency smallint NOT NULL CHECK (consistency BETWEEN 1 AND 5),
+  risk_coverage smallint NOT NULL CHECK (risk_coverage BETWEEN 1 AND 5),
+  options_relevance smallint NOT NULL CHECK (options_relevance BETWEEN 1 AND 5),
+  chinese_readability smallint NOT NULL CHECK (chinese_readability BETWEEN 1 AND 5),
+  research_only_safety smallint NOT NULL CHECK (research_only_safety BETWEEN 1 AND 5),
+  notes text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS provider_sync_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   provider text NOT NULL,
