@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 7 Research Execution Integration Planning
+Status: Phase 7 Research Execution Integration
 Last Reviewed: 2026-06-20
 Owner: Yasin
 
@@ -62,7 +62,7 @@ As of 2026-06-20, the branch has moved beyond the original Phase 1 foundation in
 - Phase 2C: option contracts, option snapshots, option-chain sync, options APIs, selected contract bars API, and workbench UI slices through slice 27 are implemented in the working tree, with an additional reverse-proxy preview fix recorded in the roadmap.
 - Current Phase 5 state: Phase 5 paper-only MVP is implemented and completion-audited. Phase 4 completed the approved research-only Strategy Lab experiment workbench scope. Phase 5 now has paper-only architecture documentation, backend domain contracts, pure RiskGuard evaluator, SQLAlchemy persistence models, SQL schema, repository methods, append-only audit event persistence, human-facing paper intent API endpoints, a local deterministic paper adapter, and a Candidate-to-Paper Strategy Lab UI flow for paper draft creation, RiskGuard review, human approval/rejection, paper submit, and cancellation. Completion verification passed focused paper tests, full backend regression, frontend build, and paper-only safety grep. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, network execution, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
 - Current Phase 6 state: Phase 6 paper-only workflow hardening is complete and completion-audited. Phase 6 added and verified a Playwright Chromium browser smoke for the Strategy Lab Candidate-to-Paper UI, a paper account summary API, a paper PnL snapshot API using explicit caller-provided reference prices, and a Strategy Lab paper risk dashboard for cash, equity, PnL, positions, recent paper flow, and audit preview. Completion verification passed focused paper tests, full backend regression, frontend build, browser smoke, and safety grep classification. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
-- Current Phase 7 state: Phase 7 is planned as real TradingAgents research execution integration. The goal is to replace the current failed/no-report analysis placeholder path with a durable, observable research execution path that can produce Chinese-first reports through the existing analysis/report persistence boundary. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
+- Current Phase 7 state: Phase 7 real TradingAgents research execution integration is underway. Slice 1 documented the roadmap and execution boundary. Slice 2 added a typed backend TradingAgents adapter contract that maps existing analysis requests into normalized research execution input, maps completed adapter output into the existing report schema, and sanitizes provider/runtime errors into progress events. The adapter is not yet wired into `start_analysis`; Slice 3 will add deterministic runner integration. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
 - The checked-in analysis endpoint no longer emits sample or mock research reports. Until the real TradingAgents execution chain is connected, analysis runs are persisted as failed/no-report instead of writing placeholder report content.
 - Runtime DB hygiene is documented in `docs/operations/runtime-db-hygiene.md`; pytest defaults to a temporary SQLite database and the cleanup script backs up before removing mock/test/legacy task rows.
 
@@ -152,5 +152,6 @@ Initial storage scope:
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-5-paper-risk-dashboard-ui.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-6-completion-audit.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-1-roadmap.md`
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-2-adapter-contract.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`

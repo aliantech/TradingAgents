@@ -57,7 +57,7 @@ Verification:
 
 ### Slice 2: TradingAgents Execution Adapter Contract
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -75,6 +75,18 @@ Verification:
 - Unit tests cover successful adapter output mapping.
 - Unit tests cover provider/model/runtime error mapping.
 - Tests prove no broker/trading execution surface is introduced.
+
+Implemented:
+
+- `backend/app/analysis/tradingagents_adapter.py`.
+- `backend/tests/test_tradingagents_adapter.py`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-2-adapter-contract.md`.
+
+Verification completed:
+
+- Local compile check passed for the adapter and adapter tests.
+- Ubuntu temp-copy focused regression passed: 13 tests.
+- Ubuntu temp-copy full backend regression passed: 229 tests.
 
 ### Slice 3: Deterministic Research Runner Fixture
 
@@ -180,4 +192,3 @@ Phase 7 is complete only when:
 - Focused analysis tests, backend regression, frontend build, and relevant browser smoke pass.
 - Safety grep confirms no live-execution boundary violations.
 - Project docs and Yasin Brain record that live execution remains out of scope.
-
