@@ -115,7 +115,7 @@ Verification:
 
 ### Slice 4: Review UI for Reports and Runs
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -126,6 +126,13 @@ Expected coverage:
 - Reports expose review status and latest note.
 - Runs detail can show review context next to report/failure diagnostics.
 - Retry remains explicit and user-controlled.
+
+Deliverables:
+
+- Frontend report review API client types and functions.
+- Report workbench review status, latest note, score summary, and operator review form.
+- Runs detail review context for completed runs with reports.
+- Mocked Playwright browser smoke for report review create/view behavior.
 
 Verification:
 

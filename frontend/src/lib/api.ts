@@ -108,6 +108,23 @@ export type ReportComparison = {
   section_changes: Record<string, ReportComparisonSection>;
 };
 
+export type ReportReviewPayload = {
+  reviewer: string;
+  evidence_clarity: number;
+  consistency: number;
+  risk_coverage: number;
+  options_relevance: number;
+  chinese_readability: number;
+  research_only_safety: number;
+  notes: string;
+};
+
+export type ReportReview = ReportReviewPayload & {
+  review_id: string;
+  report_id: string;
+  created_at: string;
+};
+
 export type MarketBar = {
   symbol: string;
   timeframe: string;
@@ -686,6 +703,17 @@ export function getReport(reportId: string): Promise<ResearchReport> {
 
 export function getReportComparison(reportId: string): Promise<ReportComparison> {
   return requestJson<ReportComparison>(`/api/reports/${reportId}/comparison`);
+}
+
+export function listReportReviews(reportId: string): Promise<ReportReview[]> {
+  return requestJson<ReportReview[]>(`/api/reports/${reportId}/reviews`);
+}
+
+export function createReportReview(reportId: string, payload: ReportReviewPayload): Promise<ReportReview> {
+  return requestJson<ReportReview>(`/api/reports/${reportId}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getMarketBars(symbol: string, timeframe: MarketTimeframe = "1m"): Promise<MarketBarsResponse> {

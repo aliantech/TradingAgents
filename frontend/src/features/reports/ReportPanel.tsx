@@ -1,7 +1,8 @@
-import type { ReportComparison, ResearchReport } from "../../lib/api";
+import type { ReportComparison, ReportReview, ReportReviewPayload, ResearchReport } from "../../lib/api";
 import type React from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, FileJson, Layers3, ShieldAlert, Target, Workflow } from "lucide-react";
+import { ClipboardCheck, Download, FileJson, Layers3, ShieldAlert, Target, Workflow } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type ReportPanelProps = {
   report: ResearchReport | null;
   comparison?: ReportComparison | null;
+  reviews?: ReportReview[];
+  reviewsLoading?: boolean;
+  reviewsError?: string | null;
+  onCreateReview?: (payload: ReportReviewPayload) => Promise<void>;
 };
 
-export function ReportPanel({ report, comparison }: ReportPanelProps) {
+export function ReportPanel({ report, comparison, reviews = [], reviewsLoading = false, reviewsError = null, onCreateReview }: ReportPanelProps) {
   const { t } = useTranslation();
   if (!report) {
     return (
@@ -90,6 +95,13 @@ export function ReportPanel({ report, comparison }: ReportPanelProps) {
 
         <ReportComparisonCard comparison={comparison} />
 
+        <ReportReviewCard
+          reviews={reviews}
+          loading={reviewsLoading}
+          error={reviewsError}
+          onCreateReview={onCreateReview}
+        />
+
         <Tabs defaultValue="structured">
           <TabsList className="flex-wrap">
             <TabsTrigger value="structured">{t("reports.structured")}</TabsTrigger>
@@ -154,6 +166,143 @@ export function ReportPanel({ report, comparison }: ReportPanelProps) {
   );
 }
 
+const REVIEW_FIELDS: Array<keyof Omit<ReportReviewPayload, "reviewer" | "notes">> = [
+  "evidence_clarity",
+  "consistency",
+  "risk_coverage",
+  "options_relevance",
+  "chinese_readability",
+  "research_only_safety",
+];
+
+const DEFAULT_REVIEW: ReportReviewPayload = {
+  reviewer: "operator",
+  evidence_clarity: 4,
+  consistency: 4,
+  risk_coverage: 4,
+  options_relevance: 4,
+  chinese_readability: 5,
+  research_only_safety: 5,
+  notes: "",
+};
+
+function ReportReviewCard({
+  reviews,
+  loading,
+  error,
+  onCreateReview,
+}: {
+  reviews: ReportReview[];
+  loading: boolean;
+  error: string | null;
+  onCreateReview?: (payload: ReportReviewPayload) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<ReportReviewPayload>(DEFAULT_REVIEW);
+  const [saving, setSaving] = useState(false);
+  const latestReview = reviews[0] ?? null;
+  const averageScore = latestReview ? reviewAverage(latestReview).toFixed(1) : "-";
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!onCreateReview) return;
+    setSaving(true);
+    try {
+      await onCreateReview(draft);
+      setDraft({ ...DEFAULT_REVIEW, reviewer: draft.reviewer });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-3 rounded-lg border bg-background p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <ClipboardCheck className="size-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">{t("reports.reviewTitle")}</p>
+            <Badge variant={latestReview ? "secondary" : "outline"}>
+              {latestReview ? t("reports.reviewed") : t("reports.notReviewed")}
+            </Badge>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("reports.reviewDescription")}</p>
+        </div>
+        <div className="grid min-w-[132px] rounded-lg border p-2 text-right">
+          <span className="text-xs text-muted-foreground">{t("reports.reviewAverage")}</span>
+          <strong className="text-lg">{averageScore}</strong>
+        </div>
+      </div>
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {latestReview ? (
+        <div className="rounded-lg border p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{latestReview.reviewer}</Badge>
+            <span className="text-xs text-muted-foreground">{formatReviewDate(latestReview.created_at)}</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {latestReview.notes || t("reports.reviewNoNotes")}
+          </p>
+        </div>
+      ) : loading ? (
+        <p className="text-sm text-muted-foreground">{t("reports.reviewLoading")}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t("reports.reviewEmpty")}</p>
+      )}
+
+      {onCreateReview ? (
+        <form className="grid gap-3" onSubmit={(event) => void handleSubmit(event)}>
+          <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+            {REVIEW_FIELDS.map((field) => (
+              <label key={field} className="grid gap-1 rounded-lg border p-3">
+                <span className="text-xs font-medium text-muted-foreground">{t(`reports.reviewFields.${field}`)}</span>
+                <input
+                  className="h-9 rounded-md border bg-background px-2 text-sm"
+                  min={1}
+                  max={5}
+                  type="number"
+                  value={draft[field]}
+                  onChange={(event) => setDraft((current) => ({ ...current, [field]: Number(event.target.value) }))}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="grid grid-cols-[220px_minmax(0,1fr)] gap-3 max-md:grid-cols-1">
+            <label className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">{t("reports.reviewReviewer")}</span>
+              <input
+                className="h-9 rounded-md border bg-background px-2 text-sm"
+                value={draft.reviewer}
+                onChange={(event) => setDraft((current) => ({ ...current, reviewer: event.target.value }))}
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">{t("reports.reviewNotes")}</span>
+              <textarea
+                className="min-h-20 rounded-md border bg-background px-2 py-2 text-sm"
+                value={draft.notes}
+                onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="submit" disabled={saving || loading}>
+              <ClipboardCheck data-icon="inline-start" />
+              {saving ? t("reports.reviewSaving") : t("reports.reviewSave")}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 function ReportComparisonCard({ comparison }: { comparison?: ReportComparison | null }) {
   const { t } = useTranslation();
   if (!comparison) {
@@ -197,6 +346,20 @@ function ReportFact({ icon, label, value }: { icon: React.ReactNode; label: stri
       <p className="mt-1 truncate text-sm font-semibold">{value}</p>
     </div>
   );
+}
+
+function reviewAverage(review: ReportReview) {
+  const total = REVIEW_FIELDS.reduce((sum, field) => sum + review[field], 0);
+  return total / REVIEW_FIELDS.length;
+}
+
+function formatReviewDate(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function reportSections(report: ResearchReport, t: (key: string) => string) {

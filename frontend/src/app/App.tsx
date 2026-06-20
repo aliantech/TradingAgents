@@ -50,6 +50,7 @@ import {
   getProviderSyncSummary,
   getReport,
   getReportComparison,
+  listReportReviews,
   listAnalysisRuns,
   listOptionContracts,
   listProviderSyncSummaryGroups,
@@ -58,6 +59,7 @@ import {
   listSettings,
   retryAnalysis,
   startAnalysis,
+  createReportReview,
   type AnalysisRunItem,
   type AnalysisStartPayload,
   syncDailyBars,
@@ -76,6 +78,8 @@ import {
   type ProviderSyncSummaryGroup,
   type ReportComparison,
   type ReportListItem,
+  type ReportReview,
+  type ReportReviewPayload,
   type ResearchReport,
   type SettingItem,
   upsertSettings,
@@ -175,6 +179,9 @@ export function App() {
   const [backendHealthError, setBackendHealthError] = useState<string | null>(null);
   const [activeReport, setActiveReport] = useState<ResearchReport | null>(null);
   const [activeReportComparison, setActiveReportComparison] = useState<ReportComparison | null>(null);
+  const [activeReportReviews, setActiveReportReviews] = useState<ReportReview[]>([]);
+  const [activeReportReviewsLoading, setActiveReportReviewsLoading] = useState(false);
+  const [activeReportReviewsError, setActiveReportReviewsError] = useState<string | null>(null);
   const [reports, setReports] = useState<ReportListItem[]>([]);
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [marketTimeframe, setMarketTimeframe] = useState<MarketTimeframe>("1d");
@@ -570,6 +577,7 @@ export function App() {
         const report = await getReport(status.report_id);
         setActiveReport(report);
         await loadReportComparison(status.report_id);
+        await loadReportReviews(status.report_id);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("errors.analysisRun"));
@@ -584,6 +592,7 @@ export function App() {
       const report = await getReport(reportId);
       setActiveReport(report);
       await loadReportComparison(reportId);
+      await loadReportReviews(reportId);
       setSymbol(report.symbol);
       await loadMarketContext(report.symbol);
     } catch (caught) {
@@ -614,6 +623,33 @@ export function App() {
       setActiveReportComparison(comparison);
     } catch {
       setActiveReportComparison(null);
+    }
+  }
+
+  async function loadReportReviews(reportId: string) {
+    setActiveReportReviewsLoading(true);
+    setActiveReportReviewsError(null);
+    try {
+      const reviews = await listReportReviews(reportId);
+      setActiveReportReviews(reviews);
+    } catch (caught) {
+      setActiveReportReviews([]);
+      setActiveReportReviewsError(caught instanceof Error ? caught.message : t("errors.reportReviewLoad"));
+    } finally {
+      setActiveReportReviewsLoading(false);
+    }
+  }
+
+  async function handleCreateActiveReportReview(payload: ReportReviewPayload) {
+    if (!activeReport?.report_id) return;
+    setActiveReportReviewsError(null);
+    try {
+      const created = await createReportReview(activeReport.report_id, payload);
+      setActiveReportReviews((current) => [created, ...current]);
+      await refreshReports();
+    } catch (caught) {
+      setActiveReportReviewsError(caught instanceof Error ? caught.message : t("errors.reportReviewSave"));
+      throw caught;
     }
   }
 
@@ -739,14 +775,28 @@ export function App() {
               />
 	              <RunsPreview runs={syncRuns} />
             </div>
-            <ReportPanel report={activeReport} comparison={activeReportComparison} />
+            <ReportPanel
+              report={activeReport}
+              comparison={activeReportComparison}
+              reviews={activeReportReviews}
+              reviewsLoading={activeReportReviewsLoading}
+              reviewsError={activeReportReviewsError}
+              onCreateReview={handleCreateActiveReportReview}
+            />
           </div>
         ) : null}
 
         {activePage === "reports" ? (
           <div className="grid gap-4 xl:grid-cols-2">
             <ReportHistory reports={reports} runs={analysisRuns} onSelectReport={handleSelectReport} />
-            <ReportPanel report={activeReport} comparison={activeReportComparison} />
+            <ReportPanel
+              report={activeReport}
+              comparison={activeReportComparison}
+              reviews={activeReportReviews}
+              reviewsLoading={activeReportReviewsLoading}
+              reviewsError={activeReportReviewsError}
+              onCreateReview={handleCreateActiveReportReview}
+            />
           </div>
         ) : null}
 
@@ -1795,6 +1845,7 @@ function RunsPage({
   const { t } = useTranslation();
   const [analysisStatusFilter, setAnalysisStatusFilter] = useState("all");
   const [selectedRunStatus, setSelectedRunStatus] = useState<AnalysisStatus | null>(null);
+  const [selectedRunReviews, setSelectedRunReviews] = useState<ReportReview[]>([]);
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [selectedRunError, setSelectedRunError] = useState<string | null>(null);
   const filteredAnalysisRuns = useMemo(
@@ -1819,8 +1870,14 @@ function RunsPage({
     try {
       const status = await getAnalysisStatus(run.analysis_id);
       setSelectedRunStatus(status);
+      if (status.report_id) {
+        setSelectedRunReviews(await listReportReviews(status.report_id));
+      } else {
+        setSelectedRunReviews([]);
+      }
     } catch (caught) {
       setSelectedRunStatus(null);
+      setSelectedRunReviews([]);
       setSelectedRunError(caught instanceof Error ? caught.message : t("runs.detailError"));
     } finally {
       setSelectedRunLoading(false);
@@ -1876,6 +1933,7 @@ function RunsPage({
           loading={selectedRunLoading}
           error={selectedRunError}
           onOpenReport={onOpenReport}
+          reviews={selectedRunReviews}
         />
         <Separator />
         {summary ? (
@@ -3061,13 +3119,16 @@ function AnalysisRunDetailPanel({
   loading,
   error,
   onOpenReport,
+  reviews,
 }: {
   status: AnalysisStatus | null;
   loading: boolean;
   error: string | null;
   onOpenReport: (reportId: string) => void;
+  reviews: ReportReview[];
 }) {
   const { t } = useTranslation();
+  const latestReview = reviews[0] ?? null;
   if (!status && !loading && !error) return null;
   return (
     <Card className="border-dashed">
@@ -3102,6 +3163,22 @@ function AnalysisRunDetailPanel({
                 </Alert>
               ) : null}
             </div>
+            {status.report_id ? (
+              <div className="rounded-lg border bg-background p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ClipboardList className="size-4 text-muted-foreground" />
+                  <strong className="text-sm">{t("runs.reviewContext")}</strong>
+                  <Badge variant={latestReview ? "secondary" : "outline"}>
+                    {latestReview ? t("reports.reviewed") : t("reports.notReviewed")}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {latestReview
+                    ? latestReview.notes || t("reports.reviewNoNotes")
+                    : t("runs.reviewContextEmpty")}
+                </p>
+              </div>
+            ) : null}
             {status.failure_diagnostic ? (
               <Alert variant="destructive">
                 <AlertDescription>
