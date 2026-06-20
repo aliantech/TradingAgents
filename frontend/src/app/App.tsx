@@ -721,9 +721,10 @@ export function App() {
                 error={error}
                 status={analysisStatus}
                 config={analysisConfig}
-                onSymbolChange={handleSymbolChange}
+	                onSymbolChange={handleSymbolChange}
 	                onConfigChange={setAnalysisConfig}
 	                onRunAnalysis={handleRunAnalysis}
+	                onOpenReport={(reportId) => void handleOpenReportFromRun(reportId)}
 	              />
               <ResearchContextCard
                 symbol={symbol}
@@ -1870,7 +1871,12 @@ function RunsPage({
           onRetryAnalysis={onRetryAnalysis}
           onInspectRun={(run) => void handleInspectRun(run)}
         />
-        <AnalysisRunDetailPanel status={selectedRunStatus} loading={selectedRunLoading} error={selectedRunError} />
+        <AnalysisRunDetailPanel
+          status={selectedRunStatus}
+          loading={selectedRunLoading}
+          error={selectedRunError}
+          onOpenReport={onOpenReport}
+        />
         <Separator />
         {summary ? (
           <div className="grid grid-cols-5 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -2975,10 +2981,12 @@ function AnalysisRunDetailPanel({
   status,
   loading,
   error,
+  onOpenReport,
 }: {
   status: AnalysisStatus | null;
   loading: boolean;
   error: string | null;
+  onOpenReport: (reportId: string) => void;
 }) {
   const { t } = useTranslation();
   if (!status && !loading && !error) return null;
@@ -3000,7 +3008,20 @@ function AnalysisRunDetailPanel({
               <WorkbenchMetric label="Symbol" value={status.symbol} />
               <WorkbenchMetric label="Status" value={status.status} />
               <WorkbenchMetric label="Asset" value={status.asset_type} />
-              <WorkbenchMetric label="Language" value={status.language} />
+              <WorkbenchMetric label={t("runs.table.report")} value={status.report_id ? status.report_id.slice(0, 8) : "-"} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {status.report_id ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenReport(status.report_id!)}>
+                  <FileText data-icon="inline-start" />
+                  {t("runs.openReport")}
+                </Button>
+              ) : null}
+              {status.status === "failed" && !status.report_id ? (
+                <Alert variant="destructive" className="w-full">
+                  <AlertDescription>{t("runs.noReportFailure")}</AlertDescription>
+                </Alert>
+              ) : null}
             </div>
             <div className="flex flex-col gap-2">
               {status.progress.length > 0 ? (

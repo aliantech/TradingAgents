@@ -161,7 +161,7 @@ Verification completed:
 
 ### Slice 5: Analysis Run Observability UI
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -180,6 +180,20 @@ Verification:
 - Frontend build passes.
 - UI tests or browser smoke cover completed and failed states with mocked API responses.
 - UI copy remains research-only and does not imply trading authority.
+
+Implemented:
+
+- `frontend/src/features/analysis/AnalysisPanel.tsx`.
+- `frontend/src/app/App.tsx`.
+- `frontend/src/i18n/index.ts`.
+- `frontend/e2e/analysis-observability-smoke.spec.ts`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-5-observability-ui.md`.
+
+Verification completed:
+
+- Ubuntu temp-copy frontend build passed.
+- Ubuntu temp-copy analysis observability browser smoke passed: 1 test.
+- Ubuntu temp-copy paper workflow browser smoke passed: 1 test.
 
 ### Slice 6: Phase 7 Completion Audit
 

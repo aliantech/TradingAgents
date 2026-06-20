@@ -149,6 +149,7 @@ i18n.use(initReactI18next).init({
           progressAgentsDetail: "按研究团队配置组织 market、technical、options、risk 等 Agent。",
           progressReport: "Chinese Report",
           progressReportDetail: "生成中文结构化报告，并写入 run/report metadata。",
+          noReportFailure: "本次研究执行失败，未生成报告。请在任务中心查看 progress 并按需重试。",
           agentMarket: "Market Analyst",
           agentFundamental: "Fundamental Analyst",
           agentTechnical: "Technical Analyst",
@@ -444,6 +445,7 @@ i18n.use(initReactI18next).init({
           progressDescription: "来自 analysis status API 的当前步骤和消息。",
           loadingDetail: "加载分析任务详情...",
           noProgress: "暂无 progress event。",
+          noReportFailure: "该分析任务失败且没有报告输出。progress event 保留了失败原因，重试需要人工触发。",
           ops: {
             analysisLane: "Analysis Lane",
             providerLane: "Provider Sync Lane",
@@ -922,6 +924,7 @@ i18n.use(initReactI18next).init({
           progressAgentsDetail: "Route market, technical, options, risk, and other agents according to the selected team.",
           progressReport: "Chinese Report",
           progressReportDetail: "Generate the Chinese structured report and persist run/report metadata.",
+          noReportFailure: "This research run failed and did not generate a report. Check progress in Runs and retry manually if needed.",
           agentMarket: "Market Analyst",
           agentFundamental: "Fundamental Analyst",
           agentTechnical: "Technical Analyst",
@@ -1217,6 +1220,7 @@ i18n.use(initReactI18next).init({
           progressDescription: "Current steps and messages from the analysis status API.",
           loadingDetail: "Loading analysis run detail...",
           noProgress: "No progress events yet.",
+          noReportFailure: "This analysis run failed without a report. Progress events keep the failure reason; retry remains explicit.",
           ops: {
             analysisLane: "Analysis Lane",
             providerLane: "Provider Sync Lane",

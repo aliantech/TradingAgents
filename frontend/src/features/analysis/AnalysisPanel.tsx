@@ -1,7 +1,7 @@
 import type { AnalysisStartPayload, AnalysisStatus } from "../../lib/api";
 import type React from "react";
 import { useTranslation } from "react-i18next";
-import { Bot, CalendarDays, CheckCircle2, CircleDashed, Layers3, Play, ShieldCheck, Workflow } from "lucide-react";
+import { AlertTriangle, Bot, CalendarDays, CheckCircle2, CircleDashed, FileText, Layers3, Play, ShieldCheck, Workflow } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ type AnalysisPanelProps = {
   onSymbolChange: (symbol: string) => void;
   onConfigChange: (config: AnalysisConfig) => void;
   onRunAnalysis: () => void;
+  onOpenReport: (reportId: string) => void;
 };
 
 const MODEL_OPTIONS: Record<string, string[]> = {
@@ -43,6 +44,7 @@ export function AnalysisPanel({
   onSymbolChange,
   onConfigChange,
   onRunAnalysis,
+  onOpenReport,
 }: AnalysisPanelProps) {
   const { t } = useTranslation();
   const modelOptions = MODEL_OPTIONS[config.llmProvider] ?? MODEL_OPTIONS.openai;
@@ -251,8 +253,24 @@ export function AnalysisPanel({
             <div>
               <h3 className="text-sm font-semibold">{t("analysis.progressTitle")}</h3>
             </div>
-            <Badge variant={loading ? "default" : "outline"}>{loading ? t("analysis.running") : runStatus}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              {status?.report_id ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenReport(status.report_id!)}>
+                  <FileText data-icon="inline-start" />
+                  {t("runs.openReport")}
+                </Button>
+              ) : null}
+              <Badge variant={loading ? "default" : runStatus === "failed" ? "destructive" : "outline"}>
+                {loading ? t("analysis.running") : runStatus}
+              </Badge>
+            </div>
           </div>
+          {status?.status === "failed" && !status.report_id ? (
+            <Alert variant="destructive" className="mb-3">
+              <AlertTriangle data-icon="inline-start" />
+              <AlertDescription>{t("analysis.noReportFailure")}</AlertDescription>
+            </Alert>
+          ) : null}
           <div className="flex flex-col gap-3">
             {(status?.progress?.length ? status.progress : defaultProgress(t)).map((event) => (
               <div className="grid grid-cols-[20px_1fr] gap-3 rounded-lg border p-3" key={event.step}>
