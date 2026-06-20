@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
   ColorType,
@@ -85,6 +85,9 @@ type StrategyLabPanelProps = {
   onRefreshMarket: () => void;
 };
 
+type PaperRetryAction = "loadAccounts" | "createDraft" | "riskCheck" | "approve" | "reject" | "submit" | "cancel";
+type WorkflowStepTone = "complete" | "current" | "empty" | "updating";
+
 export function StrategyLabPanel({
   symbol,
   bars,
@@ -124,6 +127,7 @@ export function StrategyLabPanel({
   const [paperIntent, setPaperIntent] = useState<PaperIntentResponse | null>(null);
   const [paperLoading, setPaperLoading] = useState(false);
   const [paperError, setPaperError] = useState<string | null>(null);
+  const [paperRetryAction, setPaperRetryAction] = useState<PaperRetryAction>("loadAccounts");
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
   const selectedStrategy = strategies.find((strategy) => strategy.strategy_id === selectedStrategyId) ?? null;
@@ -354,6 +358,7 @@ export function StrategyLabPanel({
   }
 
   async function loadPaperAccounts() {
+    setPaperRetryAction("loadAccounts");
     setPaperError(null);
     try {
       const response = await listPaperAccounts();
@@ -373,6 +378,7 @@ export function StrategyLabPanel({
 
   async function createPaperDraftFromCandidate(candidate: StrategyExperimentCandidate) {
     setPaperLoading(true);
+    setPaperRetryAction("createDraft");
     setPaperError(null);
     try {
       const account = await ensurePaperAccount();
@@ -393,6 +399,7 @@ export function StrategyLabPanel({
   async function runSelectedPaperRiskCheck() {
     if (!paperIntent) return;
     setPaperLoading(true);
+    setPaperRetryAction("riskCheck");
     setPaperError(null);
     try {
       setPaperIntent(await runPaperIntentRiskCheck(paperIntent.intent));
@@ -406,6 +413,7 @@ export function StrategyLabPanel({
   async function reviewSelectedPaperIntent(decision: "approve" | "reject") {
     if (!paperIntent) return;
     setPaperLoading(true);
+    setPaperRetryAction(decision);
     setPaperError(null);
     try {
       setPaperIntent(await reviewPaperIntent(paperIntent.intent.intent_id, decision));
@@ -419,6 +427,7 @@ export function StrategyLabPanel({
   async function submitSelectedPaperIntent() {
     if (!paperIntent) return;
     setPaperLoading(true);
+    setPaperRetryAction("submit");
     setPaperError(null);
     try {
       setPaperIntent(await submitPaperIntent(paperIntent.intent.intent_id));
@@ -432,6 +441,7 @@ export function StrategyLabPanel({
   async function cancelSelectedPaperIntent() {
     if (!paperIntent) return;
     setPaperLoading(true);
+    setPaperRetryAction("cancel");
     setPaperError(null);
     try {
       setPaperIntent(await cancelPaperIntent(paperIntent.intent.intent_id));
@@ -460,17 +470,50 @@ export function StrategyLabPanel({
     setActiveExperimentId(null);
   }
 
+  function retryPaperAction() {
+    if (!paperIntent || paperRetryAction === "loadAccounts" || paperRetryAction === "createDraft") {
+      void loadPaperAccounts();
+      return;
+    }
+    if (paperRetryAction === "riskCheck") {
+      void runSelectedPaperRiskCheck();
+      return;
+    }
+    if (paperRetryAction === "approve" || paperRetryAction === "reject") {
+      void reviewSelectedPaperIntent(paperRetryAction);
+      return;
+    }
+    if (paperRetryAction === "submit") {
+      void submitSelectedPaperIntent();
+      return;
+    }
+    void cancelSelectedPaperIntent();
+  }
+
   const latestSignal = preview?.signals[preview.signals.length - 1];
   const tradeCount = preview?.backtest.trades.length ?? 0;
   const markerCount = preview?.overlay.markers.length ?? 0;
   const activeExperiment = experiments.find((experiment) => experiment.experiment_id === activeExperimentId);
   const buyCount = preview?.signals.filter((row) => row.signal === 1).length ?? 0;
   const exitCount = preview?.signals.filter((row) => row.signal === -1).length ?? 0;
+  const paperActionState = paperIntent ? getPaperActionState(paperIntent) : null;
+  const paperActionDetailsId = useId();
+  const paperDisabledReasons = paperIntent && paperActionState ? getPaperDisabledReasons(paperIntent, paperActionState) : [];
+  const candidateStepValue = candidatesLoading ? "Updating" : candidates.length > 0 ? `${candidates.length} ready` : "No candidates";
+  const candidateStepTone: WorkflowStepTone = candidatesLoading ? "updating" : candidates.length > 0 ? "complete" : "empty";
+  const paperStepValue = paperIntent ? paperIntentStatusLabel(paperIntent.intent.status) : "No draft";
+  const paperStepTone: WorkflowStepTone = paperLoading
+    ? "updating"
+    : paperIntent?.intent.status === "paper_filled"
+      ? "complete"
+      : paperIntent
+        ? "current"
+        : "empty";
   const workflowSteps = [
-    { label: "Catalog", value: selectedStrategy?.name ?? "Loading" },
-    { label: "Preview", value: loading ? "Updating" : canPreview ? "Live" : "Waiting" },
-    { label: "Experiment", value: activeExperiment ? reviewStatusLabel(activeExperiment.review_status) : "Draft" },
-    { label: "Report", value: latestReport ? "Linked" : "Unlinked" },
+    { label: "Catalog", value: selectedStrategy?.name ?? "Loading", tone: selectedStrategy ? "complete" : "updating" },
+    { label: "Preview", value: loading ? "Updating" : preview ? "Live" : canPreview ? "Ready" : "Waiting", tone: loading ? "updating" : preview ? "complete" : canPreview ? "current" : "empty" },
+    { label: "Candidate", value: candidateStepValue, tone: candidateStepTone },
+    { label: "Paper", value: paperStepValue, tone: paperStepTone },
   ];
 
   return (
@@ -504,7 +547,7 @@ export function StrategyLabPanel({
         </div>
         <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
           {workflowSteps.map((step) => (
-            <WorkflowStep key={step.label} label={step.label} value={step.value} />
+            <WorkflowStep key={step.label} label={step.label} value={step.value} tone={step.tone as WorkflowStepTone} />
           ))}
         </div>
       </section>
@@ -530,9 +573,11 @@ export function StrategyLabPanel({
                 </div>
               </div>
               {catalogError ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{catalogError}</AlertDescription>
-                </Alert>
+                <RetryAlert
+                  message={catalogError}
+                  actionLabel="Reload catalog"
+                  onRetry={() => void loadCatalog()}
+                />
               ) : null}
               <div className="grid gap-3">
                 <label className="grid gap-1">
@@ -610,9 +655,13 @@ export function StrategyLabPanel({
                 </Alert>
               ) : null}
               {error ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+                <RetryAlert
+                  message={error}
+                  actionLabel="Refresh preview"
+                  onRetry={() => {
+                    if (canPreview) void loadPreview();
+                  }}
+                />
               ) : null}
             </CardContent>
           </Card>
@@ -755,12 +804,14 @@ export function StrategyLabPanel({
                 </select>
               </label>
               {experimentsError ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{experimentsError}</AlertDescription>
-                </Alert>
+                <RetryAlert
+                  message={experimentsError}
+                  actionLabel="Reload experiments"
+                  onRetry={() => void loadExperiments()}
+                />
               ) : null}
               {experimentsLoading ? (
-                <p className="text-sm text-muted-foreground">Loading experiments.</p>
+                <LoadingRows label="Loading experiments" />
               ) : experiments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No saved experiments for {symbol.toUpperCase()} yet.</p>
               ) : (
@@ -791,6 +842,9 @@ export function StrategyLabPanel({
             comparisonError={comparisonError}
             baseTitle={experiments.find((experiment) => experiment.experiment_id === compareBaseId)?.title ?? null}
             candidateTitle={experiments.find((experiment) => experiment.experiment_id === compareCandidateId)?.title ?? null}
+            onRetry={() => {
+              if (compareBaseId && compareCandidateId) void loadComparison(compareBaseId, compareCandidateId);
+            }}
           />
         </aside>
       </div>
@@ -831,12 +885,14 @@ export function StrategyLabPanel({
             </label>
           </div>
           {candidatesError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{candidatesError}</AlertDescription>
-            </Alert>
+            <RetryAlert
+              message={candidatesError}
+              actionLabel="Reload candidates"
+              onRetry={() => void loadCandidates()}
+            />
           ) : null}
           {candidatesLoading ? (
-            <p className="text-sm text-muted-foreground">Loading candidates.</p>
+            <LoadingRows label="Loading candidates" />
           ) : candidates.length === 0 ? (
             <p className="text-sm text-muted-foreground">No candidate experiments for {symbol.toUpperCase()}.</p>
           ) : (
@@ -849,7 +905,7 @@ export function StrategyLabPanel({
                     <TableHead>Trades</TableHead>
                     <TableHead>Checklist</TableHead>
                     <TableHead>Tags</TableHead>
-                    <TableHead className="w-[280px]">Actions</TableHead>
+                    <TableHead className="w-[300px]">Candidate actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -882,19 +938,33 @@ export function StrategyLabPanel({
         </CardHeader>
         <CardContent className="grid gap-3">
           {paperError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{paperError}</AlertDescription>
-            </Alert>
+            <RetryAlert
+              message={paperError}
+              actionLabel={paperRetryActionLabel(paperIntent, paperRetryAction)}
+              onRetry={retryPaperAction}
+            />
           ) : null}
           {!paperIntent ? (
             <p className="text-sm text-muted-foreground">Select Paper Draft from a candidate experiment to start a paper-only review.</p>
           ) : (
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="rounded-md border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{paperIntent.scope}</Badge>
-                  <Badge variant="secondary">{paperIntent.intent.status}</Badge>
-                  <span className="text-sm font-medium">{paperIntent.intent.symbol}</span>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{paperIntent.scope}</Badge>
+                      <Badge variant={paperIntent.intent.status === "risk_rejected" ? "destructive" : "secondary"}>
+                        {paperIntentStatusLabel(paperIntent.intent.status)}
+                      </Badge>
+                      <span className="text-sm font-medium">{paperIntent.intent.symbol}</span>
+                    </div>
+                    <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">
+                      Local paper simulation only. This review does not connect to a broker, live account, or automatic execution path.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="shrink-0">
+                    Human gated
+                  </Badge>
                 </div>
                 <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
                   <MetricTile label="Side" value={paperIntent.intent.side} compact />
@@ -913,42 +983,91 @@ export function StrategyLabPanel({
                     </div>
                   </div>
                 ) : null}
+                {paperActionState ? (
+                  <div id={paperActionDetailsId} className="mt-3 rounded-md border bg-muted/20 p-3 text-sm" aria-live="polite">
+                    <div className="flex items-center gap-2 font-medium">
+                      <ShieldCheck className="size-4" />
+                      Next paper step
+                    </div>
+                    <p className="mt-1 text-muted-foreground">{paperActionState.nextStep}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{paperActionState.blocker}</p>
+                    {paperDisabledReasons.length > 0 ? (
+                      <div className="mt-3 border-t pt-2 text-xs text-muted-foreground">
+                        <div className="font-medium text-foreground">Locked controls</div>
+                        <ul className="mt-1 list-disc space-y-1 pl-4">
+                          {paperDisabledReasons.map((item) => (
+                            <li key={item.label}>
+                              <span className="font-medium text-foreground">{item.label}:</span> {item.reason}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
-              <div className="grid content-start gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void runSelectedPaperRiskCheck()}
-                  disabled={paperLoading || paperIntent.intent.status === "paper_filled" || paperIntent.intent.status === "paper_cancelled"}
-                >
-                  Run RiskGuard
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void reviewSelectedPaperIntent("approve")}
-                  disabled={paperLoading || paperIntent.latest_risk_decision?.result !== "pass"}
-                >
-                  Approve Paper
-                </Button>
-                <Button type="button" variant="outline" onClick={() => void reviewSelectedPaperIntent("reject")} disabled={paperLoading}>
-                  Reject Paper
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => void submitSelectedPaperIntent()}
-                  disabled={paperLoading || paperIntent.intent.status !== "approved_for_paper"}
-                >
-                  Paper Submit
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void cancelSelectedPaperIntent()}
-                  disabled={paperLoading || paperIntent.intent.status === "paper_filled" || paperIntent.intent.status === "paper_cancelled"}
-                >
-                  Cancel Paper
-                </Button>
+              <div className="grid content-start gap-3 rounded-md border bg-muted/20 p-3">
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Review gate</div>
+                  <div className="mt-2 grid gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 whitespace-normal sm:min-h-0 sm:whitespace-nowrap"
+                      onClick={() => void runSelectedPaperRiskCheck()}
+                      disabled={paperLoading || !paperActionState?.canRiskCheck}
+                      aria-describedby={paperActionDetailsId}
+                    >
+                      {paperLoading ? "Updating" : "Run RiskGuard"}
+                    </Button>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11 whitespace-normal sm:min-h-0 sm:whitespace-nowrap"
+                        onClick={() => void reviewSelectedPaperIntent("approve")}
+                        disabled={paperLoading || !paperActionState?.canApprove}
+                        aria-describedby={paperActionDetailsId}
+                      >
+                        Approve Paper
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11 whitespace-normal sm:min-h-0 sm:whitespace-nowrap"
+                        onClick={() => void reviewSelectedPaperIntent("reject")}
+                        disabled={paperLoading || !paperActionState?.canReject}
+                        aria-describedby={paperActionDetailsId}
+                      >
+                        Reject Paper
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t pt-3">
+                  <div className="text-xs font-medium text-muted-foreground">Paper simulation</div>
+                  <div className="mt-2 grid gap-2">
+                    <Button
+                      type="button"
+                      className="min-h-11 whitespace-normal sm:min-h-0 sm:whitespace-nowrap"
+                      onClick={() => void submitSelectedPaperIntent()}
+                      disabled={paperLoading || !paperActionState?.canSubmit}
+                      aria-describedby={paperActionDetailsId}
+                    >
+                      Paper Submit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 whitespace-normal sm:min-h-0 sm:whitespace-nowrap"
+                      onClick={() => void cancelSelectedPaperIntent()}
+                      disabled={paperLoading || !paperActionState?.canCancel}
+                      aria-describedby={paperActionDetailsId}
+                    >
+                      Cancel Paper
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -986,7 +1105,7 @@ export function StrategyLabPanel({
         </CardHeader>
         <CardContent>
           {experimentsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading experiments.</p>
+            <LoadingRows label="Loading experiments" />
           ) : experiments.length === 0 ? (
             <p className="text-sm text-muted-foreground">No saved experiments for {symbol.toUpperCase()} yet.</p>
           ) : (
@@ -999,7 +1118,7 @@ export function StrategyLabPanel({
                     <TableHead>Windows</TableHead>
                     <TableHead>Final Equity</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="w-[330px]">Actions</TableHead>
+                    <TableHead className="w-[260px]">Compare / archive</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1018,70 +1137,58 @@ export function StrategyLabPanel({
                       <TableCell className="whitespace-nowrap">{formatCurrency(experiment.preview.backtest.final_equity)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatTime(experiment.created_at)}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={compareBaseId === experiment.experiment_id ? "default" : "outline"}
-                            aria-label={`Use ${experiment.title} as comparison A`}
-                            onClick={() => setCompareBaseId(experiment.experiment_id)}
-                          >
-                            A
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={compareCandidateId === experiment.experiment_id ? "default" : "outline"}
-                            aria-label={`Use ${experiment.title} as comparison B`}
-                            onClick={() => setCompareCandidateId(experiment.experiment_id)}
-                          >
-                            B
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            aria-label={`Open ${experiment.title}`}
-                            onClick={() => void openExperiment(experiment.experiment_id)}
-                          >
-                            Open
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="outline"
-                            aria-label={`Duplicate ${experiment.title}`}
-                            onClick={() => void duplicateExperiment(experiment.experiment_id)}
-                          >
-                            <Copy className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="outline"
-                            aria-label={experiment.archived ? `Restore ${experiment.title}` : `Archive ${experiment.title}`}
-                            onClick={() => void setExperimentArchived(experiment, !experiment.archived)}
-                          >
-                            {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={experiment.review_status === "candidate" ? "default" : "outline"}
-                            aria-label={`Mark ${experiment.title} as candidate`}
-                            onClick={() => void setExperimentReviewStatus(experiment, "candidate")}
-                          >
-                            <BadgeCheck className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={experiment.review_status === "rejected" ? "destructive" : "outline"}
-                            aria-label={`Reject ${experiment.title}`}
-                            onClick={() => void setExperimentReviewStatus(experiment, "rejected")}
-                          >
-                            <XCircle className="size-4" />
-                          </Button>
+                        <div className="grid gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="w-14 text-xs text-muted-foreground">Compare</span>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant={compareBaseId === experiment.experiment_id ? "default" : "outline"}
+                              aria-label={`Use ${experiment.title} as comparison A`}
+                              onClick={() => setCompareBaseId(experiment.experiment_id)}
+                            >
+                              A
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant={compareCandidateId === experiment.experiment_id ? "default" : "outline"}
+                              aria-label={`Use ${experiment.title} as comparison B`}
+                              onClick={() => setCompareCandidateId(experiment.experiment_id)}
+                            >
+                              B
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              aria-label={`Open ${experiment.title}`}
+                              onClick={() => void openExperiment(experiment.experiment_id)}
+                            >
+                              Open
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="w-14 text-xs text-muted-foreground">Manage</span>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              aria-label={`Duplicate ${experiment.title}`}
+                              onClick={() => void duplicateExperiment(experiment.experiment_id)}
+                            >
+                              <Copy className="size-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              aria-label={experiment.archived ? `Restore ${experiment.title}` : `Archive ${experiment.title}`}
+                              onClick={() => void setExperimentArchived(experiment, !experiment.archived)}
+                            >
+                              {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                            </Button>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1096,14 +1203,57 @@ export function StrategyLabPanel({
   );
 }
 
-function WorkflowStep({ label, value }: { label: string; value: string }) {
+function WorkflowStep({ label, value, tone }: { label: string; value: string; tone: WorkflowStepTone }) {
+  const indicator =
+    tone === "complete" ? (
+      <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+    ) : tone === "updating" ? (
+      <RefreshCw className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+    ) : tone === "current" ? (
+      <Activity className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+    ) : (
+      <span className="size-4 shrink-0 rounded-full border border-muted-foreground/40" aria-hidden="true" />
+    );
   return (
     <div className="flex min-h-16 items-center gap-3 rounded-md border bg-muted/20 p-3">
-      <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      {indicator}
       <div className="min-w-0">
         <div className="text-xs text-muted-foreground">{label}</div>
         <div className="mt-1 truncate text-sm font-medium">{value}</div>
       </div>
+    </div>
+  );
+}
+
+function RetryAlert({
+  message,
+  actionLabel,
+  onRetry,
+}: {
+  message: string;
+  actionLabel: string;
+  onRetry: () => void;
+}) {
+  return (
+    <Alert variant="destructive">
+      <AlertDescription>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="min-w-0">{message}</span>
+          <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={onRetry}>
+            {actionLabel}
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function LoadingRows({ label, rows = 3 }: { label: string; rows?: number }) {
+  return (
+    <div className="grid gap-2" aria-label={label}>
+      {Array.from({ length: rows }, (_, index) => (
+        <div key={index} className="h-9 animate-pulse rounded-md bg-muted/40" />
+      ))}
     </div>
   );
 }
@@ -1162,73 +1312,82 @@ function ExperimentRailItem({
           compact
         />
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={onOpen}>
-          Open
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={compareBaseSelected ? "default" : "outline"}
-          aria-label={`Use ${experiment.title} as comparison A`}
-          onClick={onUseAsBase}
-        >
-          A
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={compareCandidateSelected ? "default" : "outline"}
-          aria-label={`Use ${experiment.title} as comparison B`}
-          onClick={onUseAsCandidate}
-        >
-          B
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          aria-label={`Duplicate ${experiment.title}`}
-          onClick={onDuplicate}
-        >
-          <Copy className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          aria-label={experiment.archived ? `Restore ${experiment.title}` : `Archive ${experiment.title}`}
-          onClick={onArchive}
-        >
-          {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={experiment.review_status === "reviewed" ? "default" : "outline"}
-          aria-label={`Mark ${experiment.title} as reviewed`}
-          onClick={() => onReview("reviewed")}
-        >
-          <CheckCircle2 className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={experiment.review_status === "candidate" ? "default" : "outline"}
-          aria-label={`Mark ${experiment.title} as candidate`}
-          onClick={() => onReview("candidate")}
-        >
-          <BadgeCheck className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={experiment.review_status === "rejected" ? "destructive" : "outline"}
-          aria-label={`Reject ${experiment.title}`}
-          onClick={() => onReview("rejected")}
-        >
-          <XCircle className="size-4" />
-        </Button>
+      <div className="mt-3 grid gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 text-xs text-muted-foreground">Compare</span>
+          <Button type="button" size="sm" variant="outline" onClick={onOpen}>
+            Open
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={compareBaseSelected ? "default" : "outline"}
+            aria-label={`Use ${experiment.title} as comparison A`}
+            onClick={onUseAsBase}
+          >
+            A
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={compareCandidateSelected ? "default" : "outline"}
+            aria-label={`Use ${experiment.title} as comparison B`}
+            onClick={onUseAsCandidate}
+          >
+            B
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 text-xs text-muted-foreground">Manage</span>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            aria-label={`Duplicate ${experiment.title}`}
+            onClick={onDuplicate}
+          >
+            <Copy className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            aria-label={experiment.archived ? `Restore ${experiment.title}` : `Archive ${experiment.title}`}
+            onClick={onArchive}
+          >
+            {experiment.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-14 text-xs text-muted-foreground">Review</span>
+          <Button
+            type="button"
+            size="icon"
+            variant={experiment.review_status === "reviewed" ? "default" : "outline"}
+            aria-label={`Mark ${experiment.title} as reviewed`}
+            onClick={() => onReview("reviewed")}
+          >
+            <CheckCircle2 className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={experiment.review_status === "candidate" ? "default" : "outline"}
+            aria-label={`Mark ${experiment.title} as candidate`}
+            onClick={() => onReview("candidate")}
+          >
+            <BadgeCheck className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={experiment.review_status === "rejected" ? "destructive" : "outline"}
+            aria-label={`Reject ${experiment.title}`}
+            onClick={() => onReview("rejected")}
+          >
+            <XCircle className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1312,45 +1471,51 @@ function CandidateBoardRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={onOpen}>
-            Open
-          </Button>
-          <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison A`} onClick={onUseAsBase}>
-            A
-          </Button>
-          <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison B`} onClick={onUseAsCandidate}>
-            B
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="gap-2"
-            disabled={paperLoading}
-            onClick={onCreatePaperDraft}
-          >
-            <ClipboardCheck className="size-4" />
-            Paper Draft
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            aria-label={`Archive ${candidate.title}`}
-            onClick={onArchive}
-          >
-            <Archive className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="destructive"
-            aria-label={`Reject ${candidate.title}`}
-            onClick={onReject}
-          >
-            <XCircle className="size-4" />
-          </Button>
+        <div className="grid gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-14 text-xs text-muted-foreground">Compare</span>
+            <Button type="button" size="sm" variant="outline" onClick={onOpen}>
+              Open
+            </Button>
+            <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison A`} onClick={onUseAsBase}>
+              A
+            </Button>
+            <Button type="button" size="icon" variant="outline" aria-label={`Use ${candidate.title} as comparison B`} onClick={onUseAsCandidate}>
+              B
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-14 text-xs text-muted-foreground">Review</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={paperLoading}
+              onClick={onCreatePaperDraft}
+            >
+              <ClipboardCheck className="size-4" />
+              Paper Draft
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label={`Archive ${candidate.title}`}
+              onClick={onArchive}
+            >
+              <Archive className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="destructive"
+              aria-label={`Reject ${candidate.title}`}
+              onClick={onReject}
+            >
+              <XCircle className="size-4" />
+            </Button>
+          </div>
         </div>
       </TableCell>
     </TableRow>
@@ -1417,12 +1582,14 @@ function ExperimentComparisonPanel({
   comparisonError,
   baseTitle,
   candidateTitle,
+  onRetry,
 }: {
   comparison: StrategyExperimentComparison | null;
   comparisonLoading: boolean;
   comparisonError: string | null;
   baseTitle: string | null;
   candidateTitle: string | null;
+  onRetry: () => void;
 }) {
   if (!baseTitle && !candidateTitle && !comparisonError) {
     return null;
@@ -1448,9 +1615,7 @@ function ExperimentComparisonPanel({
         </div>
       </div>
       {comparisonError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{comparisonError}</AlertDescription>
-        </Alert>
+        <RetryAlert message={comparisonError} actionLabel="Retry comparison" onRetry={onRetry} />
       ) : comparisonLoading ? (
         <p className="text-sm text-muted-foreground">Comparing experiments.</p>
       ) : comparison ? (
@@ -1513,6 +1678,8 @@ function StrategyOverlayChart({
   const markers = useMemo(() => toStrategyMarkers(preview), [preview]);
   const fastMa = useMemo(() => toMovingAverageData(candleData, fastWindow), [candleData, fastWindow]);
   const slowMa = useMemo(() => toMovingAverageData(candleData, slowWindow), [candleData, slowWindow]);
+  const chartSummaryId = useId();
+  const chartSummary = preview ? getStrategyChartSummary(preview, candleData, markers, fastWindow, slowWindow) : "";
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -1599,10 +1766,42 @@ function StrategyOverlayChart({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border bg-background">
-      <div ref={chartContainerRef} className="h-[360px] min-w-0" aria-label={`${preview.overlay.symbol} strategy candlestick overlay`} />
-    </div>
+    <figure className="overflow-hidden rounded-md border bg-background">
+      <div
+        ref={chartContainerRef}
+        className="h-[360px] min-w-0"
+        role="img"
+        aria-label={`${preview.overlay.symbol} strategy candlestick overlay`}
+        aria-describedby={chartSummaryId}
+      />
+      <figcaption id={chartSummaryId} className="sr-only">
+        {chartSummary}
+      </figcaption>
+    </figure>
   );
+}
+
+function getStrategyChartSummary(
+  preview: StrategyPreviewResponse,
+  candleData: CandlestickData<Time>[],
+  markers: SeriesMarker<Time>[],
+  fastWindow: number,
+  slowWindow: number,
+) {
+  const firstBar = candleData[0];
+  const lastBar = candleData[candleData.length - 1];
+  const buyMarkers = markers.filter((marker) => marker.text === "BUY").length;
+  const exitMarkers = markers.filter((marker) => marker.text === "EXIT").length;
+  const lastSignal = preview.signals[preview.signals.length - 1];
+  const lastSignalLabel = lastSignal ? signalLabel(lastSignal.signal) : "none";
+
+  return [
+    `${preview.overlay.symbol} research-only candlestick chart with ${candleData.length} bars.`,
+    `Fast moving average window ${fastWindow}; slow moving average window ${slowWindow}.`,
+    `First close ${firstBar ? formatCurrency(firstBar.close) : "-"}; latest close ${lastBar ? formatCurrency(lastBar.close) : "-"}.`,
+    `${buyMarkers} buy markers and ${exitMarkers} exit markers are shown.`,
+    `Latest signal ${lastSignalLabel}; backtest return ${preview.backtest.return_pct}%; final equity ${formatCurrency(preview.backtest.final_equity)} across ${preview.backtest.trades.length} trades.`,
+  ].join(" ");
 }
 
 function MetricTile({
@@ -1628,6 +1827,169 @@ function MetricTile({
       <div className={`${compact ? "text-sm" : "text-lg"} mt-1 truncate font-semibold ${toneClass}`}>{value}</div>
     </div>
   );
+}
+
+type PaperActionState = {
+  canRiskCheck: boolean;
+  canApprove: boolean;
+  canReject: boolean;
+  canSubmit: boolean;
+  canCancel: boolean;
+  nextStep: string;
+  blocker: string;
+};
+
+function getPaperDisabledReasons(
+  paperIntent: PaperIntentResponse,
+  paperActionState: PaperActionState,
+): Array<{ label: string; reason: string }> {
+  const status = paperIntent.intent.status;
+  const riskResult = paperIntent.latest_risk_decision?.result ?? null;
+  const reasons: Array<{ label: string; reason: string }> = [];
+  if (!paperActionState.canRiskCheck) {
+    reasons.push({ label: "Run RiskGuard", reason: paperActionState.blocker });
+  }
+  if (!paperActionState.canApprove) {
+    const reason =
+      status === "approved_for_paper"
+        ? "This paper intent has already been approved."
+        : status === "paper_submitted" || status === "paper_filled" || status === "paper_cancelled"
+          ? "This paper intent is past the human review step."
+          : riskResult === "reject" || status === "risk_rejected"
+            ? "RiskGuard rejected this paper intent."
+            : "RiskGuard must pass before human approval is available.";
+    reasons.push({ label: "Approve Paper", reason });
+  }
+  if (!paperActionState.canReject) {
+    const reason =
+      status === "draft"
+        ? "Run RiskGuard before rejecting during review."
+        : status === "paper_submitted" || status === "paper_filled" || status === "paper_cancelled"
+          ? "This paper intent is past the human review step."
+          : "There is no reviewed paper intent to reject yet.";
+    reasons.push({ label: "Reject Paper", reason });
+  }
+  if (!paperActionState.canSubmit) {
+    const reason =
+      status === "paper_submitted" || status === "paper_filled" || status === "paper_cancelled"
+        ? "This paper intent has already left the submit step."
+        : "Human approval must unlock local paper submission first.";
+    reasons.push({ label: "Paper Submit", reason });
+  }
+  if (!paperActionState.canCancel) {
+    reasons.push({ label: "Cancel Paper", reason: "Terminal paper intents can no longer be cancelled." });
+  }
+  return reasons;
+}
+
+function getPaperActionState(paperIntent: PaperIntentResponse): PaperActionState {
+  const status = paperIntent.intent.status;
+  const terminal = status === "paper_filled" || status === "paper_cancelled";
+  const riskResult = paperIntent.latest_risk_decision?.result ?? null;
+  const canApprove = status === "awaiting_review" && riskResult === "pass";
+  const canSubmit = status === "approved_for_paper";
+  const canCancel = !terminal;
+
+  if (status === "paper_filled") {
+    return {
+      canRiskCheck: false,
+      canApprove: false,
+      canReject: false,
+      canSubmit: false,
+      canCancel: false,
+      nextStep: "Paper simulation is complete.",
+      blocker: "This intent was filled locally and can no longer be changed.",
+    };
+  }
+
+  if (status === "paper_cancelled") {
+    return {
+      canRiskCheck: false,
+      canApprove: false,
+      canReject: false,
+      canSubmit: false,
+      canCancel: false,
+      nextStep: "Paper intent is cancelled.",
+      blocker: "Create a new paper draft from a candidate to continue.",
+    };
+  }
+
+  if (riskResult === "reject" || status === "risk_rejected") {
+    return {
+      canRiskCheck: true,
+      canApprove: false,
+      canReject: true,
+      canSubmit: false,
+      canCancel,
+      nextStep: "RiskGuard rejected this paper intent.",
+      blocker: "Review the reason codes, reject or cancel this paper intent, or adjust the candidate before creating a new draft.",
+    };
+  }
+
+  if (status === "paper_submitted") {
+    return {
+      canRiskCheck: false,
+      canApprove: false,
+      canReject: false,
+      canSubmit: false,
+      canCancel,
+      nextStep: "Submitted to the local paper adapter.",
+      blocker: "Wait for the simulated fill result or cancel if this paper intent should not continue.",
+    };
+  }
+
+  if (canSubmit) {
+    return {
+      canRiskCheck: true,
+      canApprove: false,
+      canReject: true,
+      canSubmit: true,
+      canCancel,
+      nextStep: "Approved for paper simulation.",
+      blocker: "Paper Submit will only use the local deterministic paper adapter; no broker or live account is involved.",
+    };
+  }
+
+  if (canApprove) {
+    return {
+      canRiskCheck: true,
+      canApprove: true,
+      canReject: true,
+      canSubmit: false,
+      canCancel,
+      nextStep: "Human approval is required before paper submit.",
+      blocker: "Approve Paper enables the local paper simulation submit step.",
+    };
+  }
+
+  return {
+    canRiskCheck: true,
+    canApprove: false,
+    canReject: status !== "draft",
+    canSubmit: false,
+    canCancel,
+    nextStep: "Run RiskGuard before human paper approval.",
+    blocker: "Approval and paper submit stay locked until RiskGuard returns a pass decision.",
+  };
+}
+
+function paperIntentStatusLabel(status: PaperIntentResponse["intent"]["status"]) {
+  if (status === "risk_rejected") return "Risk rejected";
+  if (status === "awaiting_review") return "Awaiting review";
+  if (status === "approved_for_paper") return "Approved for paper";
+  if (status === "paper_submitted") return "Paper submitted";
+  if (status === "paper_filled") return "Paper filled";
+  if (status === "paper_cancelled") return "Paper cancelled";
+  return "Draft";
+}
+
+function paperRetryActionLabel(paperIntent: PaperIntentResponse | null, action: PaperRetryAction) {
+  if (!paperIntent || action === "loadAccounts" || action === "createDraft") return "Reload accounts";
+  if (action === "riskCheck") return "Run RiskGuard";
+  if (action === "approve") return "Approve Paper";
+  if (action === "reject") return "Reject Paper";
+  if (action === "submit") return "Paper Submit";
+  return "Cancel Paper";
 }
 
 function signalTone(signal: number): "neutral" | "positive" | "negative" {
