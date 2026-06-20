@@ -57,7 +57,7 @@ Verification:
 
 ### Slice 2: Provider Readiness Check
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -70,9 +70,16 @@ Verification:
 - No secret value, `.env` content, environment dump, provider request payload, or provider raw response is recorded.
 - No wrapper run occurs if readiness is not confirmed.
 
+Result:
+
+- Readiness result: `not_ready`.
+- Missing readiness gate: `OPENAI_API_KEY`.
+- Evidence record: `docs/operations/phase-11-provider-readiness-check.md`.
+- The approved wrapper was not executed because readiness was not confirmed.
+
 ### Slice 3: Repeat SPY Guarded Real-Runner Smoke
 
-Status: planned.
+Status: waiting on provider readiness.
 
 Goal:
 
