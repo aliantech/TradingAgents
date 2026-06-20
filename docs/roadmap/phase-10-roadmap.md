@@ -59,7 +59,7 @@ Verification:
 
 ### Slice 2: Deterministic Baseline Review
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -68,6 +68,11 @@ Goal:
 Expected first case:
 
 - `SPY` macro/options read-through.
+
+Deliverables:
+
+- SPY deterministic baseline review record in `docs/operations/phase-10-spy-deterministic-baseline-review.md`.
+- Slice 2 implementation plan.
 
 Verification:
 
