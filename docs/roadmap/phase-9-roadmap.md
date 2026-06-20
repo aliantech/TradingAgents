@@ -141,7 +141,7 @@ Verification:
 
 ### Slice 5: Manual Provider Pilot SOP
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -153,6 +153,12 @@ Expected coverage:
 - Requires explicit runtime gate and operator-provided environment.
 - Records only non-secret metadata, output quality notes, and residual risks.
 - Does not run in CI or scheduled jobs.
+
+Deliverables:
+
+- Manual provider pilot SOP in `docs/operations/phase-9-manual-provider-pilot.md`.
+- Slice 5 implementation plan.
+- Explicit stop conditions for secrets, unguarded execution, broker access, scheduled jobs, and automatic retries.
 
 Verification:
 
