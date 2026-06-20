@@ -99,7 +99,7 @@ Verification completed:
 
 ### Slice 3: Manual Real-Runner Smoke Command
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -117,6 +117,22 @@ Verification:
 - Automated tests mock the real runner and prove gate behavior.
 - Manual smoke instructions are documented but not run automatically.
 - Safety grep proves no secrets are read or printed by tests/docs.
+
+Implemented:
+
+- `backend/app/analysis/cli.py`.
+- `backend/tests/test_analysis_cli_real_runner_smoke.py`.
+- `backend/tests/test_phase8_real_runner_smoke_script.py`.
+- `scripts/phase8_real_runner_smoke.sh`.
+- `docs/operations/phase-8-real-runner-smoke.md`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-3-real-runner-smoke.md`.
+
+Verification completed:
+
+- Ubuntu temp-copy focused tests passed: 7 tests.
+- Ubuntu temp-copy backend full regression passed: 242 tests.
+- Ubuntu temp-copy manual CLI not-ready path returned `status=not_ready` before any provider call.
+- Manual smoke instructions are documented and remain operator-triggered only.
 
 ### Slice 4: Report Quality Contract
 
