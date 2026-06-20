@@ -66,6 +66,8 @@ def build_real_tradingagents_config(
             "checkpoint_enabled": False,
             "tool_vendors": {
                 **config.get("tool_vendors", {}),
+                "get_macro_indicators": "macro_unavailable",
+                "get_indicators": "direct_yahoo_chart",
                 "get_stock_data": "direct_yahoo_chart",
             },
         }

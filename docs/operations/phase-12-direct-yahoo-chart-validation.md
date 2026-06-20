@@ -37,14 +37,17 @@ Added:
 - `tradingagents/dataflows/direct_yahoo_chart.py`
 - `direct_yahoo_chart` vendor registration in `tradingagents/dataflows/interface.py`
 - real-runner config override in `backend/app/analysis/tradingagents_runner.py`
+- direct Yahoo chart support for technical indicator OHLCV through `stockstats_utils.load_ohlcv`
+- explicit `macro_unavailable` vendor for manual smoke runs without `FRED_API_KEY`
 
 Runtime routing change:
 
 - `get_stock_data` now routes to `direct_yahoo_chart` for real TradingAgents runner config.
+- `get_indicators` now routes to `direct_yahoo_chart` for real TradingAgents runner config.
+- `get_macro_indicators` now routes to `macro_unavailable` for real TradingAgents runner config.
 
 Scope intentionally left unchanged:
 
-- Technical indicators remain on existing configured vendors.
 - Fundamentals remain on existing configured vendors.
 - News remains on existing configured vendors.
 - Deterministic runner remains the default.
@@ -68,7 +71,7 @@ tests/test_dataflows_config.py
 Result:
 
 ```text
-13 passed
+28 passed
 ```
 
 Backend config tests:
@@ -99,7 +102,7 @@ Data source: Yahoo Finance chart endpoint
 
 ## Decision
 
-Proceed to repeat the guarded `SPY` real-runner smoke after this market-data fix is committed.
+The guarded `SPY` real-runner smoke can proceed after the core OHLCV and technical-indicator OHLCV paths both avoid the yfinance `fc.yahoo.com` route.
 
 Do not expand to `QQQ` yet.
 

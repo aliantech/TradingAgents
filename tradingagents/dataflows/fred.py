@@ -215,3 +215,16 @@ def get_macro_data(
     )
 
     return header + summary + note + table
+
+
+def get_macro_data_unavailable(
+    indicator: str,
+    curr_date: str,
+    look_back_days: int | None = None,
+) -> str:
+    window = f", look_back_days={look_back_days}" if look_back_days is not None else ""
+    return (
+        "NO_DATA_AVAILABLE: FRED macro data is not configured for this manual "
+        f"research run (indicator={indicator}, curr_date={curr_date}{window}). "
+        "Do not fabricate macro values; state that the macro series is unavailable."
+    )

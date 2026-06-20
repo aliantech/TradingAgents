@@ -58,6 +58,8 @@ def test_real_runner_config_reads_runtime_settings():
     assert config["max_debate_rounds"] == 2
     assert config["max_risk_discuss_rounds"] == 3
     assert config["checkpoint_enabled"] is False
+    assert config["tool_vendors"]["get_macro_indicators"] == "macro_unavailable"
+    assert config["tool_vendors"]["get_indicators"] == "direct_yahoo_chart"
     assert config["tool_vendors"]["get_stock_data"] == "direct_yahoo_chart"
 
 

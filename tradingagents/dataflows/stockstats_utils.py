@@ -148,9 +148,11 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     end_str = (today_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
     os.makedirs(config["data_cache_dir"], exist_ok=True)
+    use_direct_yahoo_chart = _use_direct_yahoo_chart_for_indicators(config)
+    source_label = "DirectYahooChart" if use_direct_yahoo_chart else "YFin"
     data_file = os.path.join(
         config["data_cache_dir"],
-        f"{safe_symbol}-YFin-data-{start_str}-{end_str}.csv",
+        f"{safe_symbol}-{source_label}-data-{start_str}-{end_str}.csv",
     )
 
     # A cached file may be empty if a prior fetch failed (unknown symbol,
@@ -163,15 +165,22 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
             data = cached
 
     if data is None:
-        downloaded = yf_retry(lambda: yf.download(
-            canonical,
-            start=start_str,
-            end=end_str,
-            multi_level_index=False,
-            progress=False,
-            auto_adjust=True,
-        ))
-        downloaded = _ensure_date_column(downloaded.reset_index())
+        if use_direct_yahoo_chart:
+            from .direct_yahoo_chart import _download_chart_frame
+
+            downloaded = _ensure_date_column(
+                _download_chart_frame(canonical, start_str, end_str).reset_index()
+            )
+        else:
+            downloaded = yf_retry(lambda: yf.download(
+                canonical,
+                start=start_str,
+                end=end_str,
+                multi_level_index=False,
+                progress=False,
+                auto_adjust=True,
+            ))
+            downloaded = _ensure_date_column(downloaded.reset_index())
         # Only cache real data — never persist an empty frame.
         if downloaded.empty or "Close" not in downloaded.columns:
             raise NoMarketDataError(
@@ -190,6 +199,12 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     _assert_ohlcv_not_stale(data, curr_date, symbol, canonical)
 
     return data
+
+
+def _use_direct_yahoo_chart_for_indicators(config: dict) -> bool:
+    tool_vendor = config.get("tool_vendors", {}).get("get_indicators")
+    category_vendor = config.get("data_vendors", {}).get("technical_indicators")
+    return tool_vendor == "direct_yahoo_chart" or category_vendor == "direct_yahoo_chart"
 
 
 def filter_financials_by_date(data: pd.DataFrame, curr_date: str) -> pd.DataFrame:

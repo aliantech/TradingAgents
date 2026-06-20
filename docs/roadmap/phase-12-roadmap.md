@@ -51,7 +51,7 @@ Result:
 
 ### Slice 2: Repeat SPY Guarded Smoke
 
-Status: pending.
+Status: complete.
 
 Goal:
 
@@ -63,6 +63,13 @@ Verification:
 - Requires explicit runtime gate and operator environment.
 - Does not source `.env`, print secrets, or run in CI/schedulers.
 - Records only sanitized progress, evidence labels, report-generated status, quality notes, and residual risks.
+
+Result:
+
+- Guarded `SPY` smoke succeeded after follow-up data-path fixes.
+- Report generated: true.
+- Evidence labels: `tradingagents-real-runner`.
+- Evidence record: `docs/operations/phase-12-spy-real-runner-smoke.md`.
 
 ### Slice 3: Provider-Backed SPY Review
 

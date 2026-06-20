@@ -19,6 +19,7 @@ from .errors import (
     VendorRateLimitError,
 )
 from .fred import get_macro_data as get_fred_macro_data
+from .fred import get_macro_data_unavailable
 from .polymarket import get_prediction_markets as get_polymarket_prediction_markets
 from .y_finance import (
     get_balance_sheet as get_yfinance_balance_sheet,
@@ -82,6 +83,7 @@ VENDOR_LIST = [
     "yfinance",
     "direct_yahoo_chart",
     "fred",
+    "macro_unavailable",
     "polymarket",
     "alpha_vantage",
 ]
@@ -97,6 +99,7 @@ VENDOR_METHODS = {
     # technical_indicators
     "get_indicators": {
         "alpha_vantage": get_alpha_vantage_indicator,
+        "direct_yahoo_chart": get_stock_stats_indicators_window,
         "yfinance": get_stock_stats_indicators_window,
     },
     # fundamental_data
@@ -132,6 +135,7 @@ VENDOR_METHODS = {
     # macro_data
     "get_macro_indicators": {
         "fred": get_fred_macro_data,
+        "macro_unavailable": get_macro_data_unavailable,
     },
     # prediction_markets
     "get_prediction_markets": {

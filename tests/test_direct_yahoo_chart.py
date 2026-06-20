@@ -8,6 +8,7 @@ import tradingagents.default_config as default_config
 from tradingagents.dataflows import direct_yahoo_chart
 from tradingagents.dataflows.config import set_config
 from tradingagents.dataflows.interface import route_to_vendor
+from tradingagents.dataflows.stockstats_utils import load_ohlcv
 from tradingagents.dataflows.symbol_utils import NoMarketDataError
 
 
@@ -105,3 +106,24 @@ def test_vendor_router_accepts_direct_yahoo_chart(monkeypatch):
     result = route_to_vendor("get_stock_data", "SPY", "2026-06-18", "2026-06-18")
 
     assert "Data source: Yahoo Finance chart endpoint" in result
+
+
+@pytest.mark.unit
+def test_indicator_ohlcv_loader_uses_direct_yahoo_chart_when_configured(monkeypatch, tmp_path):
+    def fail_if_yfinance_called(*_args, **_kwargs):
+        raise AssertionError("yf.download should not be called")
+
+    monkeypatch.setattr("tradingagents.dataflows.stockstats_utils.yf.download", fail_if_yfinance_called)
+    monkeypatch.setattr(direct_yahoo_chart, "_fetch_json", lambda _url: _chart_payload())
+    set_config(
+        {
+            "data_cache_dir": str(tmp_path),
+            "tool_vendors": {"get_indicators": "direct_yahoo_chart"},
+        }
+    )
+
+    frame = load_ohlcv("SPY", "2026-06-18")
+
+    assert len(frame) == 1
+    assert frame.iloc[0]["Close"] == 549.33
+    assert list(tmp_path.glob("SPY-DirectYahooChart-data-*.csv"))

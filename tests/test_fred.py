@@ -172,6 +172,14 @@ class FredRoutingTests(unittest.TestCase):
         ), self.assertRaises(fred.FredNotConfiguredError):
             interface.route_to_vendor("get_macro_indicators", "cpi", "2026-06-01", 365)
 
+    def test_explicit_macro_unavailable_vendor_returns_no_data_signal(self):
+        set_config({"tool_vendors": {"get_macro_indicators": "macro_unavailable"}})
+
+        out = interface.route_to_vendor("get_macro_indicators", "cpi", "2026-06-01", 365)
+
+        self.assertIn("NO_DATA_AVAILABLE", out)
+        self.assertIn("FRED macro data is not configured", out)
+
 
 if __name__ == "__main__":
     unittest.main()
