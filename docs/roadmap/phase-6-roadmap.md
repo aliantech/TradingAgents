@@ -50,7 +50,7 @@ Verification:
 
 ### Slice 2: Paper Workflow Browser Smoke Test
 
-Status: implementation plan added on 2026-06-20.
+Status: implemented and verified on 2026-06-20.
 
 Goal:
 
@@ -67,11 +67,18 @@ Implementation plan:
 
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-2-paper-workflow-browser-smoke.md`
 
+Implemented files:
+
+- `frontend/playwright.config.ts`
+- `frontend/e2e/paper-workflow-smoke.spec.ts`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+
 Verification:
 
-- Ubuntu browser or Playwright verification runs successfully.
-- Frontend build still passes.
-- Safety grep confirms no live-trading UI copy.
+- Ubuntu isolated clone `/tmp/tradingagents-phase6-slice2-1781937695`: `npm run e2e:paper` passed, 1 test.
+- Ubuntu isolated clone `/tmp/tradingagents-phase6-slice2-1781937695`: `npm run build` passed.
+- Safety grep only matched paper-only test assertions and explicit out-of-scope documentation.
 
 ### Slice 3: Paper Account and Position Summary API
 
