@@ -101,7 +101,11 @@ def tradingagents_state_to_result(
         bear_case=bear_case,
         risk_factors=["模型输出不确定性", "数据源可用性", "宏观事件"],
         evidence_labels=["tradingagents-real-runner"],
-        trade_plan=final_decision,
+        trade_plan=(
+            "研究结论（原始 TradingAgents 输出）：\n"
+            f"{final_decision}\n\n"
+            "仅用于研究复盘，不生成自动交易指令。"
+        ),
         position_sizing="研究阶段不生成实盘仓位。",
         take_profit_stop_loss="风控参考仅用于研究复盘，不代表交易执行建议。",
         confidence=0.5,

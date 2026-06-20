@@ -83,7 +83,11 @@ def test_real_tradingagents_state_maps_to_adapter_result():
     assert result.report.fundamental_analysis == "fundamentals state"
     assert result.report.bull_case == "bull state"
     assert result.report.bear_case == "bear state"
-    assert result.report.trade_plan == "final decision"
+    assert result.report.trade_plan == (
+        "研究结论（原始 TradingAgents 输出）：\n"
+        "final decision\n\n"
+        "仅用于研究复盘，不生成自动交易指令。"
+    )
     assert result.report.evidence_labels == ["tradingagents-real-runner"]
 
 

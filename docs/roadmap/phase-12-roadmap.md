@@ -73,7 +73,7 @@ Result:
 
 ### Slice 3: Provider-Backed SPY Review
 
-Status: pending.
+Status: complete.
 
 Goal:
 
@@ -85,9 +85,17 @@ Verification:
 - Review compares against the Phase 10 deterministic baseline.
 - If no report is generated, record a failure decision instead of inventing a review.
 
+Result:
+
+- Persisted provider-backed SPY report generated.
+- Report review created.
+- Review result: not approved for expansion.
+- Primary blocker: report stated `SPY` close `746.74` for `2026-06-18`, while Phase 12 direct Yahoo chart validation returned `549.33` for the same date.
+- Evidence record: `docs/operations/phase-12-spy-provider-report-review.md`.
+
 ### Slice 4: Expansion Decision
 
-Status: pending.
+Status: complete.
 
 Goal:
 
@@ -97,6 +105,11 @@ Verification:
 
 - Decision is based on the actual SPY smoke and review outcome.
 - Boundary remains research-only and manual.
+
+Result:
+
+- Decision: do not expand to `QQQ`.
+- Next action: fix SPY report data-grounding, then repeat SPY provider-backed review.
 
 ## Explicit Non-Goals
 
