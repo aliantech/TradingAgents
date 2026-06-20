@@ -136,7 +136,7 @@ Verification completed:
 
 ### Slice 4: Report Quality Contract
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -152,6 +152,20 @@ Verification:
 
 - Backend unit tests cover valid and invalid report payloads.
 - Existing analysis API tests still pass.
+
+Implemented:
+
+- `backend/app/reports/quality.py`.
+- `backend/tests/test_report_quality.py`.
+- `backend/app/analysis/tradingagents_adapter.py` now validates mapped reports before returning them for persistence.
+- `backend/app/analysis/service.py` persists invalid mapped reports as failed/no-report runs with a `report_quality` progress event.
+- `backend/tests/test_analysis_api_persistence.py` covers invalid report rejection before persistence.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-4-report-quality-contract.md`.
+
+Verification completed:
+
+- Ubuntu temp-copy focused report quality/adapter/analysis/runner tests passed: 21 tests.
+- Ubuntu temp-copy backend full regression passed: 248 tests.
 
 ### Slice 5: Runner Failure Diagnostics
 

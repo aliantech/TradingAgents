@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.analysis.schemas import AnalysisProgressEvent, AnalysisRequest
+from app.reports.quality import validate_research_report_quality
 from app.reports.schemas import ResearchReport
 
 
@@ -93,7 +94,7 @@ def tradingagents_result_to_report(
     result: TradingAgentsRunResult,
     report_id: UUID,
 ) -> ResearchReport:
-    return ResearchReport(
+    report = ResearchReport(
         report_id=report_id,
         analysis_id=execution_request.analysis_id,
         symbol=execution_request.symbol,
@@ -116,6 +117,8 @@ def tradingagents_result_to_report(
         confidence=result.report.confidence,
         markdown=result.report.markdown,
     )
+    validate_research_report_quality(report)
+    return report
 
 
 def map_tradingagents_error(error: Exception) -> AnalysisProgressEvent:

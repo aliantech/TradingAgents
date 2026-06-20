@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
+from app.analysis.schemas import AnalysisProgressEvent
 from app.analysis.store import analysis_store
+from app.analysis.tradingagents_adapter import TradingAgentsReportPayload, TradingAgentsRunResult
 from app.main import app
 
 
@@ -191,3 +193,52 @@ def test_analysis_api_persists_failed_run_without_report_when_fixture_fails():
     assert status_payload["report_id"] is None
     assert status_payload["progress"][-1]["step"] == "tradingagents"
     assert status_payload["progress"][-1]["status"] == "failed"
+
+
+def test_analysis_api_rejects_invalid_report_quality_before_persistence(monkeypatch):
+    def invalid_runner(*args, **kwargs):
+        return TradingAgentsRunResult(
+            progress=[AnalysisProgressEvent(step="tradingagents", status="completed", message="done")],
+            report=TradingAgentsReportPayload(
+                summary="SPY English summary",
+                market_background="English market background",
+                fundamental_analysis="English fundamentals",
+                technical_analysis="English technicals",
+                sentiment_analysis="English sentiment",
+                options_observation="English options",
+                bull_case="English bull",
+                bear_case="English bear",
+                risk_factors=["risk"],
+                evidence_labels=[],
+                trade_plan="Buy now.",
+                position_sizing="Full size.",
+                take_profit_stop_loss="Stop later.",
+                confidence=0.5,
+            ),
+        )
+
+    monkeypatch.setattr("app.analysis.service.run_configured_research", invalid_runner)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/analysis",
+        json={
+            "symbol": "SPY",
+            "asset_type": "etf",
+            "analysis_date": "2026-06-19",
+            "language": "zh",
+            "llm_provider": "openai",
+            "model": "gpt-5.5",
+            "depth": "standard",
+            "analyst_set": "macro-options",
+            "research_template": "general",
+        },
+    )
+
+    assert response.status_code == 202
+    status_response = client.get(f"/api/analysis/{response.json()['analysis_id']}")
+    status_payload = status_response.json()
+    assert status_payload["status"] == "failed"
+    assert status_payload["report_id"] is None
+    assert status_payload["progress"][-1]["step"] == "report_quality"
+    assert "Report quality validation failed" in status_payload["progress"][-1]["message"]

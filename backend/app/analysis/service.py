@@ -3,13 +3,14 @@ from uuid import uuid4
 from app.analysis.repository import AnalysisRepository
 from app.analysis.schemas import AnalysisProgressEvent, AnalysisRequest
 from app.analysis.store import AnalysisRun, analysis_store
-from app.analysis.tradingagents_runner import run_configured_research
 from app.analysis.tradingagents_adapter import (
     build_tradingagents_request,
     map_tradingagents_error,
     tradingagents_result_to_report,
 )
+from app.analysis.tradingagents_runner import run_configured_research
 from app.core.config import settings
+from app.reports.quality import ReportQualityError
 from app.settings.runtime import resolve_runtime_settings
 
 
@@ -19,6 +20,17 @@ def _build_progress(symbol: str) -> list[AnalysisProgressEvent]:
         AnalysisProgressEvent(step="market_data", status="blocked", message="未生成报告：真实行情和研究 Agent 执行链尚未完成接入。"),
         AnalysisProgressEvent(step="report", status="failed", message="未生成研究报告；系统不再写入样例或 mock 报告。"),
     ]
+
+
+def _build_report_quality_failure(error: ReportQualityError) -> AnalysisProgressEvent:
+    return AnalysisProgressEvent(step="report_quality", status="failed", message=str(error))
+
+
+def _append_report_quality_failure(
+    progress: list[AnalysisProgressEvent],
+    error: ReportQualityError,
+) -> list[AnalysisProgressEvent]:
+    return progress + [_build_report_quality_failure(error)]
 
 
 def start_analysis(request: AnalysisRequest, repository: AnalysisRepository | None = None) -> AnalysisRun:
@@ -39,6 +51,13 @@ def start_analysis(request: AnalysisRequest, repository: AnalysisRepository | No
             status="completed",
             progress=result.progress,
             report=report,
+        )
+    except ReportQualityError as error:
+        run = AnalysisRun(
+            analysis_id=analysis_id,
+            request=normalized_request,
+            status="failed",
+            progress=_append_report_quality_failure(result.progress, error),
         )
     except Exception as error:
         run = AnalysisRun(

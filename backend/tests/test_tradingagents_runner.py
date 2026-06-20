@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.analysis.schemas import AnalysisDepth, AnalysisRequest, AssetType, ReportLanguage, ResearchTemplate
-from app.analysis.tradingagents_adapter import build_tradingagents_request
+from app.analysis.tradingagents_adapter import build_tradingagents_request, tradingagents_result_to_report
 from app.analysis.tradingagents_runner import (
     REAL_TRADINGAGENTS_MODE,
     build_real_tradingagents_config,
@@ -82,6 +82,33 @@ def test_real_tradingagents_state_maps_to_adapter_result():
     assert result.report.bear_case == "bear state"
     assert result.report.trade_plan == "final decision"
     assert result.report.evidence_labels == ["tradingagents-real-runner"]
+
+
+def test_real_tradingagents_mapped_report_passes_quality_contract():
+    execution_request = build_tradingagents_request(uuid4(), analysis_request(symbol="QQQ"))
+    result = tradingagents_state_to_result(
+        execution_request,
+        {
+            "market_report": "市场报告覆盖趋势、成交量和关键风险。",
+            "fundamentals_report": "基本面报告覆盖盈利、估值和流动性。",
+            "sentiment_report": "情绪报告覆盖新闻叙事和风险偏好。",
+            "news_report": "新闻报告覆盖宏观事件和公司催化。",
+            "investment_debate_state": {
+                "bull_history": "多头情景关注趋势延续和流动性改善。",
+                "bear_history": "空头情景关注波动率扩张和宏观冲击。",
+            },
+        },
+        "研究结论仅用于复盘观察，不生成自动交易指令。",
+    )
+
+    report = tradingagents_result_to_report(
+        execution_request=execution_request,
+        result=result,
+        report_id=uuid4(),
+    )
+
+    assert report.evidence_labels == ["tradingagents-real-runner"]
+    assert report.report_id is not None
 
 
 def test_selected_analysts_parser_uses_safe_default_for_empty_value():
