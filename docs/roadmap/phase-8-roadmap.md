@@ -62,7 +62,7 @@ Verification:
 
 ### Slice 2: Runner Mode Settings UX
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -80,6 +80,22 @@ Verification:
 - Frontend build passes.
 - Settings catalog tests cover the new runner settings.
 - Browser smoke or focused UI test covers runner-mode visibility without provider calls.
+
+Implemented:
+
+- `frontend/src/features/settings/settingsCatalog.ts`.
+- `frontend/src/app/App.tsx`.
+- `frontend/src/i18n/index.ts`.
+- `frontend/src/features/settings/settingsCatalog.test.ts`.
+- `frontend/e2e/settings-runner-mode-smoke.spec.ts`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-2-runner-settings-ux.md`.
+
+Verification completed:
+
+- Local settings catalog test passed.
+- Ubuntu temp-copy settings catalog test passed.
+- Ubuntu temp-copy frontend build passed.
+- Ubuntu temp-copy settings runner-mode browser smoke passed: 1 test.
 
 ### Slice 3: Manual Real-Runner Smoke Command
 
@@ -183,4 +199,3 @@ Phase 8 is complete only when:
 - Focused tests, full backend regression, frontend build, and relevant browser smoke pass.
 - Safety grep confirms no live-execution boundary violations.
 - Project docs and Yasin Brain record that live execution remains out of scope.
-

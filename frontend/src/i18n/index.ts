@@ -628,11 +628,34 @@ i18n.use(initReactI18next).init({
               description: "TradingAgents 默认模型、辩论轮数、温度和推理行为。",
             },
             scopes: {
+              runner: "Runner 模式",
+              provider: "Provider",
+              output: "输出",
               reasoning: "推理模型",
               debate: "辩论",
               sampling: "采样",
             },
             items: {
+              runnerMode: {
+                label: "TradingAgents Runner 模式",
+                detail: "默认 deterministic，不调用外部模型。只有显式切到 real-tradingagents 后，才允许手动真实研究 smoke 使用 Provider 配置。",
+              },
+              runnerProvider: {
+                label: "Runner Provider",
+                detail: "真实 TradingAgents runner 的 LLM Provider。保存后通过后端 settings DB 生效，不回显任何密钥。",
+              },
+              runnerModels: {
+                label: "Runner 快/慢模型",
+                detail: "控制 quick_think_llm 与 deep_think_llm。deterministic 模式下仅作为待切换配置保留。",
+              },
+              runnerOutput: {
+                label: "Runner 输出与 Agent",
+                detail: "控制报告输出语言和真实 runner 选择的 analyst 列表，例如 market,news,fundamentals。",
+              },
+              runnerDebate: {
+                label: "Runner 辩论轮数",
+                detail: "控制真实 runner 的研究辩论和风控辩论轮数；保持较低默认值以便手动 smoke。",
+              },
               thinkingModels: {
                 label: "快思考 / 深思考模型",
                 detail: "对应 quick_think_llm 与 deep_think_llm，用于不同深度的研究节点。",
@@ -1403,11 +1426,34 @@ i18n.use(initReactI18next).init({
               description: "TradingAgents default models, debate rounds, temperature, and reasoning behavior.",
             },
             scopes: {
+              runner: "Runner Mode",
+              provider: "Provider",
+              output: "Output",
               reasoning: "Reasoning Models",
               debate: "Debate",
               sampling: "Sampling",
             },
             items: {
+              runnerMode: {
+                label: "TradingAgents Runner Mode",
+                detail: "Defaults to deterministic, which does not call external models. Real provider-backed research requires explicit real-tradingagents mode.",
+              },
+              runnerProvider: {
+                label: "Runner Provider",
+                detail: "LLM provider for the real TradingAgents runner. Saves through the backend settings DB and never displays secret values.",
+              },
+              runnerModels: {
+                label: "Runner Quick / Deep Models",
+                detail: "Controls quick_think_llm and deep_think_llm. In deterministic mode these are saved as pending real-runner settings.",
+              },
+              runnerOutput: {
+                label: "Runner Output and Analysts",
+                detail: "Controls report output language and selected real-runner analysts, such as market,news,fundamentals.",
+              },
+              runnerDebate: {
+                label: "Runner Debate Rounds",
+                detail: "Controls research and risk debate rounds for the real runner; low defaults keep manual smoke runs bounded.",
+              },
               thinkingModels: {
                 label: "Quick / Deep Thinking Models",
                 detail: "Maps to quick_think_llm and deep_think_llm for different research-node depths.",

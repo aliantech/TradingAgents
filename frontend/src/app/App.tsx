@@ -2424,6 +2424,52 @@ function ConfigValueControl({
       </Select>
     );
   }
+  if (configKey === "AQUANTLENS_TRADINGAGENTS_RUNNER_MODE") {
+    return (
+      <Select value={value || "deterministic"} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="deterministic">deterministic</SelectItem>
+            <SelectItem value="real-tradingagents">real-tradingagents</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
+  if (configKey === "AQUANTLENS_TRADINGAGENTS_LLM_PROVIDER") {
+    return (
+      <Select value={value || "openai"} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="openai">openai</SelectItem>
+            <SelectItem value="anthropic">anthropic</SelectItem>
+            <SelectItem value="google">google</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
+  if (configKey === "AQUANTLENS_TRADINGAGENTS_OUTPUT_LANGUAGE") {
+    return (
+      <Select value={value || "Chinese"} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="Chinese">Chinese</SelectItem>
+            <SelectItem value="English">English</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
   if (/ENABLED$/i.test(configKey)) {
     return (
       <Select value={(value || defaultConfigValue(configKey)).toLowerCase()} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
@@ -2483,6 +2529,14 @@ function configDisplayLabel(configKey: string) {
     TRADINGAGENTS_MAX_DEBATE_ROUNDS: "辩论轮数",
     TRADINGAGENTS_MAX_RISK_ROUNDS: "风控轮数",
     TRADINGAGENTS_TEMPERATURE: "生成温度",
+    AQUANTLENS_TRADINGAGENTS_RUNNER_MODE: "Runner 模式",
+    AQUANTLENS_TRADINGAGENTS_LLM_PROVIDER: "Runner Provider",
+    AQUANTLENS_TRADINGAGENTS_DEEP_THINK_LLM: "深度推理模型",
+    AQUANTLENS_TRADINGAGENTS_QUICK_THINK_LLM: "快速推理模型",
+    AQUANTLENS_TRADINGAGENTS_OUTPUT_LANGUAGE: "输出语言",
+    AQUANTLENS_TRADINGAGENTS_SELECTED_ANALYSTS: "研究 Agent",
+    AQUANTLENS_TRADINGAGENTS_MAX_DEBATE_ROUNDS: "研究辩论轮数",
+    AQUANTLENS_TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS: "风控辩论轮数",
     AQUANTLENS_PROVIDER_MAX_RETRIES: "最大重试",
     AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS: "重试间隔",
     AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES: "过期阈值",
@@ -2522,6 +2576,14 @@ function defaultConfigValue(configKey: string) {
     TRADINGAGENTS_MAX_DEBATE_ROUNDS: "1",
     TRADINGAGENTS_MAX_RISK_ROUNDS: "1",
     TRADINGAGENTS_TEMPERATURE: "",
+    AQUANTLENS_TRADINGAGENTS_RUNNER_MODE: "deterministic",
+    AQUANTLENS_TRADINGAGENTS_LLM_PROVIDER: "openai",
+    AQUANTLENS_TRADINGAGENTS_DEEP_THINK_LLM: "gpt-5.5",
+    AQUANTLENS_TRADINGAGENTS_QUICK_THINK_LLM: "gpt-5.4-mini",
+    AQUANTLENS_TRADINGAGENTS_OUTPUT_LANGUAGE: "Chinese",
+    AQUANTLENS_TRADINGAGENTS_SELECTED_ANALYSTS: "market,news,fundamentals",
+    AQUANTLENS_TRADINGAGENTS_MAX_DEBATE_ROUNDS: "1",
+    AQUANTLENS_TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS: "1",
     "analysis.language": "zh",
     "analysis.depth": "standard",
     "analysis.analyst_set": "macro-options",
