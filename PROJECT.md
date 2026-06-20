@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 7 Research Execution Integration Complete
+Status: Phase 8 Research Operations Hardening Planning
 Last Reviewed: 2026-06-20
 Owner: Yasin
 
@@ -63,6 +63,7 @@ As of 2026-06-20, the branch has moved beyond the original Phase 1 foundation in
 - Current Phase 5 state: Phase 5 paper-only MVP is implemented and completion-audited. Phase 4 completed the approved research-only Strategy Lab experiment workbench scope. Phase 5 now has paper-only architecture documentation, backend domain contracts, pure RiskGuard evaluator, SQLAlchemy persistence models, SQL schema, repository methods, append-only audit event persistence, human-facing paper intent API endpoints, a local deterministic paper adapter, and a Candidate-to-Paper Strategy Lab UI flow for paper draft creation, RiskGuard review, human approval/rejection, paper submit, and cancellation. Completion verification passed focused paper tests, full backend regression, frontend build, and paper-only safety grep. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, network execution, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
 - Current Phase 6 state: Phase 6 paper-only workflow hardening is complete and completion-audited. Phase 6 added and verified a Playwright Chromium browser smoke for the Strategy Lab Candidate-to-Paper UI, a paper account summary API, a paper PnL snapshot API using explicit caller-provided reference prices, and a Strategy Lab paper risk dashboard for cash, equity, PnL, positions, recent paper flow, and audit preview. Completion verification passed focused paper tests, full backend regression, frontend build, browser smoke, and safety grep classification. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
 - Current Phase 7 state: Phase 7 real TradingAgents research execution integration is complete for the approved scope. Slice 1 documented the roadmap and execution boundary. Slice 2 added a typed backend TradingAgents adapter contract that maps existing analysis requests into normalized research execution input, maps completed adapter output into the existing report schema, and sanitizes provider/runtime errors into progress events. Slice 3 connected `start_analysis` to a deterministic local research runner fixture through that adapter boundary, so the analysis API can now persist completed Chinese-first reports without external provider calls. Slice 4 added a runtime-gated real TradingAgents runner path and non-secret AI runtime settings while keeping deterministic execution as the default. Slice 5 improved Analysis and Runs UI observability for completed reports and failed/no-report states. Slice 6 completion-audited Phase 7 with backend full regression, frontend build, browser smoke, and safety grep classification. A controlled fixture failure path still persists failed/no-report runs. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
+- Current Phase 8 state: Phase 8 is planned as research operations hardening for the Phase 7 execution path. The goal is to make deterministic and gated real TradingAgents runs easier to configure, diagnose, manually smoke, and audit without expanding into live trading. Planned slices cover runner-mode settings UX, guarded manual real-runner smoke, report-quality validation, runner failure diagnostics, and completion audit. Deterministic mode remains the default. Provider-backed research remains opt-in behind an explicit runtime gate. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, and automatic paper-to-live promotion remain out of scope.
 - The checked-in analysis endpoint no longer emits sample or mock research reports. Until the real TradingAgents execution chain is connected in Slice 4, deterministic fixture reports are used only to verify the analysis execution, report mapping, and persistence path.
 - Runtime DB hygiene is documented in `docs/operations/runtime-db-hygiene.md`; pytest defaults to a temporary SQLite database and the cleanup script backs up before removing mock/test/legacy task rows.
 
@@ -139,6 +140,7 @@ Initial storage scope:
 - `docs/roadmap/phase-6-completion-audit.md`
 - `docs/roadmap/phase-7-roadmap.md`
 - `docs/roadmap/phase-7-completion-audit.md`
+- `docs/roadmap/phase-8-roadmap.md`
 - `docs/superpowers/specs/2026-06-20-aquantlens-us-phase-5-paper-only-design.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-2-paper-contracts.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-3-riskguard.md`
@@ -158,5 +160,6 @@ Initial storage scope:
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-4-real-runner-gate.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-5-observability-ui.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-7-slice-6-completion-audit.md`
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-1-roadmap.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`
