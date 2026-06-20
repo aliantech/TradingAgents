@@ -20,7 +20,9 @@ from app.paper_trading.contracts import (
     PaperAccount,
     PaperAccountStatus,
     PaperAuditEvent,
+    PaperFill,
     PaperOrderIntent,
+    PaperPosition,
     RiskDecision,
     RiskDecisionResult,
     RiskGuardInput,
@@ -28,6 +30,12 @@ from app.paper_trading.contracts import (
     TimeInForce,
 )
 from app.paper_trading.adapter import PaperExecutionError, cancel_paper_intent, execute_paper_intent
+from app.paper_trading.pnl import (
+    PaperPnlSnapshot,
+    ReferencePrice,
+    calculate_paper_pnl_snapshot,
+    calculate_realized_pnl,
+)
 from app.paper_trading.repository import PaperTradingRepository
 from app.paper_trading.risk_guard import evaluate_order_intent
 
@@ -94,6 +102,28 @@ class PaperAccountListResponse(BaseModel):
     accounts: list[PaperAccountItem]
 
 
+class PaperPositionItem(BaseModel):
+    position_id: UUID
+    account_id: UUID
+    symbol: str
+    asset_class: str
+    quantity: float
+    average_price: float
+    updated_at: str
+
+
+class PaperFillItem(BaseModel):
+    fill_id: UUID
+    intent_id: UUID
+    account_id: UUID
+    symbol: str
+    asset_class: str
+    side: str
+    quantity: float
+    fill_price: float
+    filled_at: str
+
+
 class PaperIntentItem(BaseModel):
     intent_id: UUID
     account_id: UUID
@@ -146,6 +176,26 @@ class PaperIntentListResponse(BaseModel):
     intents: list[PaperIntentItem]
 
 
+class PaperAccountSummaryResponse(BaseModel):
+    scope: str = "paper_only"
+    account: PaperAccountItem
+    positions: list[PaperPositionItem]
+    recent_intents: list[PaperIntentItem]
+    recent_fills: list[PaperFillItem]
+    recent_audit_events: list[PaperAuditEventItem]
+
+
+class PaperPnlSnapshotRequest(BaseModel):
+    as_of: datetime | None = None
+    max_price_age_seconds: int = Field(default=900, gt=0)
+    reference_prices: list[ReferencePrice]
+
+
+class PaperPnlSnapshotResponse(BaseModel):
+    scope: str = "paper_only"
+    snapshot: PaperPnlSnapshot
+
+
 @router.get("/accounts", response_model=PaperAccountListResponse)
 def list_paper_accounts(session: Session = Depends(get_db_session)):
     repository = PaperTradingRepository(session)
@@ -169,6 +219,45 @@ def create_paper_account(
     repository = PaperTradingRepository(session)
     repository.save_account(account)
     return PaperAccountResponse(account=to_account_item(account))
+
+
+@router.get("/accounts/{account_id}/summary", response_model=PaperAccountSummaryResponse)
+def get_paper_account_summary(account_id: UUID, session: Session = Depends(get_db_session)):
+    repository = PaperTradingRepository(session)
+    account = repository.get_account(account_id)
+    if account is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="paper account not found")
+    return PaperAccountSummaryResponse(
+        account=to_account_item(account),
+        positions=[to_position_item(position) for position in repository.list_positions_for_account(account_id)],
+        recent_intents=[to_intent_item(intent) for intent in repository.list_order_intents(account_id)],
+        recent_fills=[to_fill_item(fill) for fill in repository.list_recent_fills_for_account(account_id)],
+        recent_audit_events=[
+            to_audit_item(event) for event in repository.list_recent_audit_events_for_account(account_id)
+        ],
+    )
+
+
+@router.post("/accounts/{account_id}/pnl-snapshot", response_model=PaperPnlSnapshotResponse)
+def create_paper_account_pnl_snapshot(
+    account_id: UUID,
+    request: PaperPnlSnapshotRequest,
+    session: Session = Depends(get_db_session),
+):
+    repository = PaperTradingRepository(session)
+    account = repository.get_account(account_id)
+    if account is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="paper account not found")
+    fills = repository.list_fills_for_account(account_id)
+    snapshot = calculate_paper_pnl_snapshot(
+        account=account,
+        positions=repository.list_positions_for_account(account_id),
+        reference_prices=request.reference_prices,
+        as_of=request.as_of or utc_now(),
+        max_price_age_seconds=request.max_price_age_seconds,
+        realized_pnl=calculate_realized_pnl(fills),
+    )
+    return PaperPnlSnapshotResponse(snapshot=snapshot)
 
 
 @router.post("/intents", response_model=PaperIntentResponse, status_code=status.HTTP_201_CREATED)
@@ -419,6 +508,32 @@ def to_intent_item(intent: PaperOrderIntent) -> PaperIntentItem:
         status=intent.status.value,
         idempotency_key=intent.idempotency_key,
         created_at=intent.created_at.isoformat(),
+    )
+
+
+def to_position_item(position: PaperPosition) -> PaperPositionItem:
+    return PaperPositionItem(
+        position_id=position.position_id,
+        account_id=position.account_id,
+        symbol=position.symbol,
+        asset_class=position.asset_class.value,
+        quantity=position.quantity,
+        average_price=position.average_price,
+        updated_at=position.updated_at.isoformat(),
+    )
+
+
+def to_fill_item(fill: PaperFill) -> PaperFillItem:
+    return PaperFillItem(
+        fill_id=fill.fill_id,
+        intent_id=fill.intent_id,
+        account_id=fill.account_id,
+        symbol=fill.symbol,
+        asset_class=fill.asset_class.value,
+        side=fill.side.value,
+        quantity=fill.quantity,
+        fill_price=fill.fill_price,
+        filled_at=fill.filled_at.isoformat(),
     )
 
 

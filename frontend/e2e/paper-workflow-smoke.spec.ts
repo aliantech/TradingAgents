@@ -15,7 +15,7 @@ test("Strategy Lab paper workflow stays paper-only", async ({ page }) => {
   await expect(page.getByText("Select Paper Draft from a candidate experiment to start a paper-only review.")).toBeVisible();
 
   await page.getByRole("button", { name: "Paper Draft" }).click();
-  await expect(page.getByText("paper_only")).toBeVisible();
+  await expect(page.getByText("paper_only").first()).toBeVisible();
   await expect(page.getByText("Draft", { exact: true }).last()).toBeVisible();
   await expect(page.getByText("SPY").first()).toBeVisible();
 
@@ -29,6 +29,9 @@ test("Strategy Lab paper workflow stays paper-only", async ({ page }) => {
   await page.getByRole("button", { name: "Paper Submit" }).click();
   await expect(page.getByText("Paper filled", { exact: true }).last()).toBeVisible();
   await expect(page.getByText("paper_fill_created", { exact: true }).last()).toBeVisible();
+  await expect(page.getByText("Paper Risk Dashboard")).toBeVisible();
+  await expect(page.getByText("Equity", { exact: true })).toBeVisible();
+  await expect(page.getByText("$100,013")).toBeVisible();
 
   await expect(page.getByText(/live trading/i)).toHaveCount(0);
   await expect(page.getByText(/does not connect to a broker/i)).toBeVisible();
@@ -103,6 +106,12 @@ async function installApiMocks(page: Page) {
     }
     if (method === "GET" && pathname === "/api/paper-trading/accounts") {
       return json(route, { scope: "paper_only", accounts: [paperAccount()] });
+    }
+    if (method === "GET" && pathname === `/api/paper-trading/accounts/${accountId}/summary`) {
+      return json(route, paperAccountSummary());
+    }
+    if (method === "POST" && pathname === `/api/paper-trading/accounts/${accountId}/pnl-snapshot`) {
+      return json(route, paperPnlSnapshot());
     }
     if (method === "POST" && pathname === "/api/paper-trading/intents") {
       return json(route, paperIntentResponse("draft", null, ["intent_created"]));
@@ -239,6 +248,73 @@ function paperAccount() {
     current_cash: 100000,
     status: "active",
     created_at: now,
+  };
+}
+
+function paperAccountSummary() {
+  return {
+    scope: "paper_only",
+    account: paperAccount(),
+    positions: [
+      {
+        position_id: "55555555-5555-4555-8555-555555555555",
+        account_id: accountId,
+        symbol: "SPY",
+        asset_class: "etf",
+        quantity: 1,
+        average_price: 500,
+        updated_at: now,
+      },
+    ],
+    recent_intents: [paperIntentResponse("paper_filled", riskDecision(), []).intent],
+    recent_fills: [
+      {
+        fill_id: "66666666-6666-4666-8666-666666666666",
+        intent_id: intentId,
+        account_id: accountId,
+        symbol: "SPY",
+        asset_class: "etf",
+        side: "buy",
+        quantity: 1,
+        fill_price: 500,
+        filled_at: now,
+      },
+    ],
+    recent_audit_events: paperIntentResponse("paper_filled", riskDecision(), ["paper_fill_created"]).audit_events,
+  };
+}
+
+function paperPnlSnapshot() {
+  return {
+    scope: "paper_only",
+    snapshot: {
+      account_id: accountId,
+      base_currency: "USD",
+      current_cash: 99500,
+      as_of: now,
+      price_state: "complete",
+      total_market_value: 513,
+      total_unrealized_pnl: 13,
+      total_realized_pnl: 0,
+      account_equity: 100013,
+      positions: [
+        {
+          position_id: "55555555-5555-4555-8555-555555555555",
+          account_id: accountId,
+          symbol: "SPY",
+          asset_class: "etf",
+          quantity: 1,
+          average_price: 500,
+          multiplier: 1,
+          price_state: "fresh",
+          reference_price: 513,
+          reference_priced_at: now,
+          market_value: 513,
+          cost_basis: 500,
+          unrealized_pnl: 13,
+        },
+      ],
+    },
   };
 }
 

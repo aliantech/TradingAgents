@@ -163,6 +163,115 @@ def test_paper_account_api_does_not_expose_broker_or_live_fields():
     assert "account_number" not in text
 
 
+def test_paper_account_summary_api_returns_account_scoped_snapshot():
+    client = TestClient(app)
+    account_id = seed_account()
+    other_account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="summary-account")
+    other_intent_id = create_intent(client, other_account_id, candidate_id, key="summary-other-account")
+
+    approve_and_submit(client, intent_id)
+    approve_and_submit(client, other_intent_id)
+
+    response = client.get(f"/api/paper-trading/accounts/{account_id}/summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["scope"] == "paper_only"
+    assert body["account"]["account_id"] == str(account_id)
+    assert body["account"]["current_cash"] == 99_000
+    assert [row["account_id"] for row in body["positions"]] == [str(account_id)]
+    assert body["positions"][0]["symbol"] == "SPY"
+    assert body["positions"][0]["quantity"] == 2
+    assert [row["intent_id"] for row in body["recent_intents"]] == [intent_id]
+    assert [row["intent_id"] for row in body["recent_fills"]] == [intent_id]
+    audit_resource_ids = {row["resource_id"] for row in body["recent_audit_events"]}
+    assert str(intent_id) in audit_resource_ids
+    assert str(other_intent_id) not in audit_resource_ids
+
+    text = response.text.lower()
+    assert "broker" not in text
+    assert "live" not in text
+    assert "account_number" not in text
+    assert "order_id" not in text
+
+
+def test_paper_account_summary_api_returns_404_for_unknown_account():
+    client = TestClient(app)
+
+    response = client.get(f"/api/paper-trading/accounts/{uuid4()}/summary")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "paper account not found"
+
+
+def test_paper_account_pnl_snapshot_api_uses_caller_reference_prices():
+    client = TestClient(app)
+    account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="pnl-snapshot")
+    approve_and_submit(client, intent_id)
+
+    response = client.post(
+        f"/api/paper-trading/accounts/{account_id}/pnl-snapshot",
+        json={
+            "as_of": timestamp().isoformat(),
+            "max_price_age_seconds": 900,
+            "reference_prices": [
+                {
+                    "symbol": "SPY",
+                    "asset_class": "etf",
+                    "price": 510,
+                    "priced_at": timestamp().isoformat(),
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["scope"] == "paper_only"
+    assert body["snapshot"]["account_id"] == str(account_id)
+    assert body["snapshot"]["price_state"] == "complete"
+    assert body["snapshot"]["total_market_value"] == 1_020
+    assert body["snapshot"]["total_unrealized_pnl"] == 20
+    assert body["snapshot"]["total_realized_pnl"] == 0
+    assert body["snapshot"]["account_equity"] == 100_020
+    assert body["snapshot"]["positions"][0]["price_state"] == "fresh"
+    assert body["snapshot"]["positions"][0]["reference_price"] == 510
+
+    text = response.text.lower()
+    assert "broker" not in text
+    assert "live" not in text
+    assert "account_number" not in text
+    assert "order_id" not in text
+
+
+def test_paper_account_pnl_snapshot_api_reports_missing_prices():
+    client = TestClient(app)
+    account_id = seed_account()
+    candidate_id = seed_candidate_experiment()
+    intent_id = create_intent(client, account_id, candidate_id, key="pnl-missing-price")
+    approve_and_submit(client, intent_id)
+
+    response = client.post(
+        f"/api/paper-trading/accounts/{account_id}/pnl-snapshot",
+        json={
+            "as_of": timestamp().isoformat(),
+            "reference_prices": [],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["snapshot"]["price_state"] == "partial"
+    assert body["snapshot"]["total_market_value"] == 0
+    assert body["snapshot"]["account_equity"] == 99_000
+    assert body["snapshot"]["positions"][0]["price_state"] == "missing"
+    assert body["snapshot"]["positions"][0]["market_value"] is None
+
+
 def test_paper_intent_api_runs_riskguard_and_sets_review_status():
     client = TestClient(app)
     account_id = seed_account()
@@ -434,6 +543,20 @@ def run_passing_risk_check(client, intent_id):
         },
     )
     assert response.status_code == 200
+
+
+def approve_and_submit(client, intent_id):
+    run_passing_risk_check(client, intent_id)
+    approve_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/review",
+        json={"decision": "approve", "message": "Approved for paper simulation."},
+    )
+    assert approve_response.status_code == 200
+    submit_response = client.post(
+        f"/api/paper-trading/intents/{intent_id}/paper-submit",
+        json={"market_price": 500},
+    )
+    assert submit_response.status_code == 200
 
 
 def timestamp():

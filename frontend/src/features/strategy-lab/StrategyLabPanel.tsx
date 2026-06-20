@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Tag,
+  WalletCards,
   XCircle,
 } from "lucide-react";
 
@@ -54,7 +55,9 @@ import {
   cancelPaperIntent,
   createPaperAccount,
   createPaperIntentDraft,
+  createPaperPnlSnapshot,
   duplicateStrategyExperiment,
+  getPaperAccountSummary,
   getStrategyExperiment,
   listPaperAccounts,
   listStrategyCatalog,
@@ -68,7 +71,10 @@ import {
   updateStrategyExperiment,
   type MarketBar,
   type PaperAccount,
+  type PaperAccountSummaryResponse,
   type PaperIntentResponse,
+  type PaperPnlSnapshotResponse,
+  type PaperReferencePrice,
   type ReportListItem,
   type StrategyCatalogItem,
   type StrategyExperimentCandidate,
@@ -128,6 +134,10 @@ export function StrategyLabPanel({
   const [paperLoading, setPaperLoading] = useState(false);
   const [paperError, setPaperError] = useState<string | null>(null);
   const [paperRetryAction, setPaperRetryAction] = useState<PaperRetryAction>("loadAccounts");
+  const [paperSummary, setPaperSummary] = useState<PaperAccountSummaryResponse | null>(null);
+  const [paperPnl, setPaperPnl] = useState<PaperPnlSnapshotResponse | null>(null);
+  const [paperDashboardLoading, setPaperDashboardLoading] = useState(false);
+  const [paperDashboardError, setPaperDashboardError] = useState<string | null>(null);
   const previewBars = useMemo(() => bars.slice(-80), [bars]);
   const canPreview = previewBars.length >= Math.max(fastWindow, slowWindow);
   const selectedStrategy = strategies.find((strategy) => strategy.strategy_id === selectedStrategyId) ?? null;
@@ -363,6 +373,10 @@ export function StrategyLabPanel({
     try {
       const response = await listPaperAccounts();
       setPaperAccounts(response.accounts);
+      const activeAccount = response.accounts.find((account) => account.status === "active") ?? null;
+      if (activeAccount) {
+        await loadPaperDashboard(activeAccount);
+      }
     } catch (caught) {
       setPaperError(caught instanceof Error ? caught.message : "Paper accounts failed to load.");
     }
@@ -373,7 +387,28 @@ export function StrategyLabPanel({
     if (existing) return existing;
     const created = await createPaperAccount();
     setPaperAccounts([created.account]);
+    await loadPaperDashboard(created.account);
     return created.account;
+  }
+
+  async function loadPaperDashboard(account: PaperAccount | null = paperAccounts.find((item) => item.status === "active") ?? null) {
+    if (!account) {
+      setPaperSummary(null);
+      setPaperPnl(null);
+      return;
+    }
+    setPaperDashboardLoading(true);
+    setPaperDashboardError(null);
+    try {
+      const summary = await getPaperAccountSummary(account.account_id);
+      setPaperSummary(summary);
+      const pnl = await createPaperPnlSnapshot(account.account_id, buildPaperReferencePrices(summary, bars));
+      setPaperPnl(pnl);
+    } catch (caught) {
+      setPaperDashboardError(caught instanceof Error ? caught.message : "Paper risk dashboard failed to load.");
+    } finally {
+      setPaperDashboardLoading(false);
+    }
   }
 
   async function createPaperDraftFromCandidate(candidate: StrategyExperimentCandidate) {
@@ -431,6 +466,8 @@ export function StrategyLabPanel({
     setPaperError(null);
     try {
       setPaperIntent(await submitPaperIntent(paperIntent.intent.intent_id));
+      const activeAccount = paperAccounts.find((account) => account.account_id === paperIntent.intent.account_id) ?? null;
+      await loadPaperDashboard(activeAccount);
     } catch (caught) {
       setPaperError(caught instanceof Error ? caught.message : "Paper simulation submit failed.");
     } finally {
@@ -499,6 +536,7 @@ export function StrategyLabPanel({
   const paperActionState = paperIntent ? getPaperActionState(paperIntent) : null;
   const paperActionDetailsId = useId();
   const paperDisabledReasons = paperIntent && paperActionState ? getPaperDisabledReasons(paperIntent, paperActionState) : [];
+  const activePaperAccount = paperAccounts.find((account) => account.status === "active") ?? null;
   const candidateStepValue = candidatesLoading ? "Updating" : candidates.length > 0 ? `${candidates.length} ready` : "No candidates";
   const candidateStepTone: WorkflowStepTone = candidatesLoading ? "updating" : candidates.length > 0 ? "complete" : "empty";
   const paperStepValue = paperIntent ? paperIntentStatusLabel(paperIntent.intent.status) : "No draft";
@@ -1098,6 +1136,44 @@ export function StrategyLabPanel({
 
       <Card>
         <CardHeader className="pb-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <WalletCards className="size-4" />
+              Paper Risk Dashboard
+            </CardTitle>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={paperDashboardLoading || !activePaperAccount}
+              onClick={() => void loadPaperDashboard(activePaperAccount)}
+            >
+              <RefreshCw className="size-4" />
+              {paperDashboardLoading ? "Refreshing" : "Refresh"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {paperDashboardError ? (
+            <RetryAlert
+              message={paperDashboardError}
+              actionLabel="Reload dashboard"
+              onRetry={() => void loadPaperDashboard(activePaperAccount)}
+            />
+          ) : null}
+          {!activePaperAccount ? (
+            <p className="text-sm text-muted-foreground">Create or load an active paper account to inspect paper risk state.</p>
+          ) : paperDashboardLoading && !paperSummary ? (
+            <LoadingRows label="Loading paper risk dashboard" />
+          ) : (
+            <PaperRiskDashboard summary={paperSummary} pnl={paperPnl} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Layers3 className="size-4" />
             Saved Experiment Table
@@ -1199,6 +1275,130 @@ export function StrategyLabPanel({
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function PaperRiskDashboard({
+  summary,
+  pnl,
+}: {
+  summary: PaperAccountSummaryResponse | null;
+  pnl: PaperPnlSnapshotResponse | null;
+}) {
+  if (!summary) {
+    return <p className="text-sm text-muted-foreground">Paper risk state is waiting for account data.</p>;
+  }
+
+  const snapshot = pnl?.snapshot ?? null;
+  const latestAuditEvents = summary.recent_audit_events.slice(0, 5);
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <MetricTile label="Cash" value={formatCurrency(summary.account.current_cash)} />
+        <MetricTile label="Equity" value={snapshot ? formatCurrency(snapshot.account_equity) : "-"} />
+        <MetricTile
+          label="Unrealized"
+          value={snapshot ? formatSignedCurrency(snapshot.total_unrealized_pnl) : "-"}
+          tone={snapshot ? signedTone(snapshot.total_unrealized_pnl) : "neutral"}
+        />
+        <MetricTile
+          label="Realized"
+          value={snapshot ? formatSignedCurrency(snapshot.total_realized_pnl) : "-"}
+          tone={snapshot ? signedTone(snapshot.total_realized_pnl) : "neutral"}
+        />
+        <MetricTile label="Price State" value={snapshot ? snapshot.price_state : "waiting"} />
+      </div>
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Position</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Avg</TableHead>
+                <TableHead>Reference</TableHead>
+                <TableHead>Unrealized</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {summary.positions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                    No paper positions yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                summary.positions.map((position) => {
+                  const positionPnl = snapshot?.positions.find((row) => row.position_id === position.position_id) ?? null;
+                  return (
+                    <TableRow key={position.position_id}>
+                      <TableCell className="min-w-[160px]">
+                        <div className="font-medium">{position.symbol}</div>
+                        <div className="text-xs text-muted-foreground">{position.asset_class}</div>
+                      </TableCell>
+                      <TableCell>{position.quantity}</TableCell>
+                      <TableCell>{formatCurrency(position.average_price)}</TableCell>
+                      <TableCell>
+                        <div>{positionPnl?.reference_price ? formatCurrency(positionPnl.reference_price) : "-"}</div>
+                        <Badge variant={positionPnl?.price_state === "fresh" ? "secondary" : "outline"}>
+                          {positionPnl?.price_state ?? "missing"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={positionPnl?.unrealized_pnl && positionPnl.unrealized_pnl < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}>
+                        {positionPnl?.unrealized_pnl === null || positionPnl?.unrealized_pnl === undefined
+                          ? "-"
+                          : formatSignedCurrency(positionPnl.unrealized_pnl)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="grid gap-3">
+          <div className="rounded-md border bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-medium">Recent Paper Flow</div>
+              <Badge variant="outline">{summary.scope}</Badge>
+            </div>
+            <div className="mt-3 grid gap-2 text-sm">
+              <MetricTile label="Recent intents" value={String(summary.recent_intents.length)} compact />
+              <MetricTile label="Recent fills" value={String(summary.recent_fills.length)} compact />
+            </div>
+          </div>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Audit preview</TableHead>
+                  <TableHead>Outcome</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {latestAuditEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-sm text-muted-foreground">
+                      No paper audit events yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  latestAuditEvents.map((event) => (
+                    <TableRow key={event.event_id}>
+                      <TableCell className="min-w-[160px]">
+                        <div className="font-medium">{event.reason_code}</div>
+                        <div className="line-clamp-1 text-xs text-muted-foreground">{event.message}</div>
+                      </TableCell>
+                      <TableCell>{event.outcome}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2092,10 +2292,42 @@ function toMovingAverageData(data: CandlestickData<Time>[], period: number): Lin
     .filter((item): item is LineData<Time> => item !== null);
 }
 
+function buildPaperReferencePrices(
+  summary: PaperAccountSummaryResponse,
+  bars: MarketBar[],
+): PaperReferencePrice[] {
+  const latestBySymbol = new Map<string, MarketBar>();
+  for (const bar of bars) {
+    const key = bar.symbol.toUpperCase();
+    const existing = latestBySymbol.get(key);
+    if (!existing || new Date(bar.timestamp).getTime() > new Date(existing.timestamp).getTime()) {
+      latestBySymbol.set(key, bar);
+    }
+  }
+  return summary.positions
+    .map((position) => {
+      const bar = latestBySymbol.get(position.symbol.toUpperCase());
+      if (!bar) return null;
+      return {
+        symbol: position.symbol,
+        asset_class: position.asset_class,
+        price: bar.close,
+        priced_at: bar.timestamp,
+      };
+    })
+    .filter((price): price is PaperReferencePrice => price !== null);
+}
+
 function signalLabel(signal: number) {
   if (signal === 1) return "BUY";
   if (signal === -1) return "EXIT";
   return "HOLD";
+}
+
+function signedTone(value: number): "neutral" | "positive" | "negative" {
+  if (value > 0) return "positive";
+  if (value < 0) return "negative";
+  return "neutral";
 }
 
 function formatCurrency(value?: number) {

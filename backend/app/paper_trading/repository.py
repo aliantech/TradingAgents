@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -175,6 +175,23 @@ class PaperTradingRepository:
         ).all()
         return [to_fill(model) for model in models]
 
+    def list_recent_fills_for_account(self, account_id: UUID, limit: int = 20) -> list[PaperFill]:
+        models = self.session.scalars(
+            select(PaperFillModel)
+            .where(PaperFillModel.account_id == account_id)
+            .order_by(PaperFillModel.filled_at.desc(), PaperFillModel.id.desc())
+            .limit(limit)
+        ).all()
+        return [to_fill(model) for model in models]
+
+    def list_fills_for_account(self, account_id: UUID) -> list[PaperFill]:
+        models = self.session.scalars(
+            select(PaperFillModel)
+            .where(PaperFillModel.account_id == account_id)
+            .order_by(PaperFillModel.filled_at.asc(), PaperFillModel.id.asc())
+        ).all()
+        return [to_fill(model) for model in models]
+
     def save_position(self, position: PaperPosition) -> PaperPosition:
         self.session.merge(
             PaperPositionModel(
@@ -238,6 +255,25 @@ class PaperTradingRepository:
             select(PaperAuditEventModel)
             .where(PaperAuditEventModel.resource_id == resource_id)
             .order_by(PaperAuditEventModel.created_at.asc(), PaperAuditEventModel.id.asc())
+        ).all()
+        return [to_audit_event(model) for model in models]
+
+    def list_recent_audit_events_for_account(self, account_id: UUID, limit: int = 50) -> list[PaperAuditEvent]:
+        intent_ids = select(PaperOrderIntentModel.id).where(PaperOrderIntentModel.account_id == account_id)
+        fill_ids = select(PaperFillModel.id).where(PaperFillModel.account_id == account_id)
+        position_ids = select(PaperPositionModel.id).where(PaperPositionModel.account_id == account_id)
+        models = self.session.scalars(
+            select(PaperAuditEventModel)
+            .where(
+                or_(
+                    PaperAuditEventModel.resource_id == account_id,
+                    PaperAuditEventModel.resource_id.in_(intent_ids),
+                    PaperAuditEventModel.resource_id.in_(fill_ids),
+                    PaperAuditEventModel.resource_id.in_(position_ids),
+                )
+            )
+            .order_by(PaperAuditEventModel.created_at.desc(), PaperAuditEventModel.id.desc())
+            .limit(limit)
         ).all()
         return [to_audit_event(model) for model in models]
 

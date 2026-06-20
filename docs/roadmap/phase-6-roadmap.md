@@ -33,7 +33,7 @@ Reference completion audit: `docs/roadmap/phase-5-completion-audit.md`.
 
 ### Slice 1: Phase 6 Roadmap and Safety Boundary
 
-Status: planned.
+Status: implemented and verified on 2026-06-20.
 
 Deliverables:
 
@@ -82,7 +82,7 @@ Verification:
 
 ### Slice 3: Paper Account and Position Summary API
 
-Status: planned.
+Status: implemented and verified on 2026-06-20.
 
 Goal:
 
@@ -96,15 +96,25 @@ Expected coverage:
 - Recent fills.
 - Recent audit events.
 
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-3-paper-account-summary-api.md`
+
+Implemented files:
+
+- `backend/app/paper_trading/repository.py`
+- `backend/app/paper_trading/router.py`
+- `backend/tests/test_paper_trading_api.py`
+
 Verification:
 
 - Backend tests prove summary data is account-scoped.
 - Backend tests prove no broker account fields or live order fields are exposed.
-- Existing paper API tests continue passing.
+- Ubuntu temp copy `/tmp/tradingagents-slice3-verify`: `/home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest backend/tests/test_paper_trading_api.py backend/tests/test_paper_trading_repository.py -q` passed, 19 tests.
 
 ### Slice 4: Paper PnL Snapshot
 
-Status: planned.
+Status: implemented and verified on 2026-06-20.
 
 Goal:
 
@@ -117,15 +127,28 @@ Expected coverage:
 - Cash plus position value account equity.
 - Clear stale-price or missing-price state.
 
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-4-paper-pnl-snapshot.md`
+
+Implemented files:
+
+- `backend/app/paper_trading/pnl.py`
+- `backend/app/paper_trading/repository.py`
+- `backend/app/paper_trading/router.py`
+- `backend/tests/test_paper_trading_pnl.py`
+- `backend/tests/test_paper_trading_api.py`
+
 Verification:
 
 - Pure calculation tests cover long/short-like position states that are allowed by current paper contracts.
 - API tests prove PnL output does not include broker account or live execution fields.
 - No external market-data fetch is introduced inside paper PnL calculation.
+- Ubuntu temp copy `/tmp/tradingagents-slice4-verify`: `/home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest backend/tests/test_paper_trading_pnl.py backend/tests/test_paper_trading_api.py backend/tests/test_paper_trading_repository.py -q` passed, 25 tests.
 
 ### Slice 5: Paper Risk Dashboard UI
 
-Status: planned.
+Status: implemented and verified on 2026-06-20.
 
 Goal:
 
@@ -139,19 +162,40 @@ Expected coverage:
 - RiskGuard rejection reason visibility.
 - Audit trail preview.
 
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-5-paper-risk-dashboard-ui.md`
+
+Implemented files:
+
+- `frontend/src/lib/api.ts`
+- `frontend/src/features/strategy-lab/StrategyLabPanel.tsx`
+- `frontend/e2e/paper-workflow-smoke.spec.ts`
+
 Verification:
 
 - Frontend build passes.
 - Browser smoke covers key visible states.
 - UI copy remains paper-only.
+- Ubuntu temp copy `/tmp/tradingagents-slice5-verify`: backend focused paper tests passed, 25 tests.
+- Ubuntu temp copy `/tmp/tradingagents-slice5-verify/frontend`: `npm run build` passed.
+- Ubuntu temp copy `/tmp/tradingagents-slice5-verify/frontend`: `npx playwright test e2e/paper-workflow-smoke.spec.ts` passed, 1 test.
 
 ### Slice 6: Phase 6 Completion Audit
 
-Status: planned.
+Status: implemented and verified on 2026-06-20.
 
 Goal:
 
 - Audit Phase 6 after slices are implemented and record residual risks.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-6-slice-6-completion-audit.md`
+
+Audit document:
+
+- `docs/roadmap/phase-6-completion-audit.md`
 
 Verification:
 
@@ -161,6 +205,10 @@ Verification:
 - Browser smoke passes.
 - Safety grep only matches negative tests or explicit non-goal docs.
 - Project docs and Yasin Brain record completion and remaining live-execution boundary.
+- Ubuntu temp copy `/tmp/tradingagents-phase6-audit`: focused paper tests passed, 85 tests.
+- Ubuntu temp copy `/tmp/tradingagents-phase6-audit/backend`: full backend regression passed, 225 tests.
+- Ubuntu temp copy `/tmp/tradingagents-phase6-audit/frontend`: `npm run build` passed.
+- Ubuntu temp copy `/tmp/tradingagents-phase6-audit/frontend`: `npx playwright test e2e/paper-workflow-smoke.spec.ts` passed, 1 test.
 
 ## Explicit Non-Goals
 
@@ -192,9 +240,9 @@ Before code implementation begins, write a task-level implementation plan that i
 
 Phase 6 is complete only when:
 
-- Critical paper UI workflow has browser smoke coverage.
-- Paper account summary and paper PnL state are inspectable without broker fields.
-- Risk and audit visibility are available from the UI or API.
-- Focused paper tests, backend regression, frontend build, and browser smoke pass.
-- Safety grep confirms no broker SDK, broker credentials, live order methods, trading-scope MCP tools, or paper-to-live controls were introduced.
-- Project docs and Yasin Brain record that live execution remains out of scope.
+- Critical paper UI workflow has browser smoke coverage: complete.
+- Paper account summary and paper PnL state are inspectable without broker fields: complete.
+- Risk and audit visibility are available from the UI or API: complete.
+- Focused paper tests, backend regression, frontend build, and browser smoke pass: complete.
+- Safety grep confirms no broker SDK, broker credentials, live order methods, trading-scope MCP tools, or paper-to-live controls were introduced: complete.
+- Project docs and Yasin Brain record that live execution remains out of scope: complete.

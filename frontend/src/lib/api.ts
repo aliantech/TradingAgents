@@ -471,6 +471,28 @@ export type PaperAccountResponse = {
   account: PaperAccount;
 };
 
+export type PaperPosition = {
+  position_id: string;
+  account_id: string;
+  symbol: string;
+  asset_class: PaperIntent["asset_class"];
+  quantity: number;
+  average_price: number;
+  updated_at: string;
+};
+
+export type PaperFill = {
+  fill_id: string;
+  intent_id: string;
+  account_id: string;
+  symbol: string;
+  asset_class: PaperIntent["asset_class"];
+  side: "buy" | "sell";
+  quantity: number;
+  fill_price: number;
+  filled_at: string;
+};
+
 export type PaperIntentStatus =
   | "draft"
   | "risk_rejected"
@@ -525,6 +547,56 @@ export type PaperIntentResponse = {
   intent: PaperIntent;
   latest_risk_decision: PaperRiskDecision | null;
   audit_events: PaperAuditEvent[];
+};
+
+export type PaperAccountSummaryResponse = {
+  scope: "paper_only";
+  account: PaperAccount;
+  positions: PaperPosition[];
+  recent_intents: PaperIntent[];
+  recent_fills: PaperFill[];
+  recent_audit_events: PaperAuditEvent[];
+};
+
+export type PaperReferencePrice = {
+  symbol: string;
+  asset_class: PaperIntent["asset_class"];
+  price: number;
+  priced_at: string;
+};
+
+export type PaperPositionPnl = {
+  position_id: string;
+  account_id: string;
+  symbol: string;
+  asset_class: PaperIntent["asset_class"];
+  quantity: number;
+  average_price: number;
+  multiplier: number;
+  price_state: "fresh" | "stale" | "missing";
+  reference_price: number | null;
+  reference_priced_at: string | null;
+  market_value: number | null;
+  cost_basis: number | null;
+  unrealized_pnl: number | null;
+};
+
+export type PaperPnlSnapshot = {
+  account_id: string;
+  base_currency: string;
+  current_cash: number;
+  as_of: string;
+  price_state: "complete" | "partial";
+  total_market_value: number;
+  total_unrealized_pnl: number;
+  total_realized_pnl: number;
+  account_equity: number;
+  positions: PaperPositionPnl[];
+};
+
+export type PaperPnlSnapshotResponse = {
+  scope: "paper_only";
+  snapshot: PaperPnlSnapshot;
 };
 
 const API_BASE_URL = resolveApiBaseUrl({
@@ -836,6 +908,27 @@ export function createPaperAccount(): Promise<PaperAccountResponse> {
       name: "Default paper account",
       base_currency: "USD",
       starting_cash: 100_000,
+    }),
+  });
+}
+
+export function getPaperAccountSummary(accountId: string): Promise<PaperAccountSummaryResponse> {
+  return requestJson<PaperAccountSummaryResponse>(`/api/paper-trading/accounts/${accountId}/summary`);
+}
+
+export function createPaperPnlSnapshot(
+  accountId: string,
+  referencePrices: PaperReferencePrice[],
+): Promise<PaperPnlSnapshotResponse> {
+  return requestJson<PaperPnlSnapshotResponse>(`/api/paper-trading/accounts/${accountId}/pnl-snapshot`, {
+    method: "POST",
+    body: JSON.stringify({
+      reference_prices: referencePrices.map((price) => ({
+        symbol: price.symbol,
+        asset_class: price.asset_class,
+        price: price.price,
+        priced_at: price.priced_at,
+      })),
     }),
   });
 }
