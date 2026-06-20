@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Phase 11 Repeat-SPY Smoke Complete
+Status: Phase 12 Direct Yahoo Chart Pilot In Progress
 Last Reviewed: 2026-06-20
 Owner: Yasin
 
@@ -67,6 +67,7 @@ As of 2026-06-20, the branch has moved beyond the original Phase 1 foundation in
 - Current Phase 9 state: Phase 9 research evaluation is complete and completion-audited. Slice 1 defined the roadmap for repeatable evaluation cases, report review contracts, review UI, and a manual provider pilot SOP. Slice 2 added a small versioned research evaluation case set covering SPY, QQQ, AAPL, TSLA, and SPX with deterministic baseline request generation and focused backend validation tests. Slice 3 added report review persistence and report review create/list APIs for evidence clarity, consistency, risk coverage, options relevance, Chinese readability, research-only safety, and reviewer notes. Slice 4 exposed report review status, latest notes, score summary, and a compact operator review form in the Reports workbench, plus review context in Runs detail. Slice 5 documented the manual provider pilot SOP using the Phase 8 guarded smoke path and records only non-secret metadata, quality notes, and residual risks. Slice 6 audited Phase 9 with focused backend tests, full backend regression, frontend build, browser smoke, and safety grep classification. Real provider-backed research remains manual and opt-in behind explicit runtime gates. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, scheduled provider-backed research jobs, automatic retry loops, and automatic paper-to-live promotion remain out of scope.
 - Current Phase 10 state: Phase 10 manual provider pilot is complete with a pause decision. Slice 1 defined the SPY-first manual pilot roadmap and checklist. Slice 2 generated and recorded the SPY deterministic baseline review through the existing deterministic analysis and report review paths. Slice 3 executed the approved guarded real-runner wrapper for SPY and recorded a sanitized `not_ready` result because `OPENAI_API_KEY` was missing from the operator process. Slice 4 decided to pause for provider readiness, then repeat `SPY` instead of expanding to `QQQ`. Slice 5 was skipped. Slice 6 audited completion and residual risks. No runtime code, real provider call, broker integration, live execution, scheduled job, automatic retry, or paper-to-live workflow was added in Phase 10.
 - Current Phase 11 state: Phase 11 repeat-SPY smoke is complete with a market-data runtime failure decision. Slice 1 defined the roadmap and checklist for confirming provider readiness without exposing secret values, then repeating the approved guarded SPY smoke before any QQQ expansion. Slice 2 first recorded `not_ready`, then fixed the Settings-saved LLM key bridge so the guarded smoke CLI can use write-only Settings secrets without printing them; masked Settings API readback confirmed `OPENAI_API_KEY` is saved and final readiness was `ready`. Slice 3 installed TradingAgents real-runner dependencies into the Ubuntu backend venv, executed the approved wrapper for SPY, and recorded a sanitized `failed` result because the Yahoo/yfinance market-data path failed SSL hostname validation before report generation. Slice 4 was skipped because no report was generated. Slice 5 decided to fix the real-runner market-data SSL/runtime path, then repeat `SPY`; do not expand to `QQQ` yet. Slice 6 audited completion and residual risks. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, scheduled provider-backed research jobs, automatic retry loops, and automatic paper-to-live promotion remain out of scope.
+- Current Phase 12 state: Phase 12 is in progress. Slice 1 added a minimal direct Yahoo Finance chart endpoint vendor for core OHLCV data, registered it as `direct_yahoo_chart`, and configured the real TradingAgents runner to use it for `get_stock_data`. Direct endpoint validation confirmed both `query1.finance.yahoo.com/v8/finance/chart/SPY` and `query2.finance.yahoo.com/v8/finance/chart/SPY` return usable bounded chart payloads, and focused Ubuntu verification passed root vendor/config tests and backend real-runner config tests. This fixes only the Phase 11 core OHLCV blocker; SPY still needs a repeated guarded real-runner smoke before QQQ expansion. Live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, scheduled provider-backed research jobs, automatic retry loops, and automatic paper-to-live promotion remain out of scope.
 - The checked-in analysis endpoint no longer emits sample or mock research reports. Until the real TradingAgents execution chain is connected in Slice 4, deterministic fixture reports are used only to verify the analysis execution, report mapping, and persistence path.
 - Runtime DB hygiene is documented in `docs/operations/runtime-db-hygiene.md`; pytest defaults to a temporary SQLite database and the cleanup script backs up before removing mock/test/legacy task rows.
 
@@ -149,6 +150,7 @@ Initial storage scope:
 - `docs/roadmap/phase-9-completion-audit.md`
 - `docs/roadmap/phase-10-roadmap.md`
 - `docs/roadmap/phase-11-roadmap.md`
+- `docs/roadmap/phase-12-roadmap.md`
 - `docs/operations/phase-9-evaluation-cases.md`
 - `docs/operations/phase-9-manual-provider-pilot.md`
 - `docs/operations/phase-10-first-pilot-checklist.md`
@@ -162,6 +164,7 @@ Initial storage scope:
 - `docs/operations/phase-11-spy-repeat-real-runner-smoke.md`
 - `docs/operations/phase-11-decision-record.md`
 - `docs/roadmap/phase-11-completion-audit.md`
+- `docs/operations/phase-12-direct-yahoo-chart-validation.md`
 - `docs/superpowers/specs/2026-06-20-aquantlens-us-phase-5-paper-only-design.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-2-paper-contracts.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-3-riskguard.md`
@@ -200,5 +203,6 @@ Initial storage scope:
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-11-slice-1-roadmap.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-11-slice-2-provider-readiness.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-11-slice-3-repeat-spy-smoke.md`
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-12-slice-1-direct-yahoo-chart.md`
 - `docs/superpowers/specs/2026-06-17-aquantlens-phase-1-design.md`
 - `docs/superpowers/plans/2026-06-17-aquantlens-phase-1.md`

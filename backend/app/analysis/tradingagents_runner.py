@@ -64,6 +64,10 @@ def build_real_tradingagents_config(
             "max_debate_rounds": runtime_settings.tradingagents_max_debate_rounds,
             "max_risk_discuss_rounds": runtime_settings.tradingagents_max_risk_discuss_rounds,
             "checkpoint_enabled": False,
+            "tool_vendors": {
+                **config.get("tool_vendors", {}),
+                "get_stock_data": "direct_yahoo_chart",
+            },
         }
     )
     return config

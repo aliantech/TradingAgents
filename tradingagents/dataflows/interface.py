@@ -12,6 +12,7 @@ from .alpha_vantage import (
     get_stock as get_alpha_vantage_stock,
 )
 from .config import get_config
+from .direct_yahoo_chart import get_direct_yahoo_chart_data_online
 from .errors import (
     NoMarketDataError,
     VendorNotConfiguredError,
@@ -79,6 +80,7 @@ TOOLS_CATEGORIES = {
 
 VENDOR_LIST = [
     "yfinance",
+    "direct_yahoo_chart",
     "fred",
     "polymarket",
     "alpha_vantage",
@@ -89,6 +91,7 @@ VENDOR_METHODS = {
     # core_stock_apis
     "get_stock_data": {
         "alpha_vantage": get_alpha_vantage_stock,
+        "direct_yahoo_chart": get_direct_yahoo_chart_data_online,
         "yfinance": get_YFin_data_online,
     },
     # technical_indicators
