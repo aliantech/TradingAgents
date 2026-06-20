@@ -193,6 +193,9 @@ def test_analysis_api_persists_failed_run_without_report_when_fixture_fails():
     assert status_payload["report_id"] is None
     assert status_payload["progress"][-1]["step"] == "tradingagents"
     assert status_payload["progress"][-1]["status"] == "failed"
+    assert status_payload["failure_diagnostic"]["category"] == "runtime"
+    assert status_payload["failure_diagnostic"]["failed_step"] == "tradingagents"
+    assert "retry" in status_payload["failure_diagnostic"]["retry_guidance"].lower()
 
 
 def test_analysis_api_rejects_invalid_report_quality_before_persistence(monkeypatch):
@@ -242,3 +245,9 @@ def test_analysis_api_rejects_invalid_report_quality_before_persistence(monkeypa
     assert status_payload["report_id"] is None
     assert status_payload["progress"][-1]["step"] == "report_quality"
     assert "Report quality validation failed" in status_payload["progress"][-1]["message"]
+    assert status_payload["failure_diagnostic"]["category"] == "report_quality"
+
+    analysis_store._runs.clear()
+    runs_response = client.get("/api/analysis/runs")
+    run = next(item for item in runs_response.json()["runs"] if item["analysis_id"] == response.json()["analysis_id"])
+    assert run["failure_diagnostic"]["category"] == "report_quality"

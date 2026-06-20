@@ -55,6 +55,13 @@ class AnalysisProgressEvent(BaseModel):
     message: str
 
 
+class AnalysisFailureDiagnostic(BaseModel):
+    category: str
+    failed_step: str
+    message: str
+    retry_guidance: str
+
+
 class AnalysisStatusResponse(BaseModel):
     analysis_id: UUID
     symbol: str
@@ -63,6 +70,7 @@ class AnalysisStatusResponse(BaseModel):
     language: ReportLanguage
     progress: list[AnalysisProgressEvent]
     report_id: UUID | None = None
+    failure_diagnostic: AnalysisFailureDiagnostic | None = None
 
 
 class AnalysisRunListItem(BaseModel):
@@ -80,6 +88,7 @@ class AnalysisRunListItem(BaseModel):
     created_at: datetime
     updated_at: datetime
     report_id: UUID | None = None
+    failure_diagnostic: AnalysisFailureDiagnostic | None = None
 
 
 class AnalysisRunsResponse(BaseModel):

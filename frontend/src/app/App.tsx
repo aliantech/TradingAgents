@@ -2971,6 +2971,23 @@ function AnalysisRunTable({
           ),
       },
       {
+        id: "diagnostic",
+        header: t("runs.table.diagnostic"),
+        cell: ({ row }) => {
+          const diagnostic = row.original.failure_diagnostic;
+          if (!diagnostic) return "-";
+          return (
+            <div className="max-w-[260px] space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="destructive">{diagnostic.category}</Badge>
+                <span className="text-xs text-muted-foreground">{diagnostic.failed_step}</span>
+              </div>
+              <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{diagnostic.retry_guidance}</p>
+            </div>
+          );
+        },
+      },
+      {
         id: "action",
         header: t("runs.table.action"),
         cell: ({ row }) => {
@@ -3085,6 +3102,21 @@ function AnalysisRunDetailPanel({
                 </Alert>
               ) : null}
             </div>
+            {status.failure_diagnostic ? (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong>{t("runs.diagnostic")}</strong>
+                      <Badge variant="secondary">{status.failure_diagnostic.category}</Badge>
+                      <span>{status.failure_diagnostic.failed_step}</span>
+                    </div>
+                    <span>{status.failure_diagnostic.message}</span>
+                    <span>{status.failure_diagnostic.retry_guidance}</span>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            ) : null}
             <div className="flex flex-col gap-2">
               {status.progress.length > 0 ? (
                 status.progress.map((event) => (

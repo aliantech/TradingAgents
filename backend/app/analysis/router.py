@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.analysis.diagnostics import build_failure_diagnostic
 from app.analysis.repository import AnalysisRepository
 from app.analysis.schemas import AnalysisQueuedResponse, AnalysisRequest, AnalysisRunListItem, AnalysisRunsResponse, AnalysisStatusResponse
 from app.analysis.service import start_analysis as start_analysis_job
@@ -57,6 +58,7 @@ def list_analysis_runs(
                 created_at=run.created_at,
                 updated_at=run.updated_at,
                 report_id=run.report.report_id if run.report else None,
+                failure_diagnostic=build_failure_diagnostic(run.progress) if run.status == "failed" else None,
             )
             for run in runs
         ]
@@ -100,6 +102,7 @@ def get_analysis_status(
         language=run.request.language,
         progress=run.progress,
         report_id=run.report.report_id if run.report else None,
+        failure_diagnostic=build_failure_diagnostic(run.progress) if run.status == "failed" else None,
     )
 
 

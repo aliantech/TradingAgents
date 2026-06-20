@@ -6,6 +6,13 @@ export type AnalysisProgressEvent = {
   message: string;
 };
 
+export type AnalysisFailureDiagnostic = {
+  category: string;
+  failed_step: string;
+  message: string;
+  retry_guidance: string;
+};
+
 export type BackendHealth = {
   service: string;
   status: string;
@@ -19,6 +26,7 @@ export type AnalysisStatus = {
   language: string;
   progress: AnalysisProgressEvent[];
   report_id: string | null;
+  failure_diagnostic?: AnalysisFailureDiagnostic | null;
 };
 
 export type AnalysisStartPayload = {
@@ -48,6 +56,7 @@ export type AnalysisRunItem = {
   created_at: string;
   updated_at: string;
   report_id: string | null;
+  failure_diagnostic?: AnalysisFailureDiagnostic | null;
 };
 
 export type AnalysisRunsResponse = {

@@ -18,9 +18,12 @@ test("analysis observability shows completed reports and failed no-report detail
   await expect(page.getByText("SPY 中文 AI 投研摘要").first()).toBeVisible();
 
   await page.goto("/#runs");
+  await expect(page.getByText("provider").first()).toBeVisible();
+  await expect(page.getByText(/Check provider readiness|检查 Provider/).first()).toBeVisible();
   await page.getByRole("button", { name: /Error Detail|错误详情/ }).click();
   await expect(page.getByText(/This analysis run failed without a report|该分析任务失败且没有报告输出/)).toBeVisible();
-  await expect(page.getByText("provider timeout")).toBeVisible();
+  await expect(page.getByText("provider timeout").first()).toBeVisible();
+  await expect(page.getByText(/Check provider readiness|检查 Provider/).first()).toBeVisible();
 });
 
 async function installApiMocks(page: Page) {
@@ -125,6 +128,7 @@ function failedStatus() {
       { step: "queued", status: "completed", message: "FAIL analysis queued." },
       { step: "tradingagents", status: "failed", message: "provider timeout" },
     ],
+    failure_diagnostic: failedDiagnostic(),
   };
 }
 
@@ -144,6 +148,7 @@ function completedRun() {
     created_at: now,
     updated_at: now,
     report_id: completedReportId,
+    failure_diagnostic: null,
   };
 }
 
@@ -155,6 +160,16 @@ function failedRun() {
     asset_type: "equity",
     status: "failed",
     report_id: null,
+    failure_diagnostic: failedDiagnostic(),
+  };
+}
+
+function failedDiagnostic() {
+  return {
+    category: "provider",
+    failed_step: "tradingagents",
+    message: "provider timeout",
+    retry_guidance: "Check provider readiness and retry manually.",
   };
 }
 

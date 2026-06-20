@@ -169,7 +169,7 @@ Verification completed:
 
 ### Slice 5: Runner Failure Diagnostics
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -186,6 +186,24 @@ Verification:
 
 - Backend tests cover categorized errors and redaction.
 - Frontend build and mocked browser smoke pass.
+
+Implemented:
+
+- `backend/app/analysis/diagnostics.py`.
+- `backend/tests/test_analysis_diagnostics.py`.
+- `backend/app/analysis/schemas.py` exposes optional `failure_diagnostic` on status and run-list items.
+- `backend/app/analysis/router.py` derives diagnostics from progress events without changing persistence schema.
+- `frontend/src/lib/api.ts` models optional failure diagnostics.
+- `frontend/src/app/App.tsx` shows category, failed step, sanitized message, and retry guidance in Runs.
+- `frontend/e2e/analysis-observability-smoke.spec.ts` verifies diagnostics visibility with mocked APIs.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-5-runner-failure-diagnostics.md`.
+
+Verification completed:
+
+- Ubuntu temp-copy focused backend diagnostics/API/adapter tests passed: 15 tests.
+- Ubuntu temp-copy backend full regression passed: 252 tests.
+- Ubuntu temp-copy frontend production build passed.
+- Ubuntu temp-copy analysis observability browser smoke passed: 1 test.
 
 ### Slice 6: Phase 8 Completion Audit
 
