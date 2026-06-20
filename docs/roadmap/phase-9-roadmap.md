@@ -167,11 +167,17 @@ Verification:
 
 ### Slice 6: Evaluation Summary and Completion Audit
 
-Status: planned.
+Status: complete.
 
 Goal:
 
 - Audit Phase 9 and record whether the research workflow is ready for broader manual provider pilots.
+
+Deliverables:
+
+- Phase 9 completion audit in `docs/roadmap/phase-9-completion-audit.md`.
+- Project status update marking Phase 9 complete.
+- Yasin Brain log entry recording completion and remaining live-execution boundary.
 
 Verification:
 
