@@ -41,7 +41,7 @@ Known operational gaps:
 
 ### Slice 1: Phase 8 Roadmap and Operations Boundary
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -59,6 +59,12 @@ Verification:
 - Documentation points Phase 8 to research operations and manual real-runner readiness.
 - Documentation keeps broker credentials, broker account mutation, trading-scope MCP tools, live-trading UI controls, and paper-to-live promotion out of scope.
 - No runtime code is added in Slice 1.
+
+Implemented:
+
+- `docs/roadmap/phase-8-roadmap.md`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-1-roadmap.md`.
+- `PROJECT.md`.
 
 ### Slice 2: Runner Mode Settings UX
 
@@ -207,7 +213,7 @@ Verification completed:
 
 ### Slice 6: Phase 8 Completion Audit
 
-Status: planned.
+Status: implemented and verified.
 
 Goal:
 
@@ -221,6 +227,21 @@ Verification:
 - Browser smoke passes for changed UI.
 - Safety grep confirms no live-execution boundary violations.
 - Project docs and Yasin Brain record completion and remaining live-execution boundary.
+
+Implemented:
+
+- `docs/roadmap/phase-8-completion-audit.md`.
+- `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-8-slice-6-completion-audit.md`.
+- `PROJECT.md`.
+
+Verification completed:
+
+- Ubuntu temp-copy focused backend tests passed: 32 tests.
+- Ubuntu temp-copy settings catalog test exited 0.
+- Ubuntu temp-copy backend full regression passed: 252 tests.
+- Ubuntu temp-copy frontend production build passed.
+- Ubuntu temp-copy browser smoke passed: 2 tests.
+- Phase 8 safety grep matches classified as no-live-trading boundary docs, existing secret settings UI, provider env-var readiness names, and synthetic redaction tests.
 
 ## Explicit Non-Goals
 
