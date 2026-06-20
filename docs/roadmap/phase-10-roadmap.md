@@ -82,7 +82,7 @@ Verification:
 
 ### Slice 3: Guarded Real-Runner Smoke for First Case
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -95,9 +95,15 @@ Verification:
 - Does not source `.env`, print secrets, or run in CI/schedulers.
 - Captures only sanitized progress, evidence labels, report-generated status, quality notes, and residual risks.
 
+Result:
+
+- `SPY` smoke produced a documented `not_ready` result because `OPENAI_API_KEY` was missing from the operator process.
+- No real LLM provider call was made.
+- Evidence record: `docs/operations/phase-10-spy-real-runner-smoke.md`.
+
 ### Slice 4: First Case Decision Record
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -109,9 +115,14 @@ Verification:
 - Decision is one of: repeat same case, expand to QQQ, pause for quality fixes, or stop.
 - Boundary remains research-only and manual.
 
+Result:
+
+- Decision: pause for provider readiness, then repeat `SPY`.
+- Evidence record: `docs/operations/phase-10-first-case-decision-record.md`.
+
 ### Slice 5: Optional Second Case Pilot
 
-Status: planned.
+Status: skipped.
 
 Goal:
 
@@ -122,9 +133,13 @@ Verification:
 - Same deterministic baseline, guarded real-runner, review, and decision process is followed.
 - No automation or live-execution scope is added.
 
+Result:
+
+- Skipped because Slice 4 did not allow expansion to `QQQ`.
+
 ### Slice 6: Completion Audit
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -136,6 +151,10 @@ Verification:
 - Frontend build and report review browser smoke pass if UI changed.
 - Safety grep confirms no secret, live-execution, scheduler, automatic retry, broker, or paper-to-live boundary violations.
 - Project docs and Yasin Brain record completion and residual risks.
+
+Result:
+
+- Audit record: `docs/roadmap/phase-10-completion-audit.md`.
 
 ## Explicit Non-Goals
 
