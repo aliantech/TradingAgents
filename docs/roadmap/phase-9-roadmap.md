@@ -61,7 +61,7 @@ Verification:
 
 ### Slice 2: Evaluation Case Set
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -74,10 +74,17 @@ Expected coverage:
 - Deterministic runner baseline expected outputs or quality expectations.
 - No provider secrets and no live provider calls in tests.
 
+Deliverables:
+
+- Versioned backend evaluation case set in `backend/app/research_evaluation/cases.py`.
+- Focused backend tests for case coverage, deterministic request generation, and baseline expectations.
+- Operator extension guide in `docs/operations/phase-9-evaluation-cases.md`.
+
 Verification:
 
 - Backend tests load and validate the case set.
 - Documentation explains how operators should extend cases.
+- Automated tests do not require provider secrets or live provider calls.
 
 ### Slice 3: Report Review Contract
 
