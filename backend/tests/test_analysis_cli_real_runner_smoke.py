@@ -1,10 +1,37 @@
 from datetime import date
 
-from app.analysis.cli import real_runner_smoke_missing_prerequisites, run_real_runner_smoke
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.analysis.cli import (
+    load_stored_provider_api_key,
+    real_runner_smoke_missing_prerequisites,
+    run_real_runner_smoke,
+)
 from app.analysis.schemas import AnalysisDepth, AnalysisProgressEvent, AnalysisRequest, AssetType, ReportLanguage, ResearchTemplate
 from app.analysis.tradingagents_adapter import TradingAgentsReportPayload, TradingAgentsRunResult
 from app.analysis.tradingagents_runner import REAL_TRADINGAGENTS_MODE
 from app.core.config import Settings
+from app.db.base import Base
+from app.settings.repository import SettingsRepository
+from app.settings.schemas import SettingWriteItem
+
+
+@pytest.fixture
+def settings_repository():
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)()
+    try:
+        yield SettingsRepository(session)
+    finally:
+        session.close()
 
 
 def test_real_runner_smoke_requires_confirmation_and_real_runner_mode():
@@ -26,6 +53,67 @@ def test_real_runner_smoke_requires_provider_key_without_printing_value():
     )
 
     assert missing == ["OPENAI_API_KEY"]
+
+
+def test_real_runner_smoke_can_use_write_only_settings_key(settings_repository):
+    settings_repository.upsert_many(
+        [
+            SettingWriteItem(
+                key="OPENAI_API_KEY",
+                value="sk-not-printed",
+                category="api",
+                is_secret=True,
+            )
+        ]
+    )
+    environ = {}
+
+    loaded = load_stored_provider_api_key(
+        runtime_settings=Settings(
+            tradingagents_runner_mode=REAL_TRADINGAGENTS_MODE,
+            tradingagents_llm_provider="openai",
+        ),
+        repository=settings_repository,
+        environ=environ,
+    )
+    missing = real_runner_smoke_missing_prerequisites(
+        runtime_settings=Settings(
+            tradingagents_runner_mode=REAL_TRADINGAGENTS_MODE,
+            tradingagents_llm_provider="openai",
+        ),
+        explicit_confirmation=True,
+        environ=environ,
+    )
+
+    assert loaded == "OPENAI_API_KEY"
+    assert missing == []
+    assert "sk-not-printed" not in str(missing)
+
+
+def test_real_runner_smoke_does_not_override_process_env_key(settings_repository):
+    settings_repository.upsert_many(
+        [
+            SettingWriteItem(
+                key="OPENAI_API_KEY",
+                value="stored-secret",
+                category="api",
+                is_secret=True,
+            )
+        ]
+    )
+    environ = {"OPENAI_API_KEY": "process-secret"}
+
+    loaded = load_stored_provider_api_key(
+        runtime_settings=Settings(
+            tradingagents_runner_mode=REAL_TRADINGAGENTS_MODE,
+            tradingagents_llm_provider="openai",
+        ),
+        repository=settings_repository,
+        environ=environ,
+    )
+
+    assert loaded == "OPENAI_API_KEY"
+    assert environ["OPENAI_API_KEY"] == "process-secret"
 
 
 def test_real_runner_smoke_stops_before_runner_when_not_ready(monkeypatch):

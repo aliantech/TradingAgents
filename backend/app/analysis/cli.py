@@ -10,6 +10,7 @@ from app.analysis.tradingagents_adapter import build_tradingagents_request, map_
 from app.analysis.tradingagents_runner import REAL_TRADINGAGENTS_MODE, ensure_tradingagents_import_path, run_configured_research
 from app.core.config import Settings
 from app.db.session import SessionLocal, initialize_database
+from app.settings.repository import SettingsRepository
 from app.settings.runtime import resolve_runtime_settings
 
 
@@ -109,6 +110,24 @@ def real_runner_smoke_missing_prerequisites(
     return missing
 
 
+def load_stored_provider_api_key(
+    *,
+    runtime_settings: Settings,
+    repository: SettingsRepository,
+    environ: dict[str, str],
+) -> str | None:
+    env_var = api_key_env_for_provider(runtime_settings.tradingagents_llm_provider)
+    if env_var in {None, "__unknown_provider__"}:
+        return None
+    if environ.get(env_var):
+        return env_var
+    stored_value = repository.get_raw_value(env_var)
+    if not stored_value:
+        return None
+    environ[env_var] = stored_value
+    return env_var
+
+
 def api_key_env_for_provider(provider: str) -> str | None:
     ensure_tradingagents_import_path()
     from tradingagents.llm_clients.api_key_env import PROVIDER_API_KEY_ENV, get_api_key_env
@@ -144,6 +163,11 @@ def main(argv: list[str] | None = None) -> int:
         session = SessionLocal()
         try:
             runtime_settings = resolve_runtime_settings(session)
+            load_stored_provider_api_key(
+                runtime_settings=runtime_settings,
+                repository=SettingsRepository(session),
+                environ=os.environ,
+            )
         finally:
             session.close()
         request = AnalysisRequest(

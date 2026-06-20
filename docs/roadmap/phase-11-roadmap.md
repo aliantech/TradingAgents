@@ -72,14 +72,17 @@ Verification:
 
 Result:
 
-- Readiness result: `not_ready`.
-- Missing readiness gate: `OPENAI_API_KEY`.
+- Initial readiness result: `not_ready`.
+- Initial missing readiness gate: `OPENAI_API_KEY`.
+- Settings API later confirmed `OPENAI_API_KEY` was saved as a write-only secret.
+- The smoke CLI now loads the selected provider key from Settings DB into the current process without printing it.
+- Final readiness result: `ready`.
 - Evidence record: `docs/operations/phase-11-provider-readiness-check.md`.
-- The approved wrapper was not executed because readiness was not confirmed.
+- Settings bridge record: `docs/operations/phase-11-settings-key-readiness-bridge.md`.
 
 ### Slice 3: Repeat SPY Guarded Real-Runner Smoke
 
-Status: waiting on provider readiness.
+Status: complete.
 
 Goal:
 
@@ -98,9 +101,17 @@ Verification:
 - Does not source `.env`, print secrets, or run in CI/schedulers.
 - Captures only sanitized progress, evidence labels, report-generated status, quality notes, and residual risks.
 
+Result:
+
+- Approved wrapper executed.
+- Result: `failed`.
+- Report generated: false.
+- Failure: Yahoo/yfinance SSL hostname validation in the market-data path.
+- Evidence record: `docs/operations/phase-11-spy-repeat-real-runner-smoke.md`.
+
 ### Slice 4: Provider-Backed SPY Review
 
-Status: planned.
+Status: skipped.
 
 Goal:
 
@@ -112,9 +123,13 @@ Verification:
 - Review compares against the Phase 10 deterministic baseline.
 - If no report is generated, record a failure/not-ready decision instead of inventing a review.
 
+Result:
+
+- Skipped because no provider-backed report was generated.
+
 ### Slice 5: Expansion Decision
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -126,9 +141,15 @@ Verification:
 - Decision is one of: repeat SPY, fix quality issues, expand to QQQ, or stop.
 - Boundary remains research-only and manual.
 
+Result:
+
+- Decision: fix the real-runner market-data SSL/runtime path, then repeat `SPY`.
+- Do not expand to `QQQ` yet.
+- Evidence record: `docs/operations/phase-11-decision-record.md`.
+
 ### Slice 6: Completion Audit
 
-Status: planned.
+Status: complete.
 
 Goal:
 
@@ -140,6 +161,10 @@ Verification:
 - Frontend build and report review browser smoke pass if UI changed.
 - Safety grep confirms no secret, live-execution, scheduler, automatic retry, broker, or paper-to-live boundary violations.
 - Project docs and Yasin Brain record completion and residual risks.
+
+Result:
+
+- Audit record: `docs/roadmap/phase-11-completion-audit.md`.
 
 ## Explicit Non-Goals
 
