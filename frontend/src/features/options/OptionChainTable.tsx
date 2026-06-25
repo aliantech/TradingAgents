@@ -48,6 +48,9 @@ type OptionChainTableProps = {
   selectedBarsLoading: boolean;
   selectedBarsError: string | null;
   selectedBarsTimeframe: MarketTimeframe;
+  selectedQuoteHistory: OptionSnapshot[];
+  selectedQuoteHistoryLoading: boolean;
+  selectedQuoteHistoryError: string | null;
   onExpiryChange: (value: string) => void;
   onSelectedContractChange: (optionSymbol: string) => void;
   onSelectedBarsTimeframeChange: (timeframe: MarketTimeframe) => void;
@@ -105,6 +108,9 @@ export function OptionChainTable({
   selectedBarsLoading,
   selectedBarsError,
   selectedBarsTimeframe,
+  selectedQuoteHistory,
+  selectedQuoteHistoryLoading,
+  selectedQuoteHistoryError,
   onExpiryChange,
   onSelectedContractChange,
   onSelectedBarsTimeframeChange,
@@ -436,6 +442,17 @@ export function OptionChainTable({
                   waiting: t("options.waiting"),
                   loading: t("options.loadingBars"),
                   empty: t("options.noBars"),
+                }}
+              />
+              <OptionQuoteHistoryPanel
+                quotes={selectedQuoteHistory}
+                loading={selectedQuoteHistoryLoading}
+                error={selectedQuoteHistoryError}
+                labels={{
+                  title: t("options.quoteHistory"),
+                  waiting: t("options.waiting"),
+                  loading: t("options.loadingQuoteHistory"),
+                  empty: t("options.noQuoteHistory"),
                 }}
               />
             </>
@@ -905,6 +922,63 @@ function OptionBarsCandles({ bars }: { bars: OptionBar[] }) {
         );
       })}
     </svg>
+  );
+}
+
+function OptionQuoteHistoryPanel({
+  quotes,
+  loading,
+  error,
+  labels,
+}: {
+  quotes: OptionSnapshot[];
+  loading: boolean;
+  error: string | null;
+  labels: {
+    title: string;
+    waiting: string;
+    loading: string;
+    empty: string;
+  };
+}) {
+  const latest = quotes[0];
+  return (
+    <div className="mt-4 grid gap-3 rounded-lg border border-dashed bg-card p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">{labels.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{latest ? `${latest.source} · ${quotes.length} quotes` : labels.waiting}</p>
+        </div>
+        {latest ? <Badge variant="outline">{new Date(latest.timestamp).toLocaleTimeString()}</Badge> : null}
+      </div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {loading ? <p className="text-sm text-muted-foreground">{labels.loading}</p> : null}
+      {!loading && quotes.length === 0 ? <p className="text-sm text-muted-foreground">{labels.empty}</p> : null}
+      {quotes.length > 0 ? (
+        <div className="overflow-x-auto">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead className="text-right">Bid</TableHead>
+                <TableHead className="text-right">Ask</TableHead>
+                <TableHead className="text-right">Mid/Last</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {quotes.slice(0, 5).map((quote) => (
+                <TableRow key={`${quote.option_symbol}-${quote.timestamp}`}>
+                  <TableCell className="whitespace-nowrap">{new Date(quote.timestamp).toLocaleTimeString()}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatOptionNumber(quote.bid)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatOptionNumber(quote.ask)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatOptionNumber(quote.last)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

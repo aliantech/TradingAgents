@@ -88,6 +88,22 @@ class FinanceDataHubClient:
             raise FinanceDataHubError("Finance Data Hub option contracts response must include contracts list.")
         return [_option_contract_from_hub_row(underlying_symbol.upper(), row) for row in rows]
 
+    def list_option_quote_history(
+        self,
+        *,
+        provider_symbol: str,
+        limit: int = 50,
+    ) -> list[OptionSnapshotRecord]:
+        query = {"provider_symbol": provider_symbol.upper(), "limit": str(limit)}
+        payload = self.transport.get_json(f"{self.base_url}/options/quotes/history?{urlencode(query)}")
+        rows = payload.get("quotes") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise FinanceDataHubError("Finance Data Hub option quote history response must include quotes list.")
+        return [
+            _option_snapshot_from_hub_row(str(row.get("underlying_symbol") or "UNKNOWN").upper(), row)
+            for row in rows
+        ]
+
 
 class UrlLibTransport:
     def get_json(self, url: str) -> object:

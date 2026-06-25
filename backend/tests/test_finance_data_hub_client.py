@@ -137,3 +137,35 @@ def test_finance_data_hub_client_reads_option_contracts():
     assert transport.calls == [
         "http://hub.test/options/contracts?underlying_symbol=SPY&limit=1000&expiration_date=2026-06-25"
     ]
+
+
+def test_finance_data_hub_client_reads_option_quote_history():
+    transport = FakeTransport(
+        {
+            "quotes": [
+                {
+                    "underlying_symbol": "SPY",
+                    "provider_symbol": "O:SPY260625C00726000",
+                    "provider_timestamp": "2026-06-25T18:12:38.222000Z",
+                    "bid": "7.47000000",
+                    "ask": "7.76000000",
+                    "mid": "7.61500000",
+                    "volume": "0.00000000",
+                    "open_interest": None,
+                    "source": "option_quotes_history",
+                }
+            ]
+        }
+    )
+    client = FinanceDataHubClient("http://hub.test", transport=transport)
+
+    quotes = client.list_option_quote_history(provider_symbol="o:spy260625c00726000", limit=5)
+
+    assert len(quotes) == 1
+    assert quotes[0].option_symbol == "O:SPY260625C00726000"
+    assert quotes[0].underlying_symbol == "SPY"
+    assert quotes[0].last == 7.615
+    assert quotes[0].source == "option_quotes_history"
+    assert transport.calls == [
+        "http://hub.test/options/quotes/history?provider_symbol=O%3ASPY260625C00726000&limit=5"
+    ]

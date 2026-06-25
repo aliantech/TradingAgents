@@ -296,3 +296,46 @@ def test_options_bars_api_returns_empty_bars_when_no_provider_data():
     assert payload["option_symbol"] == "SPXW260617C05900000"
     assert payload["timeframe"] == "5m"
     assert payload["bars"] == []
+
+
+def test_options_quote_history_api_reads_finance_data_hub(monkeypatch):
+    class FakeFinanceDataHubClient:
+        def __init__(self, base_url: str) -> None:
+            self.base_url = base_url
+
+        def list_option_quote_history(self, *, provider_symbol: str, limit: int):
+            assert provider_symbol == "O:SPY260625C00726000"
+            assert limit == 5
+            return [
+                OptionSnapshotRecord(
+                    option_symbol="O:SPY260625C00726000",
+                    underlying_symbol="SPY",
+                    timestamp=datetime(2026, 6, 25, 18, 12, 38, tzinfo=UTC),
+                    bid=7.47,
+                    ask=7.76,
+                    last=7.615,
+                    volume=0,
+                    open_interest=None,
+                    implied_volatility=None,
+                    delta=None,
+                    gamma=None,
+                    theta=None,
+                    vega=None,
+                    source="option_quotes_history",
+                )
+            ]
+
+    monkeypatch.setattr(options_router, "FinanceDataHubClient", FakeFinanceDataHubClient)
+    session = _session()
+    client = _client_with_session(session)
+    try:
+        response = client.get("/api/options/quotes/history?option_symbol=o:spy260625c00726000&limit=5")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["option_symbol"] == "O:SPY260625C00726000"
+    assert len(payload["quotes"]) == 1
+    assert payload["quotes"][0]["last"] == 7.615
+    assert payload["quotes"][0]["source"] == "option_quotes_history"

@@ -267,6 +267,11 @@ export type OptionBarsResponse = {
   bars: OptionBar[];
 };
 
+export type OptionQuoteHistoryResponse = {
+  option_symbol: string;
+  quotes: OptionSnapshot[];
+};
+
 export type SettingItem = {
   key: string;
   value: string | null;
@@ -769,6 +774,11 @@ export function listOptionContracts(underlying: string, expiry?: string): Promis
 export function getOptionBars(optionSymbol: string, timeframe: MarketTimeframe = "1m"): Promise<OptionBarsResponse> {
   const params = new URLSearchParams({ option_symbol: optionSymbol, timeframe });
   return requestJson<OptionBarsResponse>(`/api/options/bars?${params.toString()}`);
+}
+
+export function getOptionQuoteHistory(optionSymbol: string, limit = 20): Promise<OptionQuoteHistoryResponse> {
+  const params = new URLSearchParams({ option_symbol: optionSymbol, limit: String(limit) });
+  return requestJson<OptionQuoteHistoryResponse>(`/api/options/quotes/history?${params.toString()}`);
 }
 
 export function listSettings(): Promise<SettingsResponse> {

@@ -59,3 +59,8 @@ class OptionBarsResponse(BaseModel):
     option_symbol: str
     timeframe: str
     bars: list[OptionBar]
+
+
+class OptionQuoteHistoryResponse(BaseModel):
+    option_symbol: str
+    quotes: list[OptionSnapshot]

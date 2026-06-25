@@ -13,6 +13,7 @@ from app.options.schemas import (
     OptionChainResponse,
     OptionContract,
     OptionContractsResponse,
+    OptionQuoteHistoryResponse,
     OptionSnapshot,
 )
 from app.settings.runtime import resolve_runtime_settings
@@ -122,6 +123,27 @@ def get_option_bars(
             )
             for bar in bars
         ],
+    )
+
+
+@router.get("/quotes/history", response_model=OptionQuoteHistoryResponse)
+def get_option_quote_history(
+    option_symbol: str = Query(min_length=1, max_length=128),
+    limit: int = Query(default=50, ge=1, le=500),
+    session: Session = Depends(get_db_session),
+) -> OptionQuoteHistoryResponse:
+    normalized_symbol = option_symbol.upper()
+    runtime_settings = resolve_runtime_settings(session)
+    try:
+        quotes = FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_option_quote_history(
+            provider_symbol=normalized_symbol,
+            limit=limit,
+        )
+    except FinanceDataHubError:
+        quotes = []
+    return OptionQuoteHistoryResponse(
+        option_symbol=normalized_symbol,
+        quotes=[_snapshot_to_schema(quote) for quote in quotes],
     )
 
 

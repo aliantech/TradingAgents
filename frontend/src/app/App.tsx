@@ -45,6 +45,7 @@ import {
   getMarketBars,
   getOptionBars,
   getOptionChain,
+  getOptionQuoteHistory,
   getProviderReadiness,
   getProviderSyncHealth,
   getProviderSyncSummary,
@@ -187,6 +188,9 @@ export function App() {
   const [selectedOptionBarsLoading, setSelectedOptionBarsLoading] = useState(false);
   const [selectedOptionBarsError, setSelectedOptionBarsError] = useState<string | null>(null);
   const [selectedOptionBarsTimeframe, setSelectedOptionBarsTimeframe] = useState<MarketTimeframe>("1m");
+  const [selectedOptionQuoteHistory, setSelectedOptionQuoteHistory] = useState<OptionSnapshot[]>([]);
+  const [selectedOptionQuoteHistoryLoading, setSelectedOptionQuoteHistoryLoading] = useState(false);
+  const [selectedOptionQuoteHistoryError, setSelectedOptionQuoteHistoryError] = useState<string | null>(null);
   const [syncRuns, setSyncRuns] = useState<ProviderSyncRunItem[]>([]);
   const [syncSummary, setSyncSummary] = useState<ProviderSyncSummary | null>(null);
   const [syncGroups, setSyncGroups] = useState<ProviderSyncSummaryGroup[]>([]);
@@ -402,6 +406,8 @@ export function App() {
     setSelectedOptionSymbol("");
     setSelectedOptionBars([]);
     setSelectedOptionBarsError(null);
+    setSelectedOptionQuoteHistory([]);
+    setSelectedOptionQuoteHistoryError(null);
   }
 
   async function loadSelectedOptionBars(optionSymbol: string, timeframe = selectedOptionBarsTimeframe) {
@@ -418,6 +424,21 @@ export function App() {
       setSelectedOptionBarsError(caught instanceof Error ? caught.message : t("errors.optionBarsLoad"));
     } finally {
       setSelectedOptionBarsLoading(false);
+    }
+  }
+
+  async function loadSelectedOptionQuoteHistory(optionSymbol: string) {
+    if (!optionSymbol) return;
+    setSelectedOptionQuoteHistoryLoading(true);
+    setSelectedOptionQuoteHistoryError(null);
+    try {
+      const response = await getOptionQuoteHistory(optionSymbol, 20);
+      setSelectedOptionQuoteHistory(response.quotes);
+    } catch (caught) {
+      setSelectedOptionQuoteHistory([]);
+      setSelectedOptionQuoteHistoryError(caught instanceof Error ? caught.message : t("errors.optionsLoad"));
+    } finally {
+      setSelectedOptionQuoteHistoryLoading(false);
     }
   }
 
@@ -803,8 +824,14 @@ export function App() {
                 selectedBarsLoading={selectedOptionBarsLoading}
                 selectedBarsError={selectedOptionBarsError}
                 selectedBarsTimeframe={selectedOptionBarsTimeframe}
+                selectedQuoteHistory={selectedOptionQuoteHistory}
+                selectedQuoteHistoryLoading={selectedOptionQuoteHistoryLoading}
+                selectedQuoteHistoryError={selectedOptionQuoteHistoryError}
                 onExpiryChange={handleOptionExpiryChange}
-                onSelectedContractChange={(optionSymbol) => void loadSelectedOptionBars(optionSymbol)}
+                onSelectedContractChange={(optionSymbol) => {
+                  void loadSelectedOptionBars(optionSymbol);
+                  void loadSelectedOptionQuoteHistory(optionSymbol);
+                }}
                 onSelectedBarsTimeframeChange={(timeframe) => void handleSelectedOptionBarsTimeframeChange(timeframe)}
                 onConfigureProvider={() => navigateToPage("settings")}
                 onRefresh={() => void handleRefreshOptions()}
