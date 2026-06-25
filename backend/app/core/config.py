@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./aquantlens_us.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
     market_data_provider: str = "finance_data_hub"
-    finance_data_hub_base_url: str = "http://127.0.0.1:4101"
+    finance_data_hub_base_url: str = "http://127.0.0.1:18180"
     provider_sync_stale_after_minutes: int = 1440
     provider_sync_failure_rate_threshold: float = 0.5
     realtime_market_publish_enabled: bool = False

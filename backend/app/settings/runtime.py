@@ -30,7 +30,7 @@ _RUNTIME_SETTING_FIELDS: dict[str, tuple[str, type]] = {
 STATIC_DEFAULT_DATABASE_SETTINGS: dict[str, tuple[str, str, bool]] = {
     "AQUANTLENS_SERVICE_NAME": ("AQuantLens API", "system", False),
     "AQUANTLENS_MARKET_DATA_PROVIDER": ("finance_data_hub", "api", False),
-    "AQUANTLENS_FINANCE_DATA_HUB_BASE_URL": ("http://127.0.0.1:4101", "api", False),
+    "AQUANTLENS_FINANCE_DATA_HUB_BASE_URL": ("http://127.0.0.1:18180", "api", False),
     "AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES": ("1440", "data", False),
     "AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD": ("0.5", "data", False),
     "AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED": ("false", "system", False),

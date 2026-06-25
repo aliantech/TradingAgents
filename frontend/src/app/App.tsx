@@ -2565,7 +2565,7 @@ function defaultConfigValue(configKey: string) {
   const defaults: Record<string, string> = {
     AQUANTLENS_SERVICE_NAME: "AQuantLens API",
     AQUANTLENS_MARKET_DATA_PROVIDER: "finance_data_hub",
-    AQUANTLENS_FINANCE_DATA_HUB_BASE_URL: "http://127.0.0.1:4101",
+    AQUANTLENS_FINANCE_DATA_HUB_BASE_URL: "http://127.0.0.1:18180",
     AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES: "1440",
     AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD: "0.5",
     AQUANTLENS_DATABASE_URL: "sqlite:///./aquantlens_us.db",

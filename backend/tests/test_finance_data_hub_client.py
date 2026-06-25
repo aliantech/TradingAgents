@@ -31,7 +31,7 @@ def test_finance_data_hub_client_reads_asset_bars():
                     "high": "553.0",
                     "low": "549.5",
                     "close": "552.2",
-                    "volume": "90000000",
+                    "volume": "90000000.00000000",
                     "source": "finance_data_hub",
                 }
             ],
@@ -45,6 +45,7 @@ def test_finance_data_hub_client_reads_asset_bars():
     assert bars[0].symbol == "SPY"
     assert bars[0].timestamp == datetime(2026, 6, 17, tzinfo=UTC)
     assert bars[0].close == 552.2
+    assert bars[0].volume == 90000000
     assert transport.calls == [
         "http://hub.test/assets/SPY",
         "http://hub.test/assets/asset-spy/bars?timeframe=1d&start=2026-06-17&end=2026-06-17",

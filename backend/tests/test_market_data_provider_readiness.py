@@ -42,7 +42,7 @@ def test_finance_data_hub_readiness_reports_missing_base_url():
 
 def test_finance_data_hub_readiness_reports_ready():
     readiness = check_market_data_provider_readiness(
-        Settings(market_data_provider="finance_data_hub", finance_data_hub_base_url="http://127.0.0.1:4101")
+        Settings(market_data_provider="finance_data_hub", finance_data_hub_base_url="http://127.0.0.1:18180")
     )
 
     assert readiness.ready is True

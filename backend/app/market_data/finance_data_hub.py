@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -93,7 +94,7 @@ def _bar_from_hub_row(symbol: str, timeframe: str, row: dict) -> MarketBar:
         high=float(row["high"]),
         low=float(row["low"]),
         close=float(row["close"]),
-        volume=int(row.get("volume") or 0),
+        volume=_required_int(row.get("volume") or 0),
         source=str(row.get("source") or "finance_data_hub"),
     )
 
@@ -107,7 +108,7 @@ def _option_snapshot_from_hub_row(underlying_symbol: str, row: dict) -> OptionSn
         bid=_optional_float(row.get("bid")),
         ask=_optional_float(row.get("ask")),
         last=_optional_float(row.get("last") or row.get("mid")),
-        volume=int(row.get("volume") or 0),
+        volume=_required_int(row.get("volume") or 0),
         open_interest=_optional_int(row.get("open_interest")),
         implied_volatility=_optional_float(row.get("implied_volatility") or row.get("iv")),
         delta=_optional_float(row.get("delta")),
@@ -139,4 +140,8 @@ def _optional_float(value: object) -> float | None:
 def _optional_int(value: object) -> int | None:
     if value in (None, ""):
         return None
-    return int(value)
+    return _required_int(value)
+
+
+def _required_int(value: object) -> int:
+    return int(Decimal(str(value)))
