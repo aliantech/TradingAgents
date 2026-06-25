@@ -100,7 +100,7 @@ Redis stores realtime and short-lived state:
 - Market event stream
 - Signal stream
 
-Data sources must be abstracted behind provider interfaces. Polygon/Massive, ThetaData, Tradier, and IBKR are likely candidates, but Phase 1 should not hard-code the product to one vendor.
+Market and options data must be read through Finance Data Hub. TradingAgents should not directly integrate vendor APIs such as Polygon/Massive, Futu, or IBKR in this branch.
 
 ## Report Design
 
