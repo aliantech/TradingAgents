@@ -63,7 +63,7 @@ def test_provider_sync_repository_filters_summary_and_runs():
         rows_written=5,
     )
     repository.record_run(
-        provider="polygon",
+        provider="finance_data_hub",
         sync_type="daily_bars",
         status="failed",
         started_at=started_at + timedelta(days=1),
@@ -95,7 +95,7 @@ def test_provider_sync_repository_groups_summary_by_provider_and_type():
         rows_written=2,
     )
     repository.record_run(
-        provider="polygon",
+        provider="finance_data_hub",
         sync_type="bars_1m",
         status="failed",
         started_at=started_at + timedelta(minutes=1),
@@ -105,7 +105,7 @@ def test_provider_sync_repository_groups_summary_by_provider_and_type():
 
     groups = repository.summarize_groups()
 
-    assert {(group.provider, group.sync_type) for group in groups} == {("sample", "daily_bars"), ("polygon", "bars_1m")}
+    assert {(group.provider, group.sync_type) for group in groups} == {("sample", "daily_bars"), ("finance_data_hub", "bars_1m")}
     sample = next(group for group in groups if group.provider == "sample")
     assert sample.total_runs == 1
     assert sample.succeeded == 1
@@ -208,7 +208,7 @@ def test_provider_sync_repository_marks_latest_failure_as_failing():
     repository = ProviderSyncRepository(_session())
     started_at = datetime(2026, 6, 17, 13, 30, tzinfo=UTC)
     repository.record_run(
-        provider="polygon",
+        provider="finance_data_hub",
         sync_type="bars_1m",
         status="succeeded",
         started_at=started_at,
@@ -216,7 +216,7 @@ def test_provider_sync_repository_marks_latest_failure_as_failing():
         rows_written=12,
     )
     repository.record_run(
-        provider="polygon",
+        provider="finance_data_hub",
         sync_type="bars_1m",
         status="failed",
         started_at=started_at + timedelta(minutes=5),
@@ -226,7 +226,7 @@ def test_provider_sync_repository_marks_latest_failure_as_failing():
     )
 
     health = repository.evaluate_health(
-        provider="polygon",
+        provider="finance_data_hub",
         sync_type="bars_1m",
         now=started_at + timedelta(minutes=10),
         stale_after_minutes=60,

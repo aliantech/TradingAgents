@@ -50,7 +50,7 @@ def test_market_data_sync_runs_api_accepts_filters():
             rows_written=2,
         )
         repository.record_run(
-            provider="polygon",
+            provider="finance_data_hub",
             sync_type="daily_bars",
             status="failed",
             started_at=datetime(2026, 6, 17, 13, 32, tzinfo=timezone.utc),

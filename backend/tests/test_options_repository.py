@@ -23,7 +23,7 @@ def test_option_repository_upserts_contract_and_lists_by_underlying_expiry():
         option_type="call",
         exercise_style="american",
         expiration_type="standard",
-        source="polygon",
+        source="finance_data_hub",
     )
 
     first = repository.upsert_contract(contract)
@@ -36,7 +36,7 @@ def test_option_repository_upserts_contract_and_lists_by_underlying_expiry():
             option_type="call",
             exercise_style="american",
             expiration_type="weekly",
-            source="polygon",
+            source="finance_data_hub",
         )
     )
 
@@ -59,7 +59,7 @@ def test_option_repository_upserts_snapshots_and_lists_chain():
             option_type="put",
             exercise_style="american",
             expiration_type="standard",
-            source="polygon",
+            source="finance_data_hub",
         )
     )
     timestamp = datetime(2024, 6, 17, 13, 30, tzinfo=UTC)
@@ -79,7 +79,7 @@ def test_option_repository_upserts_snapshots_and_lists_chain():
             gamma=0.018,
             theta=-0.12,
             vega=0.31,
-            source="polygon",
+            source="finance_data_hub",
         )
     )
     repository.upsert_snapshot(
@@ -97,7 +97,7 @@ def test_option_repository_upserts_snapshots_and_lists_chain():
             gamma=0.019,
             theta=-0.13,
             vega=0.32,
-            source="polygon",
+            source="finance_data_hub",
         )
     )
 
@@ -106,4 +106,4 @@ def test_option_repository_upserts_snapshots_and_lists_chain():
     assert snapshots[0].option_symbol == "SPY240617P00540000"
     assert snapshots[0].bid == 1.3
     assert snapshots[0].volume == 150
-    assert snapshots[0].source == "polygon"
+    assert snapshots[0].source == "finance_data_hub"

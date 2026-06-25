@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.analysis import option_chain_context
 from app.analysis.option_chain_context import build_option_chain_context
 from app.db.base import Base
 from app.options.repository import OptionContractRecord, OptionRepository, OptionSnapshotRecord
@@ -14,7 +15,12 @@ def _session():
     return sessionmaker(bind=engine)()
 
 
-def test_option_chain_context_summarizes_nearest_persisted_expiry():
+def _force_hub_unavailable(*args, **kwargs):
+    raise option_chain_context.FinanceDataHubError("FDH disabled for persisted fallback test.")
+
+
+def test_option_chain_context_summarizes_nearest_persisted_expiry(monkeypatch):
+    monkeypatch.setattr(option_chain_context, "_build_finance_data_hub_context", _force_hub_unavailable)
     session = _session()
     repository = OptionRepository(session)
     for option_symbol, strike, option_type, open_interest, gamma in (
@@ -31,7 +37,7 @@ def test_option_chain_context_summarizes_nearest_persisted_expiry():
                 option_type=option_type,
                 exercise_style="american",
                 expiration_type="weekly",
-                source="polygon",
+                source="finance_data_hub",
             )
         )
         repository.upsert_snapshot(
@@ -49,7 +55,7 @@ def test_option_chain_context_summarizes_nearest_persisted_expiry():
                 gamma=gamma,
                 theta=-0.09,
                 vega=0.21,
-                source="polygon",
+                source="finance_data_hub",
             )
         )
 
@@ -63,5 +69,6 @@ def test_option_chain_context_summarizes_nearest_persisted_expiry():
     assert "SPY260626C00760000" not in context
 
 
-def test_option_chain_context_returns_empty_when_no_snapshot_exists():
+def test_option_chain_context_returns_empty_when_no_snapshot_exists(monkeypatch):
+    monkeypatch.setattr(option_chain_context, "_build_finance_data_hub_context", _force_hub_unavailable)
     assert build_option_chain_context(_session(), symbol="QQQ", analysis_date=date(2026, 6, 18)) == ""

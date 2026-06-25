@@ -2,12 +2,17 @@ from datetime import UTC, date, datetime
 
 from fastapi.testclient import TestClient
 
+from app.analysis import option_chain_context
 from app.analysis.schemas import AnalysisProgressEvent
 from app.analysis.store import analysis_store
 from app.analysis.tradingagents_adapter import TradingAgentsReportPayload, TradingAgentsRunResult
 from app.db.session import SessionLocal, initialize_database
 from app.main import app
 from app.options.repository import OptionContractRecord, OptionRepository, OptionSnapshotRecord
+
+
+def _force_hub_unavailable(*args, **kwargs):
+    raise option_chain_context.FinanceDataHubError("FDH disabled for persisted fallback test.")
 
 
 def test_analysis_api_persists_completed_deterministic_report():
@@ -258,6 +263,7 @@ def test_analysis_api_rejects_invalid_report_quality_before_persistence(monkeypa
 
 
 def test_analysis_api_passes_persisted_option_chain_context_to_runner(monkeypatch):
+    monkeypatch.setattr(option_chain_context, "_build_finance_data_hub_context", _force_hub_unavailable)
     initialize_database()
     session = SessionLocal()
     try:
@@ -271,7 +277,7 @@ def test_analysis_api_passes_persisted_option_chain_context_to_runner(monkeypatc
                 option_type="put",
                 exercise_style="american",
                 expiration_type="weekly",
-                source="polygon",
+                source="finance_data_hub",
             )
         )
         repository.upsert_snapshot(
@@ -289,7 +295,7 @@ def test_analysis_api_passes_persisted_option_chain_context_to_runner(monkeypatc
                 gamma=0.024,
                 theta=-0.09,
                 vega=0.21,
-                source="polygon",
+                source="finance_data_hub",
             )
         )
     finally:

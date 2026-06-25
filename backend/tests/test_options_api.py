@@ -45,7 +45,7 @@ def test_options_chain_api_reads_persisted_snapshots():
             option_type="call",
             exercise_style="american",
             expiration_type="weekly",
-            source="polygon",
+            source="finance_data_hub",
         )
     )
     repository.upsert_snapshot(
@@ -63,7 +63,7 @@ def test_options_chain_api_reads_persisted_snapshots():
             gamma=0.018,
             theta=-0.09,
             vega=0.21,
-            source="polygon",
+            source="finance_data_hub",
         )
     )
 
@@ -79,7 +79,7 @@ def test_options_chain_api_reads_persisted_snapshots():
     assert payload["expiry"] == "2024-06-21"
     assert len(payload["snapshots"]) == 1
     assert payload["snapshots"][0]["option_symbol"] == "SPY240621C00550000"
-    assert payload["snapshots"][0]["source"] == "polygon"
+    assert payload["snapshots"][0]["source"] == "finance_data_hub"
     assert payload["snapshots"][0]["bid"] == 4.2
 
 
@@ -161,7 +161,7 @@ def test_options_contracts_api_reads_persisted_contracts():
             option_type="put",
             exercise_style="american",
             expiration_type="weekly",
-            source="polygon",
+            source="finance_data_hub",
         )
     )
 
@@ -184,7 +184,7 @@ def test_options_contracts_api_reads_persisted_contracts():
             "option_type": "put",
             "exercise_style": "american",
             "expiration_type": "weekly",
-            "source": "polygon",
+            "source": "finance_data_hub",
         }
     ]
 
@@ -264,7 +264,7 @@ def test_options_bars_api_reads_persisted_option_bars():
                 low=4.0,
                 close=4.3,
                 volume=120,
-                source="polygon",
+                source="finance_data_hub",
             )
         ],
         asset_type="option",
@@ -280,7 +280,7 @@ def test_options_bars_api_reads_persisted_option_bars():
     assert payload["option_symbol"] == "SPY240621C00550000"
     assert payload["timeframe"] == "1m"
     assert payload["bars"][0]["close"] == 4.3
-    assert payload["bars"][0]["source"] == "polygon"
+    assert payload["bars"][0]["source"] == "finance_data_hub"
 
 
 def test_options_bars_api_returns_empty_bars_when_no_provider_data():

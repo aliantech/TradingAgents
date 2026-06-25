@@ -49,7 +49,7 @@ async function installApiMocks(page: Page) {
       return json(route, syncHealth());
     }
     if (method === "GET" && pathname === "/api/market-data/provider-readiness") {
-      return json(route, { provider: "polygon", ready: true, missing: [], message: "Ready" });
+      return json(route, { provider: "finance_data_hub", ready: true, missing: [], message: "Ready" });
     }
     if (method === "GET" && pathname === "/api/options/contracts") {
       return json(route, { underlying_symbol: url.searchParams.get("underlying") ?? "SPY", expiry: null, contracts: [] });
@@ -112,7 +112,7 @@ function syncSummary() {
 
 function syncHealth() {
   return {
-    provider: "polygon",
+    provider: "finance_data_hub",
     sync_type: "daily_bars",
     status: "ok",
     total_runs: 0,
