@@ -108,7 +108,7 @@ const OptionChainTable = lazy(() =>
 const NAV_KEYS: PageKey[] = ["dashboard", "analysis", "reports", "market", "options", "strategy", "runs", "settings"];
 
 const DEFAULT_ANALYSIS_DATE = new Date().toISOString().slice(0, 10);
-const DEFAULT_OPTION_EXPIRY = nextFridayDate();
+const DEFAULT_OPTION_EXPIRY = "";
 const SUPPORTED_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META"];
 const WATCHLIST_SETTING_KEY = "research.watchlist";
 const MARKET_PULSE_SYMBOLS = ["SPY", "QQQ", "SPX", "VIX"];
@@ -120,17 +120,6 @@ const MARKET_COLORS = {
 function pageFromLocationHash(): PageKey {
   const page = window.location.hash.replace(/^#/, "") as PageKey;
   return NAV_KEYS.includes(page) ? page : "dashboard";
-}
-
-function nextFridayDate() {
-  const value = new Date();
-  value.setHours(0, 0, 0, 0);
-  const daysUntilFriday = (5 - value.getDay() + 7) % 7 || 7;
-  value.setDate(value.getDate() + daysUntilFriday);
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 function normalizeWatchlist(symbols: string[]) {

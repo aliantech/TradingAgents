@@ -750,25 +750,12 @@ export function getProviderReadiness(provider: string): Promise<ProviderReadines
   return requestJson<ProviderReadiness>(`/api/market-data/provider-readiness?${params.toString()}`);
 }
 
-function formatLocalDate(value: Date): string {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-export function getOptionChain(underlying: string, expiry = nextFridayLocalDate()): Promise<OptionChainResponse> {
-  return requestJson<OptionChainResponse>(
-    `/api/options/chain?underlying=${encodeURIComponent(underlying)}&expiry=${encodeURIComponent(expiry)}`,
-  );
-}
-
-function nextFridayLocalDate(): string {
-  const value = new Date();
-  value.setHours(0, 0, 0, 0);
-  const daysUntilFriday = (5 - value.getDay() + 7) % 7 || 7;
-  value.setDate(value.getDate() + daysUntilFriday);
-  return formatLocalDate(value);
+export function getOptionChain(underlying: string, expiry?: string): Promise<OptionChainResponse> {
+  const params = new URLSearchParams({ underlying });
+  if (expiry) {
+    params.set("expiry", expiry);
+  }
+  return requestJson<OptionChainResponse>(`/api/options/chain?${params.toString()}`);
 }
 
 export function listOptionContracts(underlying: string, expiry?: string): Promise<OptionContractsResponse> {

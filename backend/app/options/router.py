@@ -27,21 +27,30 @@ def get_option_chain(
     session: Session = Depends(get_db_session),
 ) -> OptionChainResponse:
     normalized_underlying = underlying.upper()
-    expiry_date = date.fromisoformat(expiry) if expiry else next_friday()
+    expiry_date = date.fromisoformat(expiry) if expiry else None
     runtime_settings = resolve_runtime_settings(session)
     try:
-        hub_snapshots = FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_option_latest_quotes(
-            underlying_symbol=normalized_underlying,
-            expiry=expiry_date,
-        )
-        if hub_snapshots:
-            return OptionChainResponse(
-                underlying_symbol=normalized_underlying,
-                expiry=expiry_date.isoformat(),
-                snapshots=[_snapshot_to_schema(snapshot) for snapshot in hub_snapshots],
+        if expiry_date is None:
+            expiry_date = _nearest_hub_expiry(
+                FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_option_latest_quote_rows(
+                    underlying_symbol=normalized_underlying,
+                )
             )
+        if expiry_date is not None:
+            hub_snapshots = FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_option_latest_quotes(
+                underlying_symbol=normalized_underlying,
+                expiry=expiry_date,
+            )
+            if hub_snapshots:
+                return OptionChainResponse(
+                    underlying_symbol=normalized_underlying,
+                    expiry=expiry_date.isoformat(),
+                    snapshots=[_snapshot_to_schema(snapshot) for snapshot in hub_snapshots],
+                )
     except FinanceDataHubError:
         pass
+    if expiry_date is None:
+        expiry_date = next_friday()
     repository = OptionRepository(session)
     snapshots = repository.list_chain_snapshots(
         underlying_symbol=normalized_underlying,
@@ -140,3 +149,12 @@ def next_friday(today: date | None = None) -> date:
     if days_until_friday == 0:
         days_until_friday = 7
     return date.fromordinal(current.toordinal() + days_until_friday)
+
+
+def _nearest_hub_expiry(rows: list[dict]) -> date | None:
+    expiries = set()
+    for row in rows:
+        raw_expiry = row.get("expiration_date") or row.get("expiry")
+        if raw_expiry:
+            expiries.add(date.fromisoformat(str(raw_expiry)[:10]))
+    return min(expiries) if expiries else None
