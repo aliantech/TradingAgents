@@ -1,4 +1,3 @@
-from app.db.models import AppSettingModel
 from app.db.session import SessionLocal, initialize_database
 
 
@@ -7,10 +6,7 @@ class RuntimeConfig:
         initialize_database()
         session = SessionLocal()
         try:
-            polygon_key = session.get(AppSettingModel, "AQUANTLENS_POLYGON_API_KEY")
-            if polygon_key is not None:
-                polygon_key.value = ""
-                session.commit()
+            session.commit()
         finally:
             session.close()
 

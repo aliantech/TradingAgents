@@ -209,12 +209,6 @@ export type ProviderReadiness = {
   message: string;
 };
 
-export type DailyBarSyncResponse = {
-  status: string;
-  rows_written: number;
-  error_message: string | null;
-};
-
 export type OptionSnapshot = {
   option_symbol: string;
   underlying_symbol: string;
@@ -271,15 +265,6 @@ export type OptionBarsResponse = {
   option_symbol: string;
   timeframe: MarketTimeframe;
   bars: OptionBar[];
-};
-
-export type OptionChainSyncResponse = {
-  provider: string;
-  underlying_symbol: string;
-  expiry: string;
-  status: string;
-  rows_written: number;
-  error_message: string | null;
 };
 
 export type SettingItem = {
@@ -765,21 +750,6 @@ export function getProviderReadiness(provider: string): Promise<ProviderReadines
   return requestJson<ProviderReadiness>(`/api/market-data/provider-readiness?${params.toString()}`);
 }
 
-export function syncDailyBars(symbol: string): Promise<DailyBarSyncResponse> {
-  const end = formatLocalDate(new Date());
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 1);
-  const start = formatLocalDate(startDate);
-  return requestJson<DailyBarSyncResponse>("/api/market-data/sync-daily-bars", {
-    method: "POST",
-    body: JSON.stringify({
-      symbol,
-      start,
-      end,
-    }),
-  });
-}
-
 function formatLocalDate(value: Date): string {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, "0");
@@ -812,22 +782,6 @@ export function listOptionContracts(underlying: string, expiry?: string): Promis
 export function getOptionBars(optionSymbol: string, timeframe: MarketTimeframe = "1m"): Promise<OptionBarsResponse> {
   const params = new URLSearchParams({ option_symbol: optionSymbol, timeframe });
   return requestJson<OptionBarsResponse>(`/api/options/bars?${params.toString()}`);
-}
-
-export function syncOptionChain(
-  underlying: string,
-  expiry: string,
-  provider = "polygon",
-): Promise<OptionChainSyncResponse> {
-  return requestJson<OptionChainSyncResponse>("/api/options/sync-chain", {
-    method: "POST",
-    body: JSON.stringify({
-      underlying_symbol: underlying,
-      expiry,
-      provider,
-      limit: 250,
-    }),
-  });
 }
 
 export function listSettings(): Promise<SettingsResponse> {

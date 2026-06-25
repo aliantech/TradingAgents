@@ -55,6 +55,18 @@ def test_real_runner_smoke_requires_provider_key_without_printing_value():
     assert missing == ["OPENAI_API_KEY"]
 
 
+def test_real_runner_smoke_can_require_option_chain_context_before_provider_call():
+    missing = real_runner_smoke_missing_prerequisites(
+        runtime_settings=Settings(tradingagents_runner_mode=REAL_TRADINGAGENTS_MODE, tradingagents_llm_provider="openai"),
+        explicit_confirmation=True,
+        environ={"OPENAI_API_KEY": "present"},
+        require_option_chain_context=True,
+        option_chain_context="",
+    )
+
+    assert missing == ["persisted option-chain context"]
+
+
 def test_real_runner_smoke_can_use_write_only_settings_key(settings_repository):
     settings_repository.upsert_many(
         [
@@ -168,6 +180,46 @@ def test_real_runner_smoke_runs_mocked_real_runner_after_gate_passes(monkeypatch
     assert result.status == "succeeded"
     assert result.report_generated is True
     assert result.evidence_labels == ["tradingagents-real-runner"]
+
+
+def test_real_runner_smoke_passes_option_chain_context_to_runner_when_required(monkeypatch):
+    captured_context = {}
+
+    def mocked_runner(execution_request, runtime_settings):
+        captured_context["value"] = execution_request.option_chain_context
+        return TradingAgentsRunResult(
+            progress=[AnalysisProgressEvent(step="tradingagents", status="completed", message="done")],
+            report=TradingAgentsReportPayload(
+                summary="summary",
+                market_background="market",
+                fundamental_analysis="fundamental",
+                technical_analysis="technical",
+                sentiment_analysis="sentiment",
+                options_observation="options",
+                bull_case="bull",
+                bear_case="bear",
+                risk_factors=["risk"],
+                evidence_labels=["tradingagents-real-runner"],
+                trade_plan="research only",
+                position_sizing="none",
+                take_profit_stop_loss="none",
+                confidence=0.5,
+            ),
+        )
+
+    monkeypatch.setattr("app.analysis.cli.run_configured_research", mocked_runner)
+
+    result = run_real_runner_smoke(
+        runtime_settings=Settings(tradingagents_runner_mode=REAL_TRADINGAGENTS_MODE, tradingagents_llm_provider="openai"),
+        request=analysis_request(),
+        explicit_confirmation=True,
+        environ={"OPENAI_API_KEY": "sk-not-printed"},
+        require_option_chain_context=True,
+        option_chain_context="逐合约期权链快照（持久化数据）：SPY 最近到期日 2026-06-19。",
+    )
+
+    assert result.status == "succeeded"
+    assert "逐合约期权链快照" in captured_context["value"]
 
 
 def test_real_runner_smoke_redacts_runner_errors_through_adapter_path(monkeypatch):

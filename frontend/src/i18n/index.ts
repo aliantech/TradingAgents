@@ -13,7 +13,7 @@ i18n.use(initReactI18next).init({
         fallbackPageTitle: "美股与指数期权 AI 投研工作台",
         languageSwitch: "English",
         readiness: {
-          polygonReady: "Polygon Ready",
+          financeDataHubReady: "Finance Data Hub Ready",
           providerPending: "等待 Provider",
         },
         errors: {
@@ -284,9 +284,9 @@ i18n.use(initReactI18next).init({
           title: "期权链",
           refresh: "刷新",
           loading: "加载中",
-          sync: "同步期权链",
-          syncCurrent: "同步 {{symbol}} 期权链",
-          syncing: "同步中",
+          sync: "刷新期权链",
+          syncCurrent: "刷新 {{symbol}} 期权链",
+          syncing: "刷新中",
           referencePrice: "参考价",
           mode: "模式",
           providerReadiness: "Provider 准备状态",
@@ -294,8 +294,8 @@ i18n.use(initReactI18next).init({
           notReady: "未就绪",
           checking: "检查中",
           missing: "缺少 {{items}}",
-          waitingProvider: "等待 Polygon options 配置状态。",
-          configureProvider: "配置 API Key",
+          waitingProvider: "等待 Finance Data Hub 配置状态。",
+          configureProvider: "配置 Finance Data Hub",
           syncHealth: "Options 同步健康",
           waitingSync: "等待 options_chain 审计记录。",
           latestRun: "最近 Options 任务",
@@ -315,10 +315,10 @@ i18n.use(initReactI18next).init({
           presetLiquidity: "流动性",
           contracts: "合约数",
           updatedAt: "更新时间",
-          noSnapshots: "暂无期权链快照。请先同步当前 underlying 与到期日，或检查 provider readiness。",
+          noSnapshots: "暂无期权链快照。请刷新当前 underlying 与到期日，或检查 Finance Data Hub readiness。",
           emptyTitle: "暂无真实期权链快照",
-          emptyDescription: "{{symbol}} / {{expiry}} 还没有可用的 Polygon 期权快照。请确认 Provider 配置后同步当前标的真实链数据；系统不会使用占位数据填充此表。",
-          emptyWithContractsDescription: "{{symbol}} / {{expiry}} 已有 {{count}} 个真实合约元数据，但还没有 quote / Greeks 快照。请同步当前标的真实期权链快照；系统不会用占位价格填充报价表。",
+          emptyDescription: "{{symbol}} / {{expiry}} 还没有可用的 Finance Data Hub 期权快照。请确认 Hub 数据后刷新；系统不会使用占位数据填充此表。",
+          emptyWithContractsDescription: "{{symbol}} / {{expiry}} 已有 {{count}} 个真实合约元数据，但还没有 quote / Greeks 快照。请确认 Finance Data Hub 已提供当前标的快照；系统不会用占位价格填充报价表。",
           availableExpiries: "{{symbol}} 已入库的到期日：{{expiries}}。",
           noRows: "当前筛选没有可显示的期权行。",
           currentPriceNear: "当前价格接近 {{price}}",
@@ -598,9 +598,9 @@ i18n.use(initReactI18next).init({
               sentiment: "情绪",
             },
             items: {
-              polygon: {
-                label: "Polygon / Massive",
-                detail: "检查行情 bars、options_chain、latest quote 和 provider readiness。",
+              financeDataHub: {
+                label: "Finance Data Hub",
+                detail: "从 Finance Data Hub 读取行情 bars、options chain 和 latest quote。",
               },
               frontendApi: {
                 label: "前端 API Base URL",
@@ -714,7 +714,7 @@ i18n.use(initReactI18next).init({
               },
               providerRetry: {
                 label: "Provider 重试策略",
-                detail: "控制 Polygon 请求最大重试次数和退避秒数。",
+                detail: "旧 provider 重试策略已迁出到 Finance Data Hub。",
               },
               syncHealth: {
                 label: "同步健康阈值",
@@ -837,7 +837,7 @@ i18n.use(initReactI18next).init({
         fallbackPageTitle: "U.S. Equity and Index Options AI Research Workbench",
         languageSwitch: "中文",
         readiness: {
-          polygonReady: "Polygon Ready",
+          financeDataHubReady: "Finance Data Hub Ready",
           providerPending: "Provider Pending",
         },
         errors: {
@@ -1109,8 +1109,8 @@ i18n.use(initReactI18next).init({
           refresh: "Refresh",
           loading: "Loading",
           sync: "Sync Chain",
-          syncCurrent: "Sync {{symbol}} Chain",
-          syncing: "Syncing",
+          syncCurrent: "Refresh {{symbol}} Chain",
+          syncing: "Refreshing",
           referencePrice: "Reference Price",
           mode: "Mode",
           providerReadiness: "Provider Readiness",
@@ -1118,8 +1118,8 @@ i18n.use(initReactI18next).init({
           notReady: "Not Ready",
           checking: "Checking",
           missing: "Missing {{items}}",
-          waitingProvider: "Waiting for Polygon options configuration.",
-          configureProvider: "Configure API Key",
+          waitingProvider: "Waiting for Finance Data Hub configuration.",
+          configureProvider: "Configure Finance Data Hub",
           syncHealth: "Options Sync Health",
           waitingSync: "Waiting for options_chain audit records.",
           latestRun: "Latest Options Run",
@@ -1139,10 +1139,10 @@ i18n.use(initReactI18next).init({
           presetLiquidity: "Liquidity",
           contracts: "Contracts",
           updatedAt: "Updated At",
-          noSnapshots: "No option-chain snapshots yet. Sync the current underlying and expiry, or check provider readiness.",
+          noSnapshots: "No option-chain snapshots yet. Refresh the current underlying and expiry, or check Finance Data Hub readiness.",
           emptyTitle: "No live option-chain snapshots",
-          emptyDescription: "{{symbol}} / {{expiry}} does not have Polygon option snapshots yet. Configure the provider and sync live data for the current symbol; this table is not filled with placeholder data.",
-          emptyWithContractsDescription: "{{count}} live contract metadata rows exist for {{symbol}} / {{expiry}}, but quote / Greeks snapshots are still missing. Sync live option-chain snapshots for the current symbol; the quote table is not filled with placeholder prices.",
+          emptyDescription: "{{symbol}} / {{expiry}} does not have Finance Data Hub option snapshots yet. Confirm Hub data and refresh; this table is not filled with placeholder data.",
+          emptyWithContractsDescription: "{{count}} live contract metadata rows exist for {{symbol}} / {{expiry}}, but quote / Greeks snapshots are still missing. Confirm Finance Data Hub has current snapshots; the quote table is not filled with placeholder prices.",
           availableExpiries: "{{symbol}} already has stored expiries: {{expiries}}.",
           noRows: "No option rows match the current filter.",
           currentPriceNear: "Current price near {{price}}",
@@ -1422,9 +1422,9 @@ i18n.use(initReactI18next).init({
               sentiment: "Sentiment",
             },
             items: {
-              polygon: {
-                label: "Polygon / Massive",
-                detail: "Checks market bars, options_chain, latest quotes, and provider readiness.",
+              financeDataHub: {
+                label: "Finance Data Hub",
+                detail: "Reads market bars, options chains, and latest quotes from Finance Data Hub.",
               },
               frontendApi: {
                 label: "Frontend API Base URL",
@@ -1538,7 +1538,7 @@ i18n.use(initReactI18next).init({
               },
               providerRetry: {
                 label: "Provider Retry Policy",
-                detail: "Controls Polygon maximum retries and retry backoff seconds.",
+                detail: "Legacy provider retry policy has moved to Finance Data Hub.",
               },
               syncHealth: {
                 label: "Sync Health Thresholds",

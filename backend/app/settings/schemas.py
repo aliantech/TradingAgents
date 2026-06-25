@@ -29,11 +29,9 @@ class SettingsResponse(BaseModel):
 
 class ProviderSettingsRequest(BaseModel):
     provider: str = Field(min_length=1, max_length=64)
-    polygon_api_key: str | None = None
-    polygon_base_url: str | None = None
+    finance_data_hub_base_url: str | None = None
 
 
 class ProviderSettingsResponse(BaseModel):
     provider: str
-    polygon_configured: bool
-    polygon_base_url: str
+    finance_data_hub_base_url: str

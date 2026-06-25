@@ -59,6 +59,18 @@ def _price_df(prices):
     return pd.DataFrame({"Close": prices})
 
 
+def _patch_outcome_price_frames(monkeypatch, *, stock_prices, benchmark_prices=None):
+    benchmark = benchmark_prices if benchmark_prices is not None else stock_prices
+
+    def fake_download_chart_frame(symbol, start_date, end_exclusive):
+        return _price_df(benchmark if symbol == "SPY" else stock_prices)
+
+    monkeypatch.setattr(
+        "tradingagents.dataflows.direct_yahoo_chart._download_chart_frame",
+        fake_download_chart_frame,
+    )
+
+
 def _make_pm_state(past_context=""):
     """Minimal AgentState dict for portfolio_manager_node."""
     return {
@@ -486,53 +498,64 @@ class TestDeferredReflection:
 
     # TradingAgentsGraph._fetch_returns
 
-    def test_fetch_returns_valid_ticker(self):
+    def test_fetch_returns_valid_ticker(self, monkeypatch):
         stock_prices = [100.0, 102.0, 104.0, 103.0, 105.0, 106.0]
         spy_prices   = [400.0, 402.0, 404.0, 403.0, 405.0, 406.0]
         mock_graph = MagicMock(spec=TradingAgentsGraph)
-        with patch("yfinance.Ticker") as mock_ticker_cls:
-            def _make_ticker(sym):
-                m = MagicMock()
-                m.history.return_value = _price_df(spy_prices if sym == "SPY" else stock_prices)
-                return m
-            mock_ticker_cls.side_effect = _make_ticker
-            raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "NVDA", "2026-01-05")
+        _patch_outcome_price_frames(monkeypatch, stock_prices=stock_prices, benchmark_prices=spy_prices)
+        raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "NVDA", "2026-01-05")
         assert raw is not None and alpha is not None and days is not None
         assert isinstance(raw, float) and isinstance(alpha, float) and isinstance(days, int)
         assert days == 5
 
-    def test_fetch_returns_too_recent(self):
+    def test_fetch_returns_uses_direct_yahoo_chart_not_yfinance(self, monkeypatch):
+        def fail_if_yfinance_called(*_args, **_kwargs):
+            raise AssertionError("outcome resolution should not call yfinance.Ticker")
+
+        def fake_download_chart_frame(symbol, start_date, end_exclusive):
+            prices = [400.0, 402.0, 404.0, 403.0, 405.0, 406.0] if symbol == "SPY" else [
+                100.0,
+                102.0,
+                104.0,
+                103.0,
+                105.0,
+                106.0,
+            ]
+            return pd.DataFrame({"Close": prices})
+
+        monkeypatch.setattr("yfinance.Ticker", fail_if_yfinance_called)
+        monkeypatch.setattr(
+            "tradingagents.dataflows.direct_yahoo_chart._download_chart_frame",
+            fake_download_chart_frame,
+        )
+
+        raw, alpha, days = TradingAgentsGraph._fetch_returns(None, "NVDA", "2026-01-05")
+
+        assert raw == pytest.approx(0.06)
+        assert alpha == pytest.approx(0.045)
+        assert days == 5
+
+    def test_fetch_returns_too_recent(self, monkeypatch):
         """Only 1 data point available → returns (None, None, None), no crash."""
         mock_graph = MagicMock(spec=TradingAgentsGraph)
-        with patch("yfinance.Ticker") as mock_ticker_cls:
-            m = MagicMock()
-            m.history.return_value = _price_df([100.0])
-            mock_ticker_cls.return_value = m
-            raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "NVDA", "2026-04-19")
+        _patch_outcome_price_frames(monkeypatch, stock_prices=[100.0])
+        raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "NVDA", "2026-04-19")
         assert raw is None and alpha is None and days is None
 
-    def test_fetch_returns_delisted(self):
+    def test_fetch_returns_delisted(self, monkeypatch):
         """Empty DataFrame → returns (None, None, None), no crash."""
         mock_graph = MagicMock(spec=TradingAgentsGraph)
-        with patch("yfinance.Ticker") as mock_ticker_cls:
-            m = MagicMock()
-            m.history.return_value = pd.DataFrame({"Close": []})
-            mock_ticker_cls.return_value = m
-            raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "XXXXXFAKE", "2026-01-10")
+        _patch_outcome_price_frames(monkeypatch, stock_prices=[])
+        raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "XXXXXFAKE", "2026-01-10")
         assert raw is None and alpha is None and days is None
 
-    def test_fetch_returns_spy_shorter_than_stock(self):
+    def test_fetch_returns_spy_shorter_than_stock(self, monkeypatch):
         """SPY having fewer rows than the stock must not raise IndexError."""
         stock_prices = [100.0, 102.0, 104.0, 103.0, 105.0, 106.0]
         spy_prices   = [400.0, 402.0, 403.0]
         mock_graph = MagicMock(spec=TradingAgentsGraph)
-        with patch("yfinance.Ticker") as mock_ticker_cls:
-            def _make_ticker(sym):
-                m = MagicMock()
-                m.history.return_value = _price_df(spy_prices if sym == "SPY" else stock_prices)
-                return m
-            mock_ticker_cls.side_effect = _make_ticker
-            raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "NVDA", "2026-01-05")
+        _patch_outcome_price_frames(monkeypatch, stock_prices=stock_prices, benchmark_prices=spy_prices)
+        raw, alpha, days = TradingAgentsGraph._fetch_returns(mock_graph, "NVDA", "2026-01-05")
         assert raw is not None and alpha is not None and days is not None
         assert days == 2
 

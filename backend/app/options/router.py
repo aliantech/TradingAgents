@@ -1,38 +1,23 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
+from app.market_data.finance_data_hub import FinanceDataHubClient, FinanceDataHubError
 from app.market_data.repository import MarketDataRepository
-from app.market_data.sync_repository import ProviderSyncRepository
-from app.options.polygon_provider import OptionChainProvider, PolygonOptionsProvider
 from app.options.repository import OptionContractRecord, OptionRepository, OptionSnapshotRecord
 from app.options.schemas import (
     OptionBar,
     OptionBarsResponse,
     OptionChainResponse,
-    OptionChainSyncRequest,
-    OptionChainSyncResponse,
     OptionContract,
     OptionContractsResponse,
     OptionSnapshot,
 )
-from app.options.sync import OptionChainSyncService
 from app.settings.runtime import resolve_runtime_settings
 
 router = APIRouter(prefix="/api/options", tags=["options"])
-
-
-def create_options_provider(provider_name: str, session: Session) -> OptionChainProvider:
-    normalized_provider = provider_name.lower()
-    if normalized_provider != "polygon":
-        raise ValueError(f"Unsupported options provider: {provider_name}.")
-    runtime_settings = resolve_runtime_settings(session)
-    return PolygonOptionsProvider(
-        api_key=runtime_settings.polygon_api_key,
-        base_url=runtime_settings.polygon_base_url,
-    )
 
 
 @router.get("/chain", response_model=OptionChainResponse)
@@ -43,6 +28,20 @@ def get_option_chain(
 ) -> OptionChainResponse:
     normalized_underlying = underlying.upper()
     expiry_date = date.fromisoformat(expiry) if expiry else next_friday()
+    runtime_settings = resolve_runtime_settings(session)
+    try:
+        hub_snapshots = FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_option_latest_quotes(
+            underlying_symbol=normalized_underlying,
+            expiry=expiry_date,
+        )
+        if hub_snapshots:
+            return OptionChainResponse(
+                underlying_symbol=normalized_underlying,
+                expiry=expiry_date.isoformat(),
+                snapshots=[_snapshot_to_schema(snapshot) for snapshot in hub_snapshots],
+            )
+    except FinanceDataHubError:
+        pass
     repository = OptionRepository(session)
     snapshots = repository.list_chain_snapshots(
         underlying_symbol=normalized_underlying,
@@ -100,39 +99,6 @@ def get_option_bars(
             )
             for bar in bars
         ],
-    )
-
-
-@router.post("/sync-chain", response_model=OptionChainSyncResponse, status_code=202)
-def sync_option_chain(
-    request: OptionChainSyncRequest,
-    session: Session = Depends(get_db_session),
-) -> OptionChainSyncResponse:
-    runtime_settings = resolve_runtime_settings(session)
-    if not runtime_settings.manual_market_sync_enabled:
-        raise HTTPException(status_code=403, detail="Manual options sync is disabled.")
-    provider_name = request.provider.lower()
-    try:
-        provider = create_options_provider(provider_name, session)
-        result = OptionChainSyncService(
-            provider=provider,
-            provider_name=provider_name,
-            option_repository=OptionRepository(session),
-            sync_repository=ProviderSyncRepository(session),
-        ).sync_chain(
-            underlying_symbol=request.underlying_symbol,
-            expiry=request.expiry,
-            limit=request.limit,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return OptionChainSyncResponse(
-        provider=result.provider,
-        underlying_symbol=result.underlying_symbol,
-        expiry=result.expiry,
-        status=result.status,
-        rows_written=result.rows_written,
-        error_message=result.error_message,
     )
 
 

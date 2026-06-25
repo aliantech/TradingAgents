@@ -10,7 +10,7 @@ Completion audit: `docs/roadmap/phase-2b-completion-audit.md`.
 
 - Added `provider_sync_runs` ORM support.
 - Added `ProviderSyncRepository` for sync audit writes and reads.
-- Added `MarketDataSyncService` to coordinate provider fetches, bar ingestion, and sync audit records.
+- Added `sync_market_bars()` to coordinate provider fetches, bar ingestion, and sync audit records.
 - Added failure-path handling so provider errors are recorded as `failed` sync runs.
 - Added `GET /api/market-data/sync-runs` for recent sync history.
 - Added a frontend data-source sync panel that displays provider, sync type, status, rows written, timestamp, and error messages.
@@ -18,12 +18,11 @@ Completion audit: `docs/roadmap/phase-2b-completion-audit.md`.
 ## Completed in Second Slice
 
 - Added config-driven provider selection with `AQUANTLENS_MARKET_DATA_PROVIDER`.
-- Added `SampleMarketDataProvider` as the first concrete adapter boundary.
-- Added provider registry lookup through `get_market_data_provider()`.
+- Added direct Polygon provider construction for configured market-data sync.
 - Added CLI entrypoint:
 
 ```bash
-python -m app.market_data.cli sync-daily-bars --symbol SPY --start 2026-06-16 --end 2026-06-17 --provider sample
+python -m app.market_data.cli sync-daily-bars --symbol SPY --start 2026-06-16 --end 2026-06-17 --provider polygon
 ```
 
 - Added Redis-compatible market-data publisher boundary:
@@ -44,7 +43,7 @@ python -m app.market_data.cli sync-daily-bars --symbol SPY --start 2026-06-16 --
   - `AQUANTLENS_POLYGON_BASE_URL`;
   - `AQUANTLENS_PROVIDER_MAX_RETRIES`;
   - `AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS`.
-- Added scheduler wrapper through `run_daily_bar_sync_schedule()`.
+- Initially added a daily-bar scheduler wrapper; the current scheduler boundary is the configured target runner documented in later slices.
 - Added research/development manual sync API:
 
 ```text
@@ -52,20 +51,20 @@ POST /api/market-data/sync-daily-bars
 ```
 
 - Added `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED` kill switch for the manual sync API.
-- Added frontend `同步 SPY` action that triggers sample daily-bars sync, refreshes sync history, and reloads market context.
+- Added frontend `同步 SPY` action that triggers configured daily-bars sync, refreshes sync history, and reloads market context.
 
 ## Completed in Fourth Slice
 
 - Added provider-specific symbol mapping:
   - Polygon `SPX` maps to `I:SPX`;
   - `SPY`, `QQQ`, and selected U.S. single-name equities keep normal ticker symbols.
-- Added runtime Redis publisher factory:
+- Added runtime Redis publisher creation helper:
   - controlled by `AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED`;
   - uses `AQUANTLENS_REDIS_URL`;
   - applies `AQUANTLENS_REALTIME_MARKET_TTL_SECONDS`;
   - defaults to disabled so local sync does not require Redis.
 - Added `redis>=5.0` backend dependency for runtime publisher binding.
-- Connected `run_sync_daily_bars()` to optional realtime publishing through `MarketDataIngestionService`.
+- Connected `run_sync_bars(..., timeframe="1d")` to optional realtime publishing through `ingest_bars()`.
 
 ## Completed in Fifth Slice
 
@@ -74,7 +73,7 @@ POST /api/market-data/sync-daily-bars
   - `1m` -> `1/minute`;
   - `5m` -> `5/minute`;
   - `1d` remains `1/day`.
-- Added intraday sync support through `MarketDataSyncService.sync_bars()`.
+- Added intraday sync support through `sync_market_bars()`.
 - Added CLI `--timeframe` support for `1m`, `5m`, and `1d`.
 - Added manual sync API `timeframe` support.
 - Added sample provider intraday fixtures for deterministic local tests.
@@ -156,7 +155,7 @@ POST /api/market-data/sync-daily-bars
 - Added CLI command:
 
 ```bash
-python -m app.market_data.cli run-scheduler-once --provider sample --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
+python -m app.market_data.cli run-scheduler-once --provider polygon --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
 ```
 
 - Added scheduler runner SOP at `docs/operations/phase-2b-scheduler-runner.md`.
@@ -169,7 +168,7 @@ python -m app.market_data.cli run-scheduler-once --provider sample --targets "SP
 - Added CLI command:
 
 ```bash
-python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
+python -m app.market_data.cli run-scheduler-loop --provider polygon --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
 ```
 
 - Updated scheduler runner SOP with bounded smoke and long-running worker examples.
@@ -181,7 +180,7 @@ python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SP
   - `infra/systemd/aquantlens-market-data-scheduler.timer`.
 - Added template validation tests so service/timer files keep the expected loop command, env file, restart policy, and trading-weekday timer binding.
 - Updated scheduler runner SOP with install, smoke, enable, disable, and journal inspection commands.
-- Kept the checked-in service on the `sample` provider by default; live provider settings remain runtime env configuration only.
+- Kept provider selection runtime-configured; live provider credentials remain runtime env configuration only.
 
 ## Completed in Fifteenth Slice
 
@@ -487,7 +486,7 @@ Latest result:
 Scheduler CLI smoke:
 
 ```bash
-python -m app.market_data.cli run-scheduler-once --provider sample --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
+python -m app.market_data.cli run-scheduler-once --provider polygon --targets "SPY:1d:2,QQQ:5m:1" --today 2026-06-17
 ```
 
 Latest result:
@@ -499,7 +498,7 @@ SPY 1d succeeded with 2 rows; QQQ 5m succeeded with 1 row
 Scheduler loop CLI smoke:
 
 ```bash
-python -m app.market_data.cli run-scheduler-loop --provider sample --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
+python -m app.market_data.cli run-scheduler-loop --provider polygon --targets "SPY:1d:2" --today 2026-06-17 --interval-seconds 1 --max-iterations 1
 ```
 
 Latest result:

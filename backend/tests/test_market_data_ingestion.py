@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.market_data.ingestion import MarketDataIngestionService
+from app.market_data.ingestion import ingest_bars
 from app.market_data.repository import MarketDataRepository
 from app.market_data.schemas import MarketBar
 
@@ -15,12 +15,12 @@ def _session():
     return sessionmaker(bind=engine)()
 
 
-def test_market_data_ingestion_service_writes_normalized_bars():
+def test_ingest_bars_writes_normalized_bars():
     session = _session()
     repository = MarketDataRepository(session)
-    service = MarketDataIngestionService(repository)
 
-    rows_written = service.ingest_bars(
+    rows_written = ingest_bars(
+        repository,
         [
             MarketBar(
                 symbol="spy",
@@ -55,9 +55,9 @@ class FakePublisher:
 def test_market_data_ingestion_can_publish_normalized_bars():
     session = _session()
     publisher = FakePublisher()
-    service = MarketDataIngestionService(MarketDataRepository(session), publisher=publisher)
 
-    service.ingest_bars(
+    ingest_bars(
+        MarketDataRepository(session),
         [
             MarketBar(
                 symbol="spy",
@@ -70,7 +70,8 @@ def test_market_data_ingestion_can_publish_normalized_bars():
                 volume=1_000_000,
                 source="unit-test",
             )
-        ]
+        ],
+        publisher=publisher,
     )
 
     assert len(publisher.published) == 1

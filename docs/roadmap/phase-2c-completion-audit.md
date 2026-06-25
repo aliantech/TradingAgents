@@ -30,7 +30,7 @@ Phase 2D pre-clear update: Market Data and Options now point provider-not-ready 
 | Repository-backed chain API | `GET /api/options/chain` reads persisted data before deterministic fallback. | Implemented |
 | Frontend option-chain surface | Underlying/expiry controls, refresh, metrics, Greeks, IV, OI, source fields. | Implemented |
 | Polygon/Massive options provider boundary | `PolygonOptionsProvider` parses chain snapshots into contract and snapshot records. | Implemented |
-| Option-chain sync service | `OptionChainSyncService` writes contracts, snapshots, and provider sync audit records. | Implemented |
+| Option-chain sync function | `sync_option_chain()` writes contracts, snapshots, and provider sync audit records. | Implemented |
 | Manual option-chain sync API | `POST /api/options/sync-chain`, gated by `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED`. | Implemented |
 | Operations CLI and live smoke script | `python -m app.options.cli sync-chain` and `scripts/phase2c_options_sync_live_smoke.sh`. | Implemented |
 | Workbench UI framework | React/Vite/TypeScript, shadcn/ui primitives, Tailwind v4, route shell. | Implemented |

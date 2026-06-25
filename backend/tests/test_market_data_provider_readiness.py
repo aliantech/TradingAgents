@@ -9,7 +9,6 @@ from app.core.config import Settings
 from app.db.base import Base
 from app.db.session import get_db_session
 from app.main import app
-from app.market_data import cli
 from app.market_data.provider_readiness import check_market_data_provider_readiness
 
 
@@ -31,30 +30,26 @@ def _session() -> Session:
     return sessionmaker(bind=engine)()
 
 
-def test_polygon_readiness_reports_missing_key_without_secret_value():
+def test_finance_data_hub_readiness_reports_missing_base_url():
     readiness = check_market_data_provider_readiness(
-        Settings(market_data_provider="polygon", polygon_api_key="", polygon_base_url="https://api.polygon.io")
+        Settings(market_data_provider="finance_data_hub", finance_data_hub_base_url="")
     )
 
-    assert readiness.provider == "polygon"
+    assert readiness.provider == "finance_data_hub"
     assert readiness.ready is False
-    assert readiness.missing == ["AQUANTLENS_POLYGON_API_KEY"]
-    assert readiness.message == "Polygon provider is missing required runtime configuration."
-    assert "apiKey" not in repr(readiness)
+    assert readiness.missing == ["AQUANTLENS_FINANCE_DATA_HUB_BASE_URL"]
 
 
-def test_polygon_readiness_reports_ready_without_exposing_key():
+def test_finance_data_hub_readiness_reports_ready():
     readiness = check_market_data_provider_readiness(
-        Settings(market_data_provider="polygon", polygon_api_key="secret-value", polygon_base_url="https://api.polygon.io")
+        Settings(market_data_provider="finance_data_hub", finance_data_hub_base_url="http://127.0.0.1:4101")
     )
 
     assert readiness.ready is True
     assert readiness.missing == []
-    assert readiness.message == "Polygon provider is ready for a live smoke run."
-    assert "secret-value" not in repr(readiness)
 
 
-def test_provider_readiness_api_uses_runtime_settings_without_printing_secret():
+def test_provider_readiness_api_uses_runtime_settings():
     session = _session()
     client = _client_with_session(session)
     try:
@@ -63,33 +58,21 @@ def test_provider_readiness_api_uses_runtime_settings_without_printing_secret():
             json={
                 "items": [
                     {
-                        "key": "AQUANTLENS_POLYGON_API_KEY",
-                        "value": "secret-value",
+                        "key": "AQUANTLENS_FINANCE_DATA_HUB_BASE_URL",
+                        "value": "http://hub.test",
                         "category": "api",
-                        "is_secret": True,
+                        "is_secret": False,
                     }
                 ]
             },
         )
-        response = client.get("/api/market-data/provider-readiness?provider=polygon")
+        response = client.get("/api/market-data/provider-readiness?provider=finance_data_hub")
     finally:
         app.dependency_overrides.clear()
 
     assert settings_response.status_code == 200
     assert response.status_code == 200
     payload = response.json()
-    assert payload["provider"] == "polygon"
+    assert payload["provider"] == "finance_data_hub"
     assert payload["ready"] is True
     assert payload["missing"] == []
-    assert "secret-value" not in response.text
-
-
-def test_cli_provider_readiness_exits_nonzero_when_missing_key(monkeypatch, capsys):
-    monkeypatch.setattr(cli, "settings", Settings(market_data_provider="polygon", polygon_api_key=""))
-
-    exit_code = cli.main(["provider-readiness", "--provider", "polygon"])
-
-    output = capsys.readouterr().out
-    assert exit_code == 1
-    assert "AQUANTLENS_POLYGON_API_KEY" in output
-    assert "apiKey" not in output

@@ -37,13 +37,13 @@ def test_settings_api_persists_values_and_masks_secret_reads():
             json={
                 "items": [
                     {
-                        "key": "AQUANTLENS_POLYGON_BASE_URL",
-                        "value": "https://api.polygon.io",
+                        "key": "AQUANTLENS_FINANCE_DATA_HUB_BASE_URL",
+                        "value": "http://hub.test",
                         "category": "api",
                         "is_secret": False,
                     },
                     {
-                        "key": "AQUANTLENS_POLYGON_API_KEY",
+                        "key": "OPENAI_API_KEY",
                         "value": "secret-value",
                         "category": "api",
                         "is_secret": True,
@@ -54,14 +54,14 @@ def test_settings_api_persists_values_and_masks_secret_reads():
         assert response.status_code == 200
 
         payload = client.get("/api/settings").json()
-        readiness = client.get("/api/market-data/provider-readiness?provider=polygon").json()
+        readiness = client.get("/api/market-data/provider-readiness?provider=finance_data_hub").json()
     finally:
         app.dependency_overrides.clear()
 
     settings_by_key = {item["key"]: item for item in payload["items"]}
-    assert settings_by_key["AQUANTLENS_POLYGON_BASE_URL"]["value"] == "https://api.polygon.io"
-    assert settings_by_key["AQUANTLENS_POLYGON_API_KEY"]["value"] is None
-    assert settings_by_key["AQUANTLENS_POLYGON_API_KEY"]["has_value"] is True
+    assert settings_by_key["AQUANTLENS_FINANCE_DATA_HUB_BASE_URL"]["value"] == "http://hub.test"
+    assert settings_by_key["OPENAI_API_KEY"]["value"] is None
+    assert settings_by_key["OPENAI_API_KEY"]["has_value"] is True
     assert "secret-value" not in str(payload)
     assert readiness["ready"] is True
     assert readiness["missing"] == []

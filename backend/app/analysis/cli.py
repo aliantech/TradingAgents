@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import uuid4
 
+from app.analysis.option_chain_context import build_option_chain_context
 from app.analysis.schemas import AnalysisDepth, AnalysisRequest, AssetType, ReportLanguage, ResearchTemplate
 from app.analysis.tradingagents_adapter import build_tradingagents_request, map_tradingagents_error
 from app.analysis.tradingagents_runner import REAL_TRADINGAGENTS_MODE, ensure_tradingagents_import_path, run_configured_research
@@ -34,6 +35,8 @@ def run_real_runner_smoke(
     request: AnalysisRequest,
     explicit_confirmation: bool,
     environ: dict[str, str] | None = None,
+    require_option_chain_context: bool = False,
+    option_chain_context: str = "",
 ) -> RealRunnerSmokeResult:
     environ = environ if environ is not None else os.environ
     normalized_request = request.model_copy(update={"symbol": request.symbol.upper()})
@@ -41,6 +44,8 @@ def run_real_runner_smoke(
         runtime_settings=runtime_settings,
         explicit_confirmation=explicit_confirmation,
         environ=environ,
+        require_option_chain_context=require_option_chain_context,
+        option_chain_context=option_chain_context,
     )
     provider = runtime_settings.tradingagents_llm_provider or normalized_request.llm_provider
     model = runtime_settings.tradingagents_deep_think_llm or normalized_request.model
@@ -58,7 +63,11 @@ def run_real_runner_smoke(
             error_message="Manual real-runner smoke prerequisites are incomplete.",
         )
 
-    execution_request = build_tradingagents_request(uuid4(), normalized_request)
+    execution_request = build_tradingagents_request(
+        uuid4(),
+        normalized_request,
+        option_chain_context=option_chain_context,
+    )
     try:
         result = run_configured_research(execution_request, runtime_settings)
     except Exception as error:
@@ -94,6 +103,8 @@ def real_runner_smoke_missing_prerequisites(
     runtime_settings: Settings,
     explicit_confirmation: bool,
     environ: dict[str, str],
+    require_option_chain_context: bool = False,
+    option_chain_context: str = "",
 ) -> list[str]:
     missing: list[str] = []
     if not explicit_confirmation:
@@ -107,6 +118,8 @@ def real_runner_smoke_missing_prerequisites(
         missing.append(f"known LLM provider mapping for {provider}")
     elif env_var and not environ.get(env_var):
         missing.append(env_var)
+    if require_option_chain_context and not option_chain_context.strip():
+        missing.append("persisted option-chain context")
     return missing
 
 
@@ -155,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     smoke_parser.add_argument("--llm-provider", default=None)
     smoke_parser.add_argument("--model", default=None)
+    smoke_parser.add_argument("--require-option-chain-context", action="store_true")
     smoke_parser.add_argument("--i-understand-this-calls-a-real-llm-provider", action="store_true")
     args = parser.parse_args(argv)
 
@@ -167,6 +181,11 @@ def main(argv: list[str] | None = None) -> int:
                 runtime_settings=runtime_settings,
                 repository=SettingsRepository(session),
                 environ=os.environ,
+            )
+            option_chain_context = build_option_chain_context(
+                session,
+                symbol=args.symbol,
+                analysis_date=args.analysis_date,
             )
         finally:
             session.close()
@@ -185,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
             runtime_settings=runtime_settings,
             request=request,
             explicit_confirmation=args.i_understand_this_calls_a_real_llm_provider,
+            require_option_chain_context=args.require_option_chain_context,
+            option_chain_context=option_chain_context,
         )
         print(json.dumps(result.__dict__, ensure_ascii=False))
         return 0 if result.status == "succeeded" else 1

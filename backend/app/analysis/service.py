@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from app.analysis.repository import AnalysisRepository
 from app.analysis.schemas import AnalysisProgressEvent, AnalysisRequest
+from app.analysis.option_chain_context import build_option_chain_context
 from app.analysis.store import AnalysisRun, analysis_store
 from app.analysis.tradingagents_adapter import (
     build_tradingagents_request,
@@ -36,7 +37,20 @@ def _append_report_quality_failure(
 def start_analysis(request: AnalysisRequest, repository: AnalysisRepository | None = None) -> AnalysisRun:
     analysis_id = uuid4()
     normalized_request = request.model_copy(update={"symbol": request.symbol.upper()})
-    execution_request = build_tradingagents_request(analysis_id, normalized_request)
+    option_chain_context = (
+        build_option_chain_context(
+            repository.session,
+            symbol=normalized_request.symbol,
+            analysis_date=normalized_request.analysis_date,
+        )
+        if repository is not None
+        else ""
+    )
+    execution_request = build_tradingagents_request(
+        analysis_id,
+        normalized_request,
+        option_chain_context=option_chain_context,
+    )
     runtime_settings = resolve_runtime_settings(repository.session) if repository is not None else settings
     try:
         result = run_configured_research(execution_request, runtime_settings)

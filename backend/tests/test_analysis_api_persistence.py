@@ -1,9 +1,13 @@
+from datetime import UTC, date, datetime
+
 from fastapi.testclient import TestClient
 
 from app.analysis.schemas import AnalysisProgressEvent
 from app.analysis.store import analysis_store
 from app.analysis.tradingagents_adapter import TradingAgentsReportPayload, TradingAgentsRunResult
+from app.db.session import SessionLocal, initialize_database
 from app.main import app
+from app.options.repository import OptionContractRecord, OptionRepository, OptionSnapshotRecord
 
 
 def test_analysis_api_persists_completed_deterministic_report():
@@ -251,3 +255,89 @@ def test_analysis_api_rejects_invalid_report_quality_before_persistence(monkeypa
     runs_response = client.get("/api/analysis/runs")
     run = next(item for item in runs_response.json()["runs"] if item["analysis_id"] == response.json()["analysis_id"])
     assert run["failure_diagnostic"]["category"] == "report_quality"
+
+
+def test_analysis_api_passes_persisted_option_chain_context_to_runner(monkeypatch):
+    initialize_database()
+    session = SessionLocal()
+    try:
+        repository = OptionRepository(session)
+        repository.upsert_contract(
+            OptionContractRecord(
+                option_symbol="SPY260619P00740000",
+                underlying_symbol="SPY",
+                expiry=date(2026, 6, 19),
+                strike=740.0,
+                option_type="put",
+                exercise_style="american",
+                expiration_type="weekly",
+                source="polygon",
+            )
+        )
+        repository.upsert_snapshot(
+            OptionSnapshotRecord(
+                option_symbol="SPY260619P00740000",
+                underlying_symbol="SPY",
+                timestamp=datetime(2026, 6, 18, 20, 0, tzinfo=UTC),
+                bid=4.2,
+                ask=4.4,
+                last=4.3,
+                volume=220,
+                open_interest=5800,
+                implied_volatility=0.19,
+                delta=-0.42,
+                gamma=0.024,
+                theta=-0.09,
+                vega=0.21,
+                source="polygon",
+            )
+        )
+    finally:
+        session.close()
+
+    captured_context = {}
+
+    def mocked_runner(execution_request, runtime_settings):
+        captured_context["value"] = execution_request.option_chain_context
+        return TradingAgentsRunResult(
+            progress=[AnalysisProgressEvent(step="tradingagents", status="completed", message="done")],
+            report=TradingAgentsReportPayload(
+                summary="SPY 中文 AI 投研摘要",
+                market_background="中文市场背景",
+                fundamental_analysis="中文基本面分析",
+                technical_analysis="中文技术分析",
+                sentiment_analysis="中文情绪分析",
+                options_observation=f"中文期权观察\n{execution_request.option_chain_context}",
+                bull_case="中文多头情景",
+                bear_case="中文空头情景",
+                risk_factors=["模型输出不确定性"],
+                evidence_labels=["deterministic-tradingagents-fixture"],
+                trade_plan="仅用于研究复盘，不生成自动交易指令。",
+                position_sizing="研究阶段不生成实盘仓位。",
+                take_profit_stop_loss="风控参考仅用于研究复盘，不代表交易执行建议。",
+                confidence=0.5,
+                markdown="SPY 中文 AI 投研报告",
+            ),
+        )
+
+    monkeypatch.setattr("app.analysis.service.run_configured_research", mocked_runner)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/analysis",
+        json={
+            "symbol": "SPY",
+            "asset_type": "etf",
+            "analysis_date": "2026-06-18",
+            "language": "zh",
+            "llm_provider": "openai",
+            "model": "gpt-5.5",
+            "depth": "standard",
+            "analyst_set": "macro-options",
+            "research_template": "general",
+        },
+    )
+
+    assert response.status_code == 202
+    assert "逐合约期权链快照" in captured_context["value"]
+    assert "SPY260619P00740000" in captured_context["value"]

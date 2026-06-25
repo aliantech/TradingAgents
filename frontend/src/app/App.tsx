@@ -62,8 +62,6 @@ import {
   createReportReview,
   type AnalysisRunItem,
   type AnalysisStartPayload,
-  syncDailyBars,
-  syncOptionChain,
   type AnalysisStatus,
   type BackendHealth,
   type MarketBar,
@@ -194,7 +192,6 @@ export function App() {
   const [optionContractsError, setOptionContractsError] = useState<string | null>(null);
   const [optionExpiry, setOptionExpiry] = useState(DEFAULT_OPTION_EXPIRY);
   const [optionsLoading, setOptionsLoading] = useState(false);
-  const [optionsSyncing, setOptionsSyncing] = useState(false);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const [selectedOptionSymbol, setSelectedOptionSymbol] = useState("");
   const [selectedOptionBars, setSelectedOptionBars] = useState<OptionBar[]>([]);
@@ -209,12 +206,11 @@ export function App() {
   const [optionsSyncHealth, setOptionsSyncHealth] = useState<ProviderSyncHealth | null>(null);
   const [optionsProviderReadiness, setOptionsProviderReadiness] = useState<ProviderReadiness | null>(null);
   const [latestOptionsSyncRun, setLatestOptionsSyncRun] = useState<ProviderSyncRunItem | null>(null);
-  const [syncProviderFilter, setSyncProviderFilter] = useState("polygon");
+  const [syncProviderFilter, setSyncProviderFilter] = useState("finance_data_hub");
   const [syncTypeFilter, setSyncTypeFilter] = useState("");
   const [syncStartedAfterFilter, setSyncStartedAfterFilter] = useState("");
   const [syncStartedBeforeFilter, setSyncStartedBeforeFilter] = useState("");
   const [syncLoading, setSyncLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [watchlist, setWatchlist] = useState<string[]>(SUPPORTED_SYMBOLS.slice(0, 6));
   const [watchlistSaving, setWatchlistSaving] = useState(false);
@@ -423,23 +419,6 @@ export function App() {
     setSelectedOptionBarsError(null);
   }
 
-  async function handleSyncOptions() {
-    setOptionsSyncing(true);
-    setOptionsError(null);
-    try {
-      const response = await syncOptionChain(optionUnderlying, optionExpiry);
-      if (response.status !== "succeeded") {
-        setOptionsError(response.error_message ?? t("errors.optionsSyncIncomplete"));
-      }
-      await loadOptionChain(optionUnderlying, optionExpiry);
-      await refreshSyncRuns();
-    } catch (caught) {
-      setOptionsError(caught instanceof Error ? caught.message : t("errors.optionsSyncTrigger"));
-    } finally {
-      setOptionsSyncing(false);
-    }
-  }
-
   async function loadSelectedOptionBars(optionSymbol: string, timeframe = selectedOptionBarsTimeframe) {
     if (!optionSymbol) return;
     setSelectedOptionBarsLoading(true);
@@ -493,24 +472,6 @@ export function App() {
     };
   }
 
-  async function handleSyncCurrentBars() {
-    setSyncing(true);
-    setSyncError(null);
-    const syncSymbol = symbol.toUpperCase() === "SPX" ? "SPY" : symbol;
-    try {
-      const response = await syncDailyBars(syncSymbol);
-      if (response.status !== "succeeded") {
-        setSyncError(response.error_message ?? t("market.syncIncomplete"));
-      }
-      await loadSyncRuns({ showLoading: false });
-      await loadMarketContext(symbol);
-    } catch (caught) {
-      setSyncError(caught instanceof Error ? caught.message : t("market.syncTriggerError"));
-    } finally {
-      setSyncing(false);
-    }
-  }
-
   async function loadSyncRuns({ showLoading }: { showLoading: boolean }) {
     if (showLoading) {
       setSyncLoading(true);
@@ -518,16 +479,16 @@ export function App() {
     setSyncError(null);
     try {
       const filters = currentSyncFilters();
-      const readinessProvider = syncProviderFilter.trim() || "polygon";
+      const readinessProvider = syncProviderFilter.trim() || "finance_data_hub";
       const [response, summary, groups, health, readiness, optionHealth, optionReadiness, optionRuns] = await Promise.all([
         listProviderSyncRuns(filters),
         getProviderSyncSummary(filters),
         listProviderSyncSummaryGroups(filters),
         getProviderSyncHealth(filters),
         getProviderReadiness(readinessProvider),
-        getProviderSyncHealth({ provider: "polygon", syncType: "options_chain" }),
-        getProviderReadiness("polygon"),
-        listProviderSyncRuns({ provider: "polygon", syncType: "options_chain" }),
+        getProviderSyncHealth({ provider: "finance_data_hub", syncType: "options_chain" }),
+        getProviderReadiness("finance_data_hub"),
+        listProviderSyncRuns({ provider: "finance_data_hub", syncType: "options_chain" }),
       ]);
       setSyncRuns(response.runs);
       setSyncSummary(summary);
@@ -712,7 +673,7 @@ export function App() {
                   {marketSession.label}
                 </Badge>
                 <Badge variant={optionsProviderReadiness?.ready ? "default" : "secondary"} className="h-9 px-3">
-                  {optionsProviderReadiness?.ready ? t("readiness.polygonReady") : t("readiness.providerPending")}
+                  {optionsProviderReadiness?.ready ? t("readiness.financeDataHubReady") : t("readiness.providerPending")}
                 </Badge>
                 <Button type="button" variant="outline" size="icon" onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} title={theme === "dark" ? "Light" : "Dark"}>
                   {theme === "dark" ? <Sun /> : <Moon />}
@@ -823,7 +784,6 @@ export function App() {
               health={syncHealth}
               readiness={providerReadiness}
               loading={syncLoading}
-              syncing={syncing}
               error={syncError}
               providerFilter={syncProviderFilter}
               syncTypeFilter={syncTypeFilter}
@@ -835,7 +795,6 @@ export function App() {
               onStartedBeforeFilterChange={setSyncStartedBeforeFilter}
               onConfigureProvider={() => navigateToPage("settings")}
               onRefresh={() => void handleRefreshSyncRuns()}
-              onSyncCurrent={() => void handleSyncCurrentBars()}
             />
           </div>
         ) : null}
@@ -851,7 +810,6 @@ export function App() {
 	                underlying={optionUnderlying}
                 expiry={optionExpiry}
                 loading={optionsLoading}
-                syncing={optionsSyncing}
                 error={optionsError}
                 readiness={optionsProviderReadiness}
                 syncHealth={optionsSyncHealth}
@@ -865,7 +823,6 @@ export function App() {
                 onSelectedBarsTimeframeChange={(timeframe) => void handleSelectedOptionBarsTimeframeChange(timeframe)}
                 onConfigureProvider={() => navigateToPage("settings")}
                 onRefresh={() => void handleRefreshOptions()}
-                onSync={() => void handleSyncOptions()}
               />
             </Suspense>
           </div>
@@ -2129,7 +2086,7 @@ function SettingsPage({
 
       <section className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
         <StatusCard label={t("settings.overview.saveStatus")} value={dirtyKeys.length > 0 ? t("settings.overview.unsaved") : t("settings.overview.synced")} detail={dirtyKeys.length > 0 ? t("settings.overview.unsavedDetail", { count: dirtyKeys.length }) : t("settings.overview.syncedDetail")} status={dirtyKeys.length > 0 ? "warn" : "good"} />
-        <StatusCard label={t("settings.overview.defaultProvider")} value={readiness?.provider ?? "polygon"} detail={readiness?.ready ? t("settings.ready") : t("settings.notReady")} status={readiness?.ready ? "good" : "warn"} />
+        <StatusCard label={t("settings.overview.defaultProvider")} value={readiness?.provider ?? "finance_data_hub"} detail={readiness?.ready ? t("settings.ready") : t("settings.notReady")} status={readiness?.ready ? "good" : "warn"} />
         <StatusCard label={t("settings.overview.lastSaved")} value={settingsSavedAt ? formatDate(settingsSavedAt) : t("settings.overview.neverSaved")} detail={settingsSavedAt ? t("settings.overview.reloadSafe") : t("settings.notSaved")} status={settingsSavedAt ? "good" : "warn"} />
         <StatusCard label={t("settings.overview.secretKeys")} value={`${savedSecretCount}/${secretSettingCount}`} detail={t("settings.secretWriteOnly")} status={savedSecretCount > 0 ? "good" : "warn"} />
       </section>
@@ -2470,13 +2427,13 @@ function ConfigValueControl({
 }) {
   if (configKey === "AQUANTLENS_MARKET_DATA_PROVIDER") {
     return (
-      <Select value={value || "polygon"} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
+      <Select value={value || "finance_data_hub"} onValueChange={(nextValue) => onValueChange(configKey, nextValue)}>
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectItem value="polygon">Polygon</SelectItem>
+            <SelectItem value="finance_data_hub">Finance Data Hub</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
@@ -2572,10 +2529,8 @@ function configPlaceholder(configKey: string) {
 function configDisplayLabel(configKey: string) {
   const labels: Record<string, string> = {
     AQUANTLENS_MARKET_DATA_PROVIDER: "行情 Provider",
-    AQUANTLENS_POLYGON_API_KEY: "Polygon API Key",
-    AQUANTLENS_POLYGON_BASE_URL: "API Base URL",
+    AQUANTLENS_FINANCE_DATA_HUB_BASE_URL: "Finance Data Hub URL",
     VITE_API_BASE_URL: "前端 API 地址",
-    AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED: "手动同步",
     OPENAI_API_KEY: "OpenAI API Key",
     TRADINGAGENTS_LLM_PROVIDER: "默认模型服务",
     TRADINGAGENTS_DEEP_THINK_LLM: "深度推理模型",
@@ -2595,12 +2550,8 @@ function configDisplayLabel(configKey: string) {
     AQUANTLENS_TRADINGAGENTS_SELECTED_ANALYSTS: "研究 Agent",
     AQUANTLENS_TRADINGAGENTS_MAX_DEBATE_ROUNDS: "研究辩论轮数",
     AQUANTLENS_TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS: "风控辩论轮数",
-    AQUANTLENS_PROVIDER_MAX_RETRIES: "最大重试",
-    AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS: "重试间隔",
     AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES: "过期阈值",
     AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD: "失败率阈值",
-    AQUANTLENS_SCHEDULER_TARGETS: "同步目标",
-    AQUANTLENS_SCHEDULER_INTERVAL_SECONDS: "同步间隔",
     AQUANTLENS_SERVICE_NAME: "服务名称",
     AQUANTLENS_DATABASE_URL: "数据库地址",
     AQUANTLENS_REDIS_URL: "Redis 地址",
@@ -2613,15 +2564,10 @@ function configDisplayLabel(configKey: string) {
 function defaultConfigValue(configKey: string) {
   const defaults: Record<string, string> = {
     AQUANTLENS_SERVICE_NAME: "AQuantLens API",
-    AQUANTLENS_MARKET_DATA_PROVIDER: "polygon",
-    AQUANTLENS_POLYGON_BASE_URL: "https://api.polygon.io",
-    AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED: "true",
-    AQUANTLENS_PROVIDER_MAX_RETRIES: "2",
-    AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS: "1.0",
+    AQUANTLENS_MARKET_DATA_PROVIDER: "finance_data_hub",
+    AQUANTLENS_FINANCE_DATA_HUB_BASE_URL: "http://127.0.0.1:4101",
     AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES: "1440",
     AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD: "0.5",
-    AQUANTLENS_SCHEDULER_TARGETS: "SPY:1d:2",
-    AQUANTLENS_SCHEDULER_INTERVAL_SECONDS: "300",
     AQUANTLENS_DATABASE_URL: "sqlite:///./aquantlens_us.db",
     AQUANTLENS_REDIS_URL: "redis://127.0.0.1:6379/0",
     AQUANTLENS_REALTIME_MARKET_PUBLISH_ENABLED: "false",
@@ -2647,7 +2593,6 @@ function defaultConfigValue(configKey: string) {
     "analysis.analyst_set": "macro-options",
     "research.watchlist": SUPPORTED_SYMBOLS.slice(0, 6).join(","),
     "market.refresh": "manual",
-    "options.sync-chain": "manual",
     "data_vendors.core_stock_apis": "yfinance",
     "data_vendors.macro_data": "fred",
     "data_vendors.news_data": "yfinance",
@@ -2676,7 +2621,7 @@ function settingsEntryStatus(
   readiness?: ProviderReadiness | null,
   optionsReadiness?: ProviderReadiness | null,
 ): "ready" | "not-ready" | "entry" {
-  if (itemId === "polygon") {
+  if (itemId === "finance-data-hub") {
     return readiness?.ready || optionsReadiness?.ready ? "ready" : "not-ready";
   }
   return "entry";

@@ -10,6 +10,7 @@ def test_phase8_real_runner_smoke_script_uses_guarded_analysis_cli_only():
 
     assert "real-runner-smoke" in content
     assert "--i-understand-this-calls-a-real-llm-provider" in content
+    assert "--require-option-chain-context" in content
     assert "python -m app.analysis.cli" in content
     assert "app.market_data.cli" not in content
 

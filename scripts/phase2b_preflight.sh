@@ -12,10 +12,3 @@ pytest -q
 
 cd "${ROOT_DIR}/frontend"
 npm run build
-
-cd "${ROOT_DIR}"
-if [[ "${RUN_LIVE_SMOKE:-0}" == "1" ]]; then
-  scripts/phase2b_final_live_smoke.sh
-else
-  echo "Skipping live provider smoke. Set RUN_LIVE_SMOKE=1 after runtime provider env vars are available."
-fi

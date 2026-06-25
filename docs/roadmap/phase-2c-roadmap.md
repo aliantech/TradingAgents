@@ -84,7 +84,7 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
 - Converted option-chain snapshot rows into:
   - `OptionContractRecord`;
   - `OptionSnapshotRecord`.
-- Added `OptionChainSyncService` to persist option contracts, snapshots, and `provider_sync_runs` audit records.
+- Added `sync_option_chain()` to persist option contracts, snapshots, and `provider_sync_runs` audit records.
 - Added tests for:
   - Polygon/Massive option-chain snapshot parsing;
   - option-chain sync persistence and audit writes.
@@ -93,7 +93,7 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
 
 - Added guarded manual option-chain sync API:
   - `POST /api/options/sync-chain`;
-  - uses `OptionChainSyncService`;
+  - uses `sync_option_chain()`;
   - protected by `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED`.
 - Added frontend action `同步期权链` on the option-chain panel.
 - UI action refreshes the option chain and sync health/history after completion.
@@ -104,7 +104,7 @@ Completion audit draft: `docs/roadmap/phase-2c-completion-audit.md`.
 - Added thin operations CLI module:
   - `python -m app.options.cli sync-chain`;
   - readiness guard before provider access;
-  - calls `OptionChainSyncService`;
+  - calls `sync_option_chain()`;
   - emits JSON for CI, scheduler, and shell smoke usage.
 - Added `scripts/phase2c_options_sync_live_smoke.sh`.
 - Default live sync smoke expiry is `2026-06-19` to avoid expired-chain empty results.

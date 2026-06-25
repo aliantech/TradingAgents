@@ -13,20 +13,18 @@ class ProviderReadiness:
 
 def check_market_data_provider_readiness(settings: Settings, provider: str | None = None) -> ProviderReadiness:
     provider_name = (provider or settings.market_data_provider).lower().strip()
-    if provider_name == "polygon":
+    if provider_name == "finance_data_hub":
         missing = []
-        if not settings.polygon_api_key:
-            missing.append("AQUANTLENS_POLYGON_API_KEY")
-        if not settings.polygon_base_url:
-            missing.append("AQUANTLENS_POLYGON_BASE_URL")
+        if not settings.finance_data_hub_base_url:
+            missing.append("AQUANTLENS_FINANCE_DATA_HUB_BASE_URL")
         return ProviderReadiness(
-            provider="polygon",
+            provider="finance_data_hub",
             ready=not missing,
             missing=missing,
             message=(
-                "Polygon provider is ready for a live smoke run."
+                "Finance Data Hub is configured for read-only market data access."
                 if not missing
-                else "Polygon provider is missing required runtime configuration."
+                else "Finance Data Hub is missing required runtime configuration."
             ),
         )
     return ProviderReadiness(

@@ -5,7 +5,7 @@ export type SettingsCatalogItem = {
   scopeKey: string;
   configKeys: string[];
   sourceKey: string;
-  statusSource?: "polygon" | "local" | "runtime" | "planned";
+  statusSource?: "finance_data_hub" | "local" | "runtime" | "planned";
 };
 
 export type SettingsCatalogSection = {
@@ -32,17 +32,16 @@ export function getSettingsCatalog(): SettingsCatalog {
         descriptionKey: "settings.api.marketData.description",
         items: [
           {
-            id: "polygon",
-            labelKey: "settings.api.items.polygon.label",
-            detailKey: "settings.api.items.polygon.detail",
+            id: "finance-data-hub",
+            labelKey: "settings.api.items.financeDataHub.label",
+            detailKey: "settings.api.items.financeDataHub.detail",
             scopeKey: "settings.api.scopes.marketAndOptions",
             configKeys: [
               "AQUANTLENS_MARKET_DATA_PROVIDER",
-              "AQUANTLENS_POLYGON_API_KEY",
-              "AQUANTLENS_POLYGON_BASE_URL",
+              "AQUANTLENS_FINANCE_DATA_HUB_BASE_URL",
             ],
             sourceKey: "settings.sources.backendConfig",
-            statusSource: "polygon",
+            statusSource: "finance_data_hub",
           },
           {
             id: "frontend-api",
@@ -52,15 +51,6 @@ export function getSettingsCatalog(): SettingsCatalog {
             configKeys: ["VITE_API_BASE_URL"],
             sourceKey: "settings.sources.frontendEnv",
             statusSource: "local",
-          },
-          {
-            id: "manual-sync",
-            labelKey: "settings.api.items.manualSync.label",
-            detailKey: "settings.api.items.manualSync.detail",
-            scopeKey: "settings.api.scopes.syncControl",
-            configKeys: ["AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED"],
-            sourceKey: "settings.sources.backendConfig",
-            statusSource: "runtime",
           },
         ],
       },
@@ -228,15 +218,6 @@ export function getSettingsCatalog(): SettingsCatalog {
         descriptionKey: "settings.data.syncRuntime.description",
         items: [
           {
-            id: "provider-retry",
-            labelKey: "settings.data.items.providerRetry.label",
-            detailKey: "settings.data.items.providerRetry.detail",
-            scopeKey: "settings.data.scopes.retry",
-            configKeys: ["AQUANTLENS_PROVIDER_MAX_RETRIES", "AQUANTLENS_PROVIDER_RETRY_BACKOFF_SECONDS"],
-            sourceKey: "settings.sources.backendConfig",
-            statusSource: "runtime",
-          },
-          {
             id: "sync-health",
             labelKey: "settings.data.items.syncHealth.label",
             detailKey: "settings.data.items.syncHealth.detail",
@@ -245,15 +226,6 @@ export function getSettingsCatalog(): SettingsCatalog {
               "AQUANTLENS_PROVIDER_SYNC_STALE_AFTER_MINUTES",
               "AQUANTLENS_PROVIDER_SYNC_FAILURE_RATE_THRESHOLD",
             ],
-            sourceKey: "settings.sources.backendConfig",
-            statusSource: "runtime",
-          },
-          {
-            id: "scheduler",
-            labelKey: "settings.data.items.scheduler.label",
-            detailKey: "settings.data.items.scheduler.detail",
-            scopeKey: "settings.data.scopes.scheduler",
-            configKeys: ["AQUANTLENS_SCHEDULER_TARGETS", "AQUANTLENS_SCHEDULER_INTERVAL_SECONDS"],
             sourceKey: "settings.sources.backendConfig",
             statusSource: "runtime",
           },
@@ -323,7 +295,7 @@ export function getSettingsCatalog(): SettingsCatalog {
             labelKey: "settings.user.items.dataRefresh.label",
             detailKey: "settings.user.items.dataRefresh.detail",
             scopeKey: "settings.user.scopes.workspace",
-            configKeys: ["market.refresh", "options.sync-chain"],
+            configKeys: ["market.refresh"],
             sourceKey: "settings.sources.frontendState",
             statusSource: "local",
           },

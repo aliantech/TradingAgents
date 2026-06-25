@@ -40,7 +40,6 @@ type OptionChainTableProps = {
   underlying: string;
   expiry: string;
   loading: boolean;
-  syncing: boolean;
   error: string | null;
   readiness: ProviderReadiness | null;
   syncHealth: ProviderSyncHealth | null;
@@ -54,7 +53,6 @@ type OptionChainTableProps = {
   onSelectedBarsTimeframeChange: (timeframe: MarketTimeframe) => void;
   onConfigureProvider: () => void;
   onRefresh: () => void;
-  onSync: () => void;
 };
 
 type SelectedQuoteField = "last" | "bid" | "ask";
@@ -99,7 +97,6 @@ export function OptionChainTable({
   underlying,
   expiry,
   loading,
-  syncing,
   error,
   readiness,
   syncHealth,
@@ -113,7 +110,6 @@ export function OptionChainTable({
   onSelectedBarsTimeframeChange,
   onConfigureProvider,
   onRefresh,
-  onSync,
 }: OptionChainTableProps) {
   const { t } = useTranslation();
   const [moneyness, setMoneyness] = useState<MoneynessFilter>("near");
@@ -158,11 +154,8 @@ export function OptionChainTable({
       <CardHeader>
         <CardTitle>{t("options.title")}</CardTitle>
         <CardAction className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onRefresh} disabled={loading || syncing}>
+          <Button type="button" variant="outline" onClick={onRefresh} disabled={loading}>
             {loading ? t("options.loading") : t("options.refresh")}
-          </Button>
-          <Button type="button" onClick={onSync} disabled={loading || syncing}>
-            {syncing ? t("options.syncing") : t("options.syncCurrent", { symbol: underlying })}
           </Button>
         </CardAction>
       </CardHeader>
@@ -332,10 +325,8 @@ export function OptionChainTable({
           latestSyncRun={latestSyncRun}
           contractsCount={contracts.length}
           availableExpiries={availableExpiries}
-          syncing={syncing}
           onConfigureProvider={onConfigureProvider}
           onRefresh={onRefresh}
-          onSync={onSync}
         />
       ) : (
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_280px] items-start gap-4 max-xl:grid-cols-1">
@@ -707,10 +698,8 @@ function OptionsEmptyState({
   latestSyncRun,
   contractsCount,
   availableExpiries,
-  syncing,
   onConfigureProvider,
   onRefresh,
-  onSync,
 }: {
   underlying: string;
   expiry: string;
@@ -719,13 +708,10 @@ function OptionsEmptyState({
   latestSyncRun: ProviderSyncRunItem | null;
   contractsCount: number;
   availableExpiries: string[];
-  syncing: boolean;
   onConfigureProvider: () => void;
   onRefresh: () => void;
-  onSync: () => void;
 }) {
   const { t } = useTranslation();
-  const canSync = Boolean(readiness?.ready) && !syncing;
 
   return (
     <div className="mt-4 rounded-lg border border-dashed bg-card p-5">
@@ -758,9 +744,6 @@ function OptionsEmptyState({
           ) : null}
           <Button type="button" variant="outline" onClick={onRefresh}>
             {t("options.refresh")}
-          </Button>
-          <Button type="button" variant={readiness?.ready ? "default" : "outline"} onClick={onSync} disabled={!canSync}>
-            {syncing ? t("options.syncing") : t("options.syncCurrent", { symbol: underlying })}
           </Button>
         </div>
       </div>

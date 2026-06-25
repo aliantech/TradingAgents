@@ -1,15 +1,13 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db_session
-from app.market_data.cli import run_sync_bars
+from app.market_data.finance_data_hub import FinanceDataHubClient, FinanceDataHubError
 from app.market_data.repository import MarketDataRepository
 from app.market_data.schemas import (
-    DailyBarSyncRequest,
-    DailyBarSyncResponse,
     MarketBar,
     MarketBarsResponse,
     ProviderReadinessResponse,
@@ -34,6 +32,16 @@ def get_market_bars(
     session: Session = Depends(get_db_session),
 ) -> MarketBarsResponse:
     normalized_symbol = symbol.upper()
+    runtime_settings = resolve_runtime_settings(session)
+    try:
+        hub_bars = FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_bars(
+            symbol=normalized_symbol,
+            timeframe=timeframe,
+        )
+        if hub_bars:
+            return MarketBarsResponse(symbol=normalized_symbol, timeframe=timeframe, bars=hub_bars)
+    except FinanceDataHubError:
+        pass
     repository = MarketDataRepository(session)
     persisted_bars = repository.list_bars(symbol=normalized_symbol, timeframe=timeframe)
     return MarketBarsResponse(
@@ -178,31 +186,4 @@ def get_provider_readiness(
         ready=readiness.ready,
         missing=readiness.missing,
         message=readiness.message,
-    )
-
-
-@router.post("/sync-daily-bars", response_model=DailyBarSyncResponse, status_code=202)
-def sync_daily_bars(
-    request: DailyBarSyncRequest,
-    session: Session = Depends(get_db_session),
-) -> DailyBarSyncResponse:
-    runtime_settings = resolve_runtime_settings(session)
-    if not runtime_settings.manual_market_sync_enabled:
-        raise HTTPException(status_code=403, detail="Manual market data sync is disabled.")
-    try:
-        result = run_sync_bars(
-            session=session,
-            provider_name=request.provider or runtime_settings.market_data_provider,
-            symbol=request.symbol,
-            timeframe=request.timeframe,
-            start=request.start,
-            end=request.end,
-            runtime_settings=runtime_settings,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return DailyBarSyncResponse(
-        status=result.status,
-        rows_written=result.rows_written,
-        error_message=result.error_message,
     )

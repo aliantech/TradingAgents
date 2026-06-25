@@ -25,6 +25,7 @@ class TradingAgentsExecutionRequest(AdapterContract):
     analyst_set: str
     research_template: str
     runtime_config: dict[str, str]
+    option_chain_context: str = ""
 
 
 class TradingAgentsReportPayload(AdapterContract):
@@ -62,6 +63,8 @@ SENSITIVE_PATTERNS = (
 def build_tradingagents_request(
     analysis_id: UUID,
     request: AnalysisRequest,
+    *,
+    option_chain_context: str = "",
 ) -> TradingAgentsExecutionRequest:
     symbol = request.symbol.upper()
     runtime_config = {
@@ -85,6 +88,7 @@ def build_tradingagents_request(
         analyst_set=request.analyst_set,
         research_template=request.research_template.value,
         runtime_config=runtime_config,
+        option_chain_context=option_chain_context,
     )
 
 

@@ -38,6 +38,25 @@ def test_quality_contract_requires_research_only_language():
         validate_research_report_quality(report)
 
 
+def test_quality_contract_rejects_real_runner_close_conflict_with_verified_snapshot():
+    report = quality_report(
+        evidence_labels=["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"],
+        markdown=(
+            "## Verified market data snapshot for SPY\n\n"
+            "- Latest trading row used: 2026-06-18\n\n"
+            "### Latest verified OHLCV row\n\n"
+            "| Field | Value |\n"
+            "|---|---:|\n"
+            "| Close | 549.33 |\n\n"
+            "## 市场分析\n\n"
+            "模型报告称 2026-06-18 的 Close 为 746.74。"
+        ),
+    )
+
+    with pytest.raises(ReportQualityError, match="market_data_grounding"):
+        validate_research_report_quality(report)
+
+
 def quality_report(**overrides):
     values = {
         "analysis_id": "00000000-0000-0000-0000-000000000001",

@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import yfinance as yf
 from langgraph.prebuilt import ToolNode
 
 # Import the abstract tool methods from agent_utils
@@ -232,6 +231,7 @@ class TradingAgentsGraph:
         actual_holding_days)`` or ``(None, None, None)`` if price data is
         unavailable (too recent, delisted, or network error).
         """
+        from tradingagents.dataflows.direct_yahoo_chart import _download_chart_frame
         from tradingagents.dataflows.symbol_utils import normalize_symbol
 
         try:
@@ -242,8 +242,8 @@ class TradingAgentsGraph:
             # Normalize so the realized-return lookup hits the same instrument
             # the analysis priced (e.g. XAUUSD -> GC=F) (#984). The benchmark is
             # already a canonical Yahoo symbol from ``_resolve_benchmark``.
-            stock = yf.Ticker(normalize_symbol(ticker)).history(start=trade_date, end=end_str)
-            bench = yf.Ticker(benchmark).history(start=trade_date, end=end_str)
+            stock = _download_chart_frame(normalize_symbol(ticker), trade_date, end_str)
+            bench = _download_chart_frame(benchmark, trade_date, end_str)
 
             if len(stock) < 2 or len(bench) < 2:
                 return None, None, None

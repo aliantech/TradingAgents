@@ -10,9 +10,8 @@ def test_phase2b_preflight_script_runs_non_live_checks_by_default():
 
     assert "pytest -q" in content
     assert "npm run build" in content
-    assert "RUN_LIVE_SMOKE" in content
-    assert "scripts/phase2b_final_live_smoke.sh" in content
-    assert '[[ "${RUN_LIVE_SMOKE:-0}" == "1" ]]' in content
+    assert "RUN_LIVE_SMOKE" not in content
+    assert "phase2b_final_live_smoke" not in content
 
 
 def test_phase2b_preflight_script_does_not_read_or_print_secrets():
@@ -21,6 +20,6 @@ def test_phase2b_preflight_script_does_not_read_or_print_secrets():
     assert "source .env" not in content
     assert ". .env" not in content
     assert "cat .env" not in content
-    assert "AQUANTLENS_POLYGON_API_KEY" not in content
+    assert "API_KEY" not in content
     assert "printenv" not in content
     assert "env |" not in content

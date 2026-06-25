@@ -21,7 +21,6 @@ type DataSyncPanelProps = {
   health: ProviderSyncHealth | null;
   readiness: ProviderReadiness | null;
   loading: boolean;
-  syncing: boolean;
   error: string | null;
   providerFilter: string;
   syncTypeFilter: string;
@@ -33,7 +32,6 @@ type DataSyncPanelProps = {
   onStartedBeforeFilterChange: (startedBefore: string) => void;
   onConfigureProvider: () => void;
   onRefresh: () => void;
-  onSyncCurrent: () => void;
 };
 
 export function DataSyncPanel({
@@ -43,7 +41,6 @@ export function DataSyncPanel({
   health,
   readiness,
   loading,
-  syncing,
   error,
   providerFilter,
   syncTypeFilter,
@@ -55,7 +52,6 @@ export function DataSyncPanel({
   onStartedBeforeFilterChange,
   onConfigureProvider,
   onRefresh,
-  onSyncCurrent,
 }: DataSyncPanelProps) {
   const { t } = useTranslation();
   return (
@@ -63,10 +59,7 @@ export function DataSyncPanel({
       <CardHeader>
         <CardTitle>{t("market.syncTitle")}</CardTitle>
         <CardAction className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onSyncCurrent} disabled={syncing || loading || !readiness?.ready}>
-            {syncing ? t("market.syncing") : t("market.syncCurrent")}
-          </Button>
-          <Button type="button" variant="outline" onClick={onRefresh} disabled={loading || syncing}>
+          <Button type="button" variant="outline" onClick={onRefresh} disabled={loading}>
             {loading ? t("market.refreshing") : t("market.refresh")}
           </Button>
         </CardAction>
@@ -84,7 +77,7 @@ export function DataSyncPanel({
           <span className="text-xs font-medium text-muted-foreground">Provider</span>
           <Input
             value={providerFilter}
-            placeholder="polygon"
+            placeholder="finance_data_hub"
             onChange={(event) => onProviderFilterChange(event.target.value)}
           />
         </label>

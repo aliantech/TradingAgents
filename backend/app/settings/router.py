@@ -27,12 +27,10 @@ def list_settings(repository: SettingsRepository = Depends(get_settings_reposito
 def get_provider_settings(
     repository: SettingsRepository = Depends(get_settings_repository),
 ) -> ProviderSettingsResponse:
-    polygon_api_key = repository.get_raw_value("AQUANTLENS_POLYGON_API_KEY") or ""
-    polygon_base_url = repository.get_raw_value("AQUANTLENS_POLYGON_BASE_URL") or ""
+    hub_base_url = repository.get_raw_value("AQUANTLENS_FINANCE_DATA_HUB_BASE_URL") or ""
     return ProviderSettingsResponse(
-        provider="polygon",
-        polygon_configured=bool(polygon_api_key),
-        polygon_base_url=polygon_base_url,
+        provider="finance_data_hub",
+        finance_data_hub_base_url=hub_base_url,
     )
 
 
@@ -42,24 +40,15 @@ def upsert_provider_settings(
     repository: SettingsRepository = Depends(get_settings_repository),
 ) -> ProviderSettingsResponse:
     provider = request.provider.lower()
-    if provider != "polygon":
+    if provider != "finance_data_hub":
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {request.provider}.")
 
     items: list[SettingWriteItem] = []
-    if request.polygon_api_key is not None:
+    if request.finance_data_hub_base_url is not None:
         items.append(
             SettingWriteItem(
-                key="AQUANTLENS_POLYGON_API_KEY",
-                value=request.polygon_api_key,
-                category="api",
-                is_secret=True,
-            )
-        )
-    if request.polygon_base_url is not None:
-        items.append(
-            SettingWriteItem(
-                key="AQUANTLENS_POLYGON_BASE_URL",
-                value=request.polygon_base_url,
+                key="AQUANTLENS_FINANCE_DATA_HUB_BASE_URL",
+                value=request.finance_data_hub_base_url,
                 category="api",
                 is_secret=False,
             )

@@ -10,7 +10,7 @@ Branch: `aquantlens-us`
 - Added guarded database initialization for API sessions.
 - Added `instruments` and `market_bars` ORM models.
 - Added `MarketDataRepository` with idempotent market-bar upserts.
-- Added `MarketDataIngestionService` as the provider-to-repository entrypoint.
+- Added `ingest_bars()` as the provider-to-repository entrypoint.
 - Updated market-data API to read persisted bars and return an empty list when no provider bars exist.
 
 ## Verification Commands

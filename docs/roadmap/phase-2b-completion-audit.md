@@ -15,12 +15,12 @@ The code, scheduler, health, audit, cache-publisher, API, frontend visibility, g
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
-| Provider sync audit records exist for success and failure paths. | `ProviderSyncRepository`, `MarketDataSyncService`, backend tests, sync history API. | Complete |
-| Config-driven provider selection exists. | `AQUANTLENS_MARKET_DATA_PROVIDER`, provider registry, Polygon provider tests. | Complete |
+| Provider sync audit records exist for success and failure paths. | `ProviderSyncRepository`, `sync_market_bars()`, backend tests, sync history API. | Complete |
+| Config-driven provider selection exists. | `AQUANTLENS_MARKET_DATA_PROVIDER`, provider lookup, Polygon provider tests. | Complete |
 | Polygon provider boundary exists without exposing secrets. | Polygon adapter tests cover API key validation, payload parsing, retry behavior, and symbol mapping. | Complete |
 | Daily and intraday bars can be synced through one service path. | `sync_bars()`, CLI/API `timeframe`, Polygon adapter and sync tests. | Complete |
 | Market bars persist to the database. | Repository and ingestion tests, guarded provider smoke results. | Complete |
-| Optional realtime cache/event publishing boundary exists. | Redis-compatible publisher tests and runtime factory tests. | Complete |
+| Optional realtime cache/event publishing boundary exists. | Redis-compatible publisher tests and publisher creation tests. | Complete |
 | Manual sync API is gated by a kill switch. | Manual sync API tests and `AQUANTLENS_MANUAL_MARKET_SYNC_ENABLED`. | Complete |
 | Sync summary, grouped summary, filters, and health APIs exist. | Summary/health tests and frontend smoke evidence in roadmap. | Complete |
 | Scheduler one-shot and loop boundaries exist. | Scheduler tests, CLI smoke, systemd service/timer template tests. | Complete |

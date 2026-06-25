@@ -16,6 +16,16 @@ from app.analysis.tradingagents_runner import (
 from app.core.config import Settings
 
 
+SNAPSHOT_FIXTURE = (
+    "## Verified market data snapshot for QQQ\n\n"
+    "- Latest trading row used: 2026-06-20\n\n"
+    "### Latest verified OHLCV row\n\n"
+    "| Field | Value |\n"
+    "|---|---:|\n"
+    "| Close | 512.34 |"
+)
+
+
 def test_configured_runner_defaults_to_deterministic_without_real_provider_call(monkeypatch):
     execution_request = build_tradingagents_request(uuid4(), analysis_request())
 
@@ -63,7 +73,11 @@ def test_real_runner_config_reads_runtime_settings():
     assert config["tool_vendors"]["get_stock_data"] == "direct_yahoo_chart"
 
 
-def test_real_tradingagents_state_maps_to_adapter_result():
+def test_real_tradingagents_state_maps_to_adapter_result(monkeypatch):
+    monkeypatch.setattr(
+        "app.analysis.tradingagents_runner.build_runner_verified_market_snapshot",
+        lambda symbol, analysis_date: SNAPSHOT_FIXTURE,
+    )
     execution_request = build_tradingagents_request(uuid4(), analysis_request(symbol="QQQ"))
     final_state = {
         "market_report": "market state",
@@ -79,19 +93,70 @@ def test_real_tradingagents_state_maps_to_adapter_result():
     result = tradingagents_state_to_result(execution_request, final_state, "final decision")
 
     assert result.report.summary.startswith("QQQ 中文 AI 投研摘要")
-    assert result.report.market_background == "market state"
+    assert "Latest trading row used: 2026-06-20" in result.report.market_background
+    assert "market state" in result.report.market_background
     assert result.report.fundamental_analysis == "fundamentals state"
     assert result.report.bull_case == "bull state"
     assert result.report.bear_case == "bear state"
-    assert result.report.trade_plan == (
+    assert "原始 TradingAgents 结论：final decision" in result.report.trade_plan
+    assert "观察条件" in result.report.trade_plan
+    assert "风险边界" in result.report.trade_plan
+    assert "仅用于研究复盘" in result.report.trade_plan
+    assert result.report.evidence_labels == ["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"]
+
+
+def test_real_tradingagents_mapping_expands_one_word_decision_and_options_observation(monkeypatch):
+    monkeypatch.setattr(
+        "app.analysis.tradingagents_runner.build_runner_verified_market_snapshot",
+        lambda symbol, analysis_date: SNAPSHOT_FIXTURE,
+    )
+    execution_request = build_tradingagents_request(uuid4(), analysis_request(symbol="SPY"))
+    execution_request = execution_request.model_copy(
+        update={
+            "option_chain_context": (
+                "逐合约期权链快照（持久化数据）：SPY 最近到期日 2026-06-19，覆盖 2 个合约。\n"
+                "Open interest 集中合约：\n"
+                "- SPY260619P00740000 put strike 740: open interest 5800, IV 0.19, Gamma 0.024"
+            )
+        }
+    )
+
+    result = tradingagents_state_to_result(
+        execution_request,
+        {
+            "market_report": "市场报告显示价格高于均线，但短线动能减弱。",
+            "fundamentals_report": "基本面报告提示估值和流动性需要继续观察。",
+            "sentiment_report": "情绪报告显示风险偏好中性。",
+            "news_report": "新闻报告提示宏观事件风险。",
+            "investment_debate_state": {
+                "bull_history": "多头情景关注趋势延续。",
+                "bear_history": "空头情景关注波动率扩张。",
+            },
+        },
+        "Overweight",
+    )
+
+    assert result.report.trade_plan != (
         "研究结论（原始 TradingAgents 输出）：\n"
-        "final decision\n\n"
+        "Overweight\n\n"
         "仅用于研究复盘，不生成自动交易指令。"
     )
-    assert result.report.evidence_labels == ["tradingagents-real-runner"]
+    assert "Overweight" in result.report.trade_plan
+    assert "观察条件" in result.report.trade_plan
+    assert "失效条件" in result.report.trade_plan
+    assert "不生成自动交易指令" in result.report.trade_plan
+    assert "后续 options-specific runner 中增强" not in result.report.options_observation
+    for expected in ("IV", "偏斜", "open interest", "Gamma"):
+        assert expected in result.report.options_observation
+    assert "逐合约期权链快照" in result.report.options_observation
+    assert "SPY260619P00740000" in result.report.options_observation
 
 
-def test_real_tradingagents_mapped_report_passes_quality_contract():
+def test_real_tradingagents_mapped_report_passes_quality_contract(monkeypatch):
+    monkeypatch.setattr(
+        "app.analysis.tradingagents_runner.build_runner_verified_market_snapshot",
+        lambda symbol, analysis_date: SNAPSHOT_FIXTURE,
+    )
     execution_request = build_tradingagents_request(uuid4(), analysis_request(symbol="QQQ"))
     result = tradingagents_state_to_result(
         execution_request,
@@ -114,7 +179,7 @@ def test_real_tradingagents_mapped_report_passes_quality_contract():
         report_id=uuid4(),
     )
 
-    assert report.evidence_labels == ["tradingagents-real-runner"]
+    assert report.evidence_labels == ["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"]
     assert report.report_id is not None
 
 
