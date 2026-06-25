@@ -103,3 +103,37 @@ def test_finance_data_hub_client_reads_option_latest_quotes():
     assert snapshots[0].last == 4.2
     assert snapshots[0].source == "finance_data_hub"
     assert transport.calls == ["http://hub.test/options/quotes/latest/SPY?expiration_date=2026-01-16"]
+
+
+def test_finance_data_hub_client_reads_option_contracts():
+    transport = FakeTransport(
+        {
+            "contracts": [
+                {
+                    "underlying_symbol": "SPY",
+                    "provider_symbol": "O:SPY260625C00726000",
+                    "occ_symbol": "SPY260625C00726000",
+                    "expiration_date": "2026-06-25",
+                    "expiration_type": "weekly",
+                    "strike": "726.00000000",
+                    "right": "call",
+                    "exercise_style": "american",
+                    "source": "option_contracts",
+                }
+            ]
+        }
+    )
+    client = FinanceDataHubClient("http://hub.test", transport=transport)
+
+    contracts = client.list_option_contracts(underlying_symbol="spy", expiry=date(2026, 6, 25))
+
+    assert len(contracts) == 1
+    assert contracts[0].option_symbol == "O:SPY260625C00726000"
+    assert contracts[0].underlying_symbol == "SPY"
+    assert contracts[0].expiry == date(2026, 6, 25)
+    assert contracts[0].strike == 726.0
+    assert contracts[0].option_type == "call"
+    assert contracts[0].source == "option_contracts"
+    assert transport.calls == [
+        "http://hub.test/options/contracts?underlying_symbol=SPY&limit=1000&expiration_date=2026-06-25"
+    ]

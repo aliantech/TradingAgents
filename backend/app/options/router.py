@@ -71,6 +71,20 @@ def get_option_contracts(
 ) -> OptionContractsResponse:
     normalized_underlying = underlying.upper()
     expiry_date = date.fromisoformat(expiry) if expiry else None
+    runtime_settings = resolve_runtime_settings(session)
+    try:
+        hub_contracts = FinanceDataHubClient(runtime_settings.finance_data_hub_base_url).list_option_contracts(
+            underlying_symbol=normalized_underlying,
+            expiry=expiry_date,
+        )
+        if hub_contracts:
+            return OptionContractsResponse(
+                underlying_symbol=normalized_underlying,
+                expiry=expiry,
+                contracts=[_contract_to_schema(contract) for contract in hub_contracts],
+            )
+    except FinanceDataHubError:
+        pass
     repository = OptionRepository(session)
     contracts = repository.list_contracts(
         underlying_symbol=normalized_underlying,

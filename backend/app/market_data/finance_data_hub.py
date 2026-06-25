@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from app.market_data.schemas import MarketBar
-from app.options.repository import OptionSnapshotRecord
+from app.options.repository import OptionContractRecord, OptionSnapshotRecord
 
 
 class FinanceDataHubError(RuntimeError):
@@ -73,6 +73,21 @@ class FinanceDataHubClient:
             raise FinanceDataHubError("Finance Data Hub option quotes response must include quotes list.")
         return [dict(row) for row in rows]
 
+    def list_option_contracts(
+        self,
+        *,
+        underlying_symbol: str,
+        expiry: date | None = None,
+    ) -> list[OptionContractRecord]:
+        query = {"underlying_symbol": underlying_symbol.upper(), "limit": "1000"}
+        if expiry is not None:
+            query["expiration_date"] = expiry.isoformat()
+        payload = self.transport.get_json(f"{self.base_url}/options/contracts?{urlencode(query)}")
+        rows = payload.get("contracts") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise FinanceDataHubError("Finance Data Hub option contracts response must include contracts list.")
+        return [_option_contract_from_hub_row(underlying_symbol.upper(), row) for row in rows]
+
 
 class UrlLibTransport:
     def get_json(self, url: str) -> object:
@@ -119,6 +134,23 @@ def _option_snapshot_from_hub_row(underlying_symbol: str, row: dict) -> OptionSn
     )
 
 
+def _option_contract_from_hub_row(underlying_symbol: str, row: dict) -> OptionContractRecord:
+    option_symbol = str(row.get("provider_symbol") or row.get("occ_symbol") or row.get("option_symbol")).upper()
+    raw_expiry = row.get("expiration_date") or row.get("expiry")
+    if raw_expiry is None:
+        raise FinanceDataHubError("Finance Data Hub option contract is missing expiration_date.")
+    return OptionContractRecord(
+        option_symbol=option_symbol,
+        underlying_symbol=str(row.get("underlying_symbol") or underlying_symbol).upper(),
+        expiry=date.fromisoformat(str(raw_expiry)[:10]),
+        strike=float(row["strike"]),
+        option_type=str(row.get("right") or row.get("contract_right") or row.get("option_type")).lower(),
+        exercise_style=_optional_str(row.get("exercise_style")),
+        expiration_type=_optional_str(row.get("expiration_type")),
+        source=str(row.get("source") or "finance_data_hub"),
+    )
+
+
 def _parse_datetime(value: object) -> datetime:
     if value is None:
         raise FinanceDataHubError("Finance Data Hub row is missing timestamp.")
@@ -145,3 +177,9 @@ def _optional_int(value: object) -> int | None:
 
 def _required_int(value: object) -> int:
     return int(Decimal(str(value)))
+
+
+def _optional_str(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    return str(value)

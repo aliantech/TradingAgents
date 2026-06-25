@@ -365,27 +365,23 @@ export function App() {
     setOptionContractsLoading(true);
     setOptionsError(null);
     setOptionContractsError(null);
+    let resolvedExpiry = nextExpiry;
     try {
-      const [chainResult, contractsResult] = await Promise.allSettled([
-        getOptionChain(nextUnderlying, nextExpiry),
-        listOptionContracts(nextUnderlying, nextExpiry),
-      ]);
-      if (chainResult.status === "fulfilled") {
-        setOptionSnapshots(chainResult.value.snapshots);
-        setOptionExpiry(chainResult.value.expiry);
-      } else {
-        setOptionSnapshots([]);
-        setOptionExpiry(nextExpiry);
-        setOptionsError(chainResult.reason instanceof Error ? chainResult.reason.message : t("errors.optionsLoad"));
-      }
-      if (contractsResult.status === "fulfilled") {
-        setOptionContracts(contractsResult.value.contracts);
-      } else {
-        setOptionContracts([]);
-        setOptionContractsError(contractsResult.reason instanceof Error ? contractsResult.reason.message : t("errors.optionContractsLoad"));
-      }
+      const chainResult = await getOptionChain(nextUnderlying, nextExpiry);
+      setOptionSnapshots(chainResult.snapshots);
+      resolvedExpiry = chainResult.expiry;
+      setOptionExpiry(resolvedExpiry);
     } catch (caught) {
+      setOptionSnapshots([]);
+      setOptionExpiry(nextExpiry);
       setOptionsError(caught instanceof Error ? caught.message : t("errors.optionsLoad"));
+    }
+    try {
+      const contractsResult = await listOptionContracts(nextUnderlying, resolvedExpiry);
+      setOptionContracts(contractsResult.contracts);
+    } catch (caught) {
+      setOptionContracts([]);
+      setOptionContractsError(caught instanceof Error ? caught.message : t("errors.optionContractsLoad"));
     } finally {
       setOptionsLoading(false);
       setOptionContractsLoading(false);

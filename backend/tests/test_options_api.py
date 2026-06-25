@@ -189,6 +189,53 @@ def test_options_contracts_api_reads_persisted_contracts():
     ]
 
 
+def test_options_contracts_api_reads_finance_data_hub_first(monkeypatch):
+    class FakeFinanceDataHubClient:
+        def __init__(self, base_url: str) -> None:
+            self.base_url = base_url
+
+        def list_option_contracts(self, *, underlying_symbol: str, expiry):
+            assert underlying_symbol == "SPY"
+            assert expiry == date(2026, 6, 25)
+            return [
+                OptionContractRecord(
+                    option_symbol="O:SPY260625C00726000",
+                    underlying_symbol="SPY",
+                    expiry=date(2026, 6, 25),
+                    strike=726.0,
+                    option_type="call",
+                    exercise_style="american",
+                    expiration_type="weekly",
+                    source="option_contracts",
+                )
+            ]
+
+    monkeypatch.setattr(options_router, "FinanceDataHubClient", FakeFinanceDataHubClient)
+    session = _session()
+    client = _client_with_session(session)
+    try:
+        response = client.get("/api/options/contracts?underlying=spy&expiry=2026-06-25")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["underlying_symbol"] == "SPY"
+    assert payload["expiry"] == "2026-06-25"
+    assert payload["contracts"] == [
+        {
+            "option_symbol": "O:SPY260625C00726000",
+            "underlying_symbol": "SPY",
+            "expiry": "2026-06-25",
+            "strike": 726.0,
+            "option_type": "call",
+            "exercise_style": "american",
+            "expiration_type": "weekly",
+            "source": "option_contracts",
+        }
+    ]
+
+
 def test_options_contracts_api_returns_empty_contracts_when_no_provider_data():
     session = _session()
     client = _client_with_session(session)
