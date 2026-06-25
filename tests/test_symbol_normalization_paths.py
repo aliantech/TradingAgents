@@ -31,16 +31,16 @@ def test_identity_lookup_normalizes_symbol(monkeypatch):
     assert identity.get("company_name") == "Gold Futures"
 
 
-def test_fetch_returns_normalizes_symbol(monkeypatch):
+def test_fetch_returns_uses_finance_data_hub_symbol(monkeypatch):
     queried = []
 
-    def fake_download_chart_frame(symbol, start_date, end_exclusive):
+    def fake_download_finance_data_hub_frame(symbol, start_date, end_date):
         queried.append(symbol)
         return pd.DataFrame({"Close": [100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0]})
 
     monkeypatch.setattr(
-        "tradingagents.dataflows.direct_yahoo_chart._download_chart_frame",
-        fake_download_chart_frame,
+        "tradingagents.dataflows.finance_data_hub._download_finance_data_hub_frame",
+        fake_download_finance_data_hub_frame,
     )
 
     # _fetch_returns does not use ``self``; call unbound to avoid building the graph.
@@ -48,6 +48,6 @@ def test_fetch_returns_normalizes_symbol(monkeypatch):
         None, "XAUUSD", "2025-01-02", holding_days=5, benchmark="SPY"
     )
 
-    assert queried[0] == "GC=F"  # stock symbol normalized (#984)
+    assert queried[0] == "XAUUSD"
     assert queried[1] == "SPY"   # benchmark left as the canonical symbol
     assert raw is not None and days is not None

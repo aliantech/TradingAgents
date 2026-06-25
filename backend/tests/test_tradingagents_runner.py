@@ -69,8 +69,9 @@ def test_real_runner_config_reads_runtime_settings():
     assert config["max_risk_discuss_rounds"] == 3
     assert config["checkpoint_enabled"] is False
     assert config["tool_vendors"]["get_macro_indicators"] == "macro_unavailable"
-    assert config["tool_vendors"]["get_indicators"] == "direct_yahoo_chart"
-    assert config["tool_vendors"]["get_stock_data"] == "direct_yahoo_chart"
+    assert config["finance_data_hub_base_url"] == "http://127.0.0.1:18180"
+    assert config["tool_vendors"]["get_indicators"] == "finance_data_hub"
+    assert config["tool_vendors"]["get_stock_data"] == "finance_data_hub"
 
 
 def test_real_tradingagents_state_maps_to_adapter_result(monkeypatch):
@@ -102,7 +103,7 @@ def test_real_tradingagents_state_maps_to_adapter_result(monkeypatch):
     assert "观察条件" in result.report.trade_plan
     assert "风险边界" in result.report.trade_plan
     assert "仅用于研究复盘" in result.report.trade_plan
-    assert result.report.evidence_labels == ["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"]
+    assert result.report.evidence_labels == ["tradingagents-real-runner", "finance-data-hub-verified-snapshot"]
 
 
 def test_real_tradingagents_mapping_expands_one_word_decision_and_options_observation(monkeypatch):
@@ -179,7 +180,7 @@ def test_real_tradingagents_mapped_report_passes_quality_contract(monkeypatch):
         report_id=uuid4(),
     )
 
-    assert report.evidence_labels == ["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"]
+    assert report.evidence_labels == ["tradingagents-real-runner", "finance-data-hub-verified-snapshot"]
     assert report.report_id is not None
 
 

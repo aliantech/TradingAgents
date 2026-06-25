@@ -148,8 +148,10 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     end_str = (today_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
     os.makedirs(config["data_cache_dir"], exist_ok=True)
-    use_direct_yahoo_chart = _use_direct_yahoo_chart_for_indicators(config)
-    source_label = "DirectYahooChart" if use_direct_yahoo_chart else "YFin"
+    ohlcv_vendor = _ohlcv_vendor_for_indicators(config)
+    source_label = {
+        "finance_data_hub": "FinanceDataHub",
+    }.get(ohlcv_vendor, "YFin")
     data_file = os.path.join(
         config["data_cache_dir"],
         f"{safe_symbol}-{source_label}-data-{start_str}-{end_str}.csv",
@@ -165,11 +167,11 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
             data = cached
 
     if data is None:
-        if use_direct_yahoo_chart:
-            from .direct_yahoo_chart import _download_chart_frame
+        if ohlcv_vendor == "finance_data_hub":
+            from .finance_data_hub import _download_finance_data_hub_frame
 
             downloaded = _ensure_date_column(
-                _download_chart_frame(canonical, start_str, end_str).reset_index()
+                _download_finance_data_hub_frame(symbol.upper(), start_str, end_str).reset_index()
             )
         else:
             downloaded = yf_retry(lambda: yf.download(
@@ -201,10 +203,14 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     return data
 
 
-def _use_direct_yahoo_chart_for_indicators(config: dict) -> bool:
+def _ohlcv_vendor_for_indicators(config: dict) -> str:
     tool_vendor = config.get("tool_vendors", {}).get("get_indicators")
     category_vendor = config.get("data_vendors", {}).get("technical_indicators")
-    return tool_vendor == "direct_yahoo_chart" or category_vendor == "direct_yahoo_chart"
+    if tool_vendor == "finance_data_hub":
+        return tool_vendor
+    if category_vendor == "finance_data_hub":
+        return category_vendor
+    return "yfinance"
 
 
 def filter_financials_by_date(data: pd.DataFrame, curr_date: str) -> pd.DataFrame:

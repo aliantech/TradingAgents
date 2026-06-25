@@ -40,7 +40,7 @@ def test_quality_contract_requires_research_only_language():
 
 def test_quality_contract_rejects_real_runner_close_conflict_with_verified_snapshot():
     report = quality_report(
-        evidence_labels=["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"],
+        evidence_labels=["tradingagents-real-runner", "finance-data-hub-verified-snapshot"],
         markdown=(
             "## Verified market data snapshot for SPY\n\n"
             "- Latest trading row used: 2026-06-18\n\n"

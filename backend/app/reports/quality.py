@@ -30,7 +30,7 @@ REQUIRED_TEXT_FIELDS = (
 
 NO_TRADING_AUTHORITY_TERMS = ("研究", "不生成", "不代表", "观察", "参考")
 REAL_RUNNER_LABEL = "tradingagents-real-runner"
-VERIFIED_SNAPSHOT_LABEL = "direct-yahoo-chart-verified-snapshot"
+VERIFIED_SNAPSHOT_LABEL = "finance-data-hub-verified-snapshot"
 SNAPSHOT_DATE_RE = re.compile(r"Latest trading row used:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})")
 SNAPSHOT_CLOSE_RE = re.compile(r"^\|\s*Close\s*\|\s*([0-9,]+(?:\.[0-9]+)?)\s*\|", re.MULTILINE)
 NUMERIC_RE = re.compile(r"(?<![0-9])([0-9]{2,5}(?:\.[0-9]+)?)(?![0-9])")

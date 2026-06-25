@@ -62,12 +62,12 @@ def _price_df(prices):
 def _patch_outcome_price_frames(monkeypatch, *, stock_prices, benchmark_prices=None):
     benchmark = benchmark_prices if benchmark_prices is not None else stock_prices
 
-    def fake_download_chart_frame(symbol, start_date, end_exclusive):
+    def fake_download_finance_data_hub_frame(symbol, start_date, end_date):
         return _price_df(benchmark if symbol == "SPY" else stock_prices)
 
     monkeypatch.setattr(
-        "tradingagents.dataflows.direct_yahoo_chart._download_chart_frame",
-        fake_download_chart_frame,
+        "tradingagents.dataflows.finance_data_hub._download_finance_data_hub_frame",
+        fake_download_finance_data_hub_frame,
     )
 
 
@@ -508,11 +508,11 @@ class TestDeferredReflection:
         assert isinstance(raw, float) and isinstance(alpha, float) and isinstance(days, int)
         assert days == 5
 
-    def test_fetch_returns_uses_direct_yahoo_chart_not_yfinance(self, monkeypatch):
+    def test_fetch_returns_uses_finance_data_hub_not_yfinance(self, monkeypatch):
         def fail_if_yfinance_called(*_args, **_kwargs):
             raise AssertionError("outcome resolution should not call yfinance.Ticker")
 
-        def fake_download_chart_frame(symbol, start_date, end_exclusive):
+        def fake_download_finance_data_hub_frame(symbol, start_date, end_date):
             prices = [400.0, 402.0, 404.0, 403.0, 405.0, 406.0] if symbol == "SPY" else [
                 100.0,
                 102.0,
@@ -525,8 +525,8 @@ class TestDeferredReflection:
 
         monkeypatch.setattr("yfinance.Ticker", fail_if_yfinance_called)
         monkeypatch.setattr(
-            "tradingagents.dataflows.direct_yahoo_chart._download_chart_frame",
-            fake_download_chart_frame,
+            "tradingagents.dataflows.finance_data_hub._download_finance_data_hub_frame",
+            fake_download_finance_data_hub_frame,
         )
 
         raw, alpha, days = TradingAgentsGraph._fetch_returns(None, "NVDA", "2026-01-05")

@@ -64,11 +64,12 @@ def build_real_tradingagents_config(
             "max_debate_rounds": runtime_settings.tradingagents_max_debate_rounds,
             "max_risk_discuss_rounds": runtime_settings.tradingagents_max_risk_discuss_rounds,
             "checkpoint_enabled": False,
+            "finance_data_hub_base_url": runtime_settings.finance_data_hub_base_url,
             "tool_vendors": {
                 **config.get("tool_vendors", {}),
                 "get_macro_indicators": "macro_unavailable",
-                "get_indicators": "direct_yahoo_chart",
-                "get_stock_data": "direct_yahoo_chart",
+                "get_indicators": "finance_data_hub",
+                "get_stock_data": "finance_data_hub",
             },
         }
     )
@@ -105,7 +106,7 @@ def tradingagents_state_to_result(
         bull_case=bull_case,
         bear_case=bear_case,
         risk_factors=["模型输出不确定性", "数据源可用性", "宏观事件"],
-        evidence_labels=["tradingagents-real-runner", "direct-yahoo-chart-verified-snapshot"],
+        evidence_labels=["tradingagents-real-runner", "finance-data-hub-verified-snapshot"],
         trade_plan=trade_plan,
         position_sizing="研究阶段不生成实盘仓位。",
         take_profit_stop_loss="风控参考仅用于研究复盘，不代表交易执行建议。",

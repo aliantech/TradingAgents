@@ -231,19 +231,15 @@ class TradingAgentsGraph:
         actual_holding_days)`` or ``(None, None, None)`` if price data is
         unavailable (too recent, delisted, or network error).
         """
-        from tradingagents.dataflows.direct_yahoo_chart import _download_chart_frame
-        from tradingagents.dataflows.symbol_utils import normalize_symbol
+        from tradingagents.dataflows.finance_data_hub import _download_finance_data_hub_frame
 
         try:
             start = datetime.strptime(trade_date, "%Y-%m-%d")
             end = start + timedelta(days=holding_days + 7)  # buffer for weekends/holidays
             end_str = end.strftime("%Y-%m-%d")
 
-            # Normalize so the realized-return lookup hits the same instrument
-            # the analysis priced (e.g. XAUUSD -> GC=F) (#984). The benchmark is
-            # already a canonical Yahoo symbol from ``_resolve_benchmark``.
-            stock = _download_chart_frame(normalize_symbol(ticker), trade_date, end_str)
-            bench = _download_chart_frame(benchmark, trade_date, end_str)
+            stock = _download_finance_data_hub_frame(ticker.upper(), trade_date, end_str)
+            bench = _download_finance_data_hub_frame(benchmark.upper(), trade_date, end_str)
 
             if len(stock) < 2 or len(bench) < 2:
                 return None, None, None
