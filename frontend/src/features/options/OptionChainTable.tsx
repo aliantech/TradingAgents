@@ -201,7 +201,21 @@ export function OptionChainTable({
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">{t("options.expiry")}</span>
-          <Input type="date" value={expiry} onChange={(event) => onExpiryChange(event.target.value)} />
+          <Input
+            type="date"
+            value={expiry}
+            onChange={(event) => onExpiryChange(event.target.value)}
+            onBlur={(event) => {
+              if (event.currentTarget.value && event.currentTarget.value !== expiry) {
+                onExpiryChange(event.currentTarget.value);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && event.currentTarget.value && event.currentTarget.value !== expiry) {
+                onExpiryChange(event.currentTarget.value);
+              }
+            }}
+          />
         </label>
         <ToggleGroup
           type="single"
