@@ -91,6 +91,22 @@ def test_vendor_router_accepts_finance_data_hub(monkeypatch):
 
 
 @pytest.mark.unit
+def test_vendor_router_defaults_core_stock_data_to_finance_data_hub(monkeypatch):
+    def fake_fetch_json(url):
+        if url == "http://127.0.0.1:18180/assets/SPY":
+            return {"asset_id": "asset-spy"}
+        if url == "http://127.0.0.1:18180/assets/asset-spy/bars?timeframe=1d&start=2026-06-18&end=2026-06-18":
+            return [_bar()]
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(finance_data_hub, "_fetch_json", fake_fetch_json)
+
+    result = route_to_vendor("get_stock_data", "SPY", "2026-06-18", "2026-06-18")
+
+    assert "Data source: Finance Data Hub" in result
+
+
+@pytest.mark.unit
 def test_indicator_ohlcv_loader_uses_finance_data_hub_when_configured(monkeypatch, tmp_path):
     def fail_if_yfinance_called(*_args, **_kwargs):
         raise AssertionError("yf.download should not be called")
@@ -113,3 +129,22 @@ def test_indicator_ohlcv_loader_uses_finance_data_hub_when_configured(monkeypatc
     assert len(frame) == 1
     assert frame.iloc[0]["Close"] == 549.33
     assert list(tmp_path.glob("SPY-FinanceDataHub-data-*.csv"))
+
+
+@pytest.mark.unit
+def test_indicator_ohlcv_loader_defaults_to_finance_data_hub(monkeypatch, tmp_path):
+    def fail_if_yfinance_called(*_args, **_kwargs):
+        raise AssertionError("yf.download should not be called")
+
+    def fake_download_finance_data_hub_frame(symbol, start_date, end_date):
+        assert symbol == "SPY"
+        return finance_data_hub._bars_to_frame([_bar("2026-06-18T20:00:00Z")])
+
+    monkeypatch.setattr("tradingagents.dataflows.stockstats_utils.yf.download", fail_if_yfinance_called)
+    monkeypatch.setattr(finance_data_hub, "_download_finance_data_hub_frame", fake_download_finance_data_hub_frame)
+    set_config({"data_cache_dir": str(tmp_path)})
+
+    frame = load_ohlcv("SPY", "2026-06-18")
+
+    assert len(frame) == 1
+    assert frame.iloc[0]["Close"] == 549.33

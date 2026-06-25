@@ -5,6 +5,7 @@ Date: 2026-06-26
 ## Scope
 
 TradingAgents real-runner market OHLCV should not call Yahoo/yfinance directly. Market bars are read through Finance Data Hub.
+The branch default for core stock bars and technical-indicator OHLCV is also Finance Data Hub.
 
 This affects:
 
@@ -17,6 +18,7 @@ This affects:
 
 - Added the `finance_data_hub` TradingAgents dataflow vendor.
 - Registered `finance_data_hub` for stock bars and indicator OHLCV.
+- Set the default `core_stock_apis` and `technical_indicators` vendors to `finance_data_hub`.
 - Removed the active `direct_yahoo_chart` dataflow vendor and its tests.
 - Configured the real TradingAgents runner to use `finance_data_hub`.
 - Changed real-runner evidence label to `finance-data-hub-verified-snapshot`.
