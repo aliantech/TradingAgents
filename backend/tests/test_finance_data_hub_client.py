@@ -10,24 +10,32 @@ class FakeTransport:
 
     def get_json(self, url: str):
         self.calls.append(url)
+        if isinstance(self.payload, dict) and url in self.payload:
+            return self.payload[url]
         return self.payload
 
 
 def test_finance_data_hub_client_reads_asset_bars():
     transport = FakeTransport(
-        [
-            {
+        {
+            "http://hub.test/assets/SPY": {
+                "asset_id": "asset-spy",
                 "symbol": "SPY",
-                "timeframe": "1d",
-                "timestamp": "2026-06-17T00:00:00Z",
-                "open": "550.0",
-                "high": "553.0",
-                "low": "549.5",
-                "close": "552.2",
-                "volume": "90000000",
-                "source": "finance_data_hub",
-            }
-        ]
+            },
+            "http://hub.test/assets/asset-spy/bars?timeframe=1d&start=2026-06-17&end=2026-06-17": [
+                {
+                    "symbol": "SPY",
+                    "timeframe": "1d",
+                    "timestamp": "2026-06-17T00:00:00Z",
+                    "open": "550.0",
+                    "high": "553.0",
+                    "low": "549.5",
+                    "close": "552.2",
+                    "volume": "90000000",
+                    "source": "finance_data_hub",
+                }
+            ],
+        }
     )
     client = FinanceDataHubClient("http://hub.test", transport=transport)
 
@@ -37,7 +45,28 @@ def test_finance_data_hub_client_reads_asset_bars():
     assert bars[0].symbol == "SPY"
     assert bars[0].timestamp == datetime(2026, 6, 17, tzinfo=UTC)
     assert bars[0].close == 552.2
-    assert transport.calls == ["http://hub.test/assets/SPY/bars?timeframe=1d&start=2026-06-17&end=2026-06-17"]
+    assert transport.calls == [
+        "http://hub.test/assets/SPY",
+        "http://hub.test/assets/asset-spy/bars?timeframe=1d&start=2026-06-17&end=2026-06-17",
+    ]
+
+
+def test_finance_data_hub_client_reads_asset_id_from_wrapped_asset_response():
+    transport = FakeTransport(
+        {
+            "http://hub.test/assets/SPX": {"asset": {"asset_id": "asset-spx"}},
+            "http://hub.test/assets/asset-spx/bars?timeframe=1d": [],
+        }
+    )
+    client = FinanceDataHubClient("http://hub.test", transport=transport)
+
+    bars = client.list_bars(symbol="spx", timeframe="1d")
+
+    assert bars == []
+    assert transport.calls == [
+        "http://hub.test/assets/SPX",
+        "http://hub.test/assets/asset-spx/bars?timeframe=1d",
+    ]
 
 
 def test_finance_data_hub_client_reads_option_latest_quotes():

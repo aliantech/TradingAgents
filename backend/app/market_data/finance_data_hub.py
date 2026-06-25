@@ -28,10 +28,19 @@ class FinanceDataHubClient:
             query["start"] = start.isoformat()
         if end is not None:
             query["end"] = end.isoformat()
-        payload = self.transport.get_json(f"{self.base_url}/assets/{symbol.upper()}/bars?{urlencode(query)}")
+        asset_id = self.resolve_asset_id(symbol)
+        payload = self.transport.get_json(f"{self.base_url}/assets/{asset_id}/bars?{urlencode(query)}")
         if not isinstance(payload, list):
             raise FinanceDataHubError("Finance Data Hub bars response must be a list.")
         return [_bar_from_hub_row(symbol.upper(), timeframe, row) for row in payload]
+
+    def resolve_asset_id(self, symbol: str) -> str:
+        payload = self.transport.get_json(f"{self.base_url}/assets/{symbol.upper()}")
+        asset = payload.get("asset") if isinstance(payload, dict) and isinstance(payload.get("asset"), dict) else payload
+        asset_id = asset.get("asset_id") if isinstance(asset, dict) else None
+        if not asset_id:
+            raise FinanceDataHubError(f"Finance Data Hub asset response is missing asset_id for {symbol.upper()}.")
+        return str(asset_id)
 
     def list_option_latest_quotes(
         self,
