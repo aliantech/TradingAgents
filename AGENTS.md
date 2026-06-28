@@ -48,9 +48,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Before important work, read:
 
-1. `/Users/yasin/Documents/Yasin AI OS/AGENTS.md`
-2. `/Users/yasin/Documents/Yasin AI OS/04-Projects/aquantlens/PROJECT.md`
-3. `/Users/yasin/Documents/Yasin AI OS/04-Projects/aquantlens/LOG.md` recent entries only
+1. `/Users/yasin/Workspace/Yasin AI OS/AGENTS.md`
+2. `/Users/yasin/Workspace/Yasin AI OS/04-Projects/aquantlens/PROJECT.md`
+3. `/Users/yasin/Workspace/Yasin AI OS/04-Projects/aquantlens/LOG.md` recent entries only
 4. This file
 5. `PROJECT.md`
 6. Relevant docs under `docs/`
