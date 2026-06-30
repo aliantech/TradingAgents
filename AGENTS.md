@@ -99,3 +99,4 @@ Out of scope for Phase 1:
 - Keep public-facing README content product-oriented only.
 - Internal rules, safety constraints, project decisions, and operational details belong in `AGENTS.md`, `PROJECT.md`, `docs/`, or Yasin Brain.
 - Important changes should update local project docs and, when relevant, Yasin Brain with clear wording that this is the U.S/options branch rather than the existing AQuantLens mainline.
+- Codex execution roles are documented in `docs/operations/codex-agent-roles.md`; use them as operating roles only, not as permission to add backend services, autonomous schedulers, MCP trading tools, or live execution.
