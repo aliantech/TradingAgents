@@ -16,7 +16,7 @@ This handoff is operational only. It does not create a backend service, autonomo
 - Current clean Ubuntu mirror: `/home/yasin/workspace/TradingAgents-current`, kept fast-forwarded to `origin/aquantlens-us`.
 - Legacy Ubuntu workspace: `/home/yasin/workspace/TradingAgents` is behind `origin/aquantlens-us` and contains unrelated local changes; do not reset, pull, or use it as the current sync target without a separate cleanup decision.
 - Current target: `QQQ 2026-06-18 etf require-option-chain-context`.
-- Readiness state: QQQ passed the option-chain gate in no-provider preflight.
+- Readiness state: QQQ passed the option-chain gate in no-provider preflight. SPY was also rechecked from the clean mirror and now returns the same readiness shape: missing only the intentionally omitted real-provider confirmation flag.
 - Blocking state: the current execution environment blocked the real provider-backed run because it would send runtime context and research input to an external LLM/provider.
 - Evidence: `docs/operations/phase-13-qqq-gated-preflight.md`.
 

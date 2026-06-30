@@ -12,6 +12,7 @@ The current validated state is:
 
 - SPY data-grounding, report mapping, outcome-resolution, and option-chain readiness gate work is implemented and documented.
 - QQQ passed the `require-option-chain-context` readiness gate in no-provider preflight.
+- SPY also passed the current `require-option-chain-context` no-provider preflight from the clean mirror; the only missing prerequisite was the intentionally omitted real-provider confirmation flag.
 - The real QQQ provider-backed smoke remains pending because the current execution environment blocks sending runtime context and research input to an external LLM/provider.
 - Backend focused tests, backend full regression, frontend production build, and mocked Playwright smoke pass from the clean mirror.
 
@@ -22,6 +23,7 @@ This audit does not add live broker execution, broker credentials, broker accoun
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | QQQ option-chain readiness is checked without provider execution. | `docs/operations/phase-13-qqq-gated-preflight.md` records `missing` only `--i-understand-this-calls-a-real-llm-provider`, with no missing persisted option-chain context. | Complete |
+| SPY option-chain readiness is rechecked without provider execution. | Clean mirror preflight returned `missing` only `--i-understand-this-calls-a-real-llm-provider`, with no missing persisted option-chain context. | Complete |
 | A clean Ubuntu runtime entry exists. | `/home/yasin/workspace/TradingAgents-current` was created, fast-forwarded, and used for verification. | Complete |
 | Phase 13 focused backend contracts pass. | `docs/operations/phase-13-codex-agent-handoff.md` records `25 passed`. | Complete |
 | Backend full regression passes. | `docs/operations/phase-13-codex-agent-handoff.md` records `225 passed in 8.51s`. | Complete |
@@ -40,6 +42,22 @@ AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=real-tradingagents \
 PATH=/home/yasin/workspace/TradingAgents/backend/.venv/bin:$PATH \
 python -m app.analysis.cli real-runner-smoke \
   --symbol QQQ \
+  --analysis-date 2026-06-18 \
+  --asset-type etf \
+  --require-option-chain-context
+```
+
+Result: `not_ready`, missing only `--i-understand-this-calls-a-real-llm-provider`.
+
+### SPY No-Provider Preflight
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/backend
+AQUANTLENS_DATABASE_URL=sqlite:////home/yasin/workspace/TradingAgents/backend/aquantlens_us.db \
+AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=real-tradingagents \
+PATH=/home/yasin/workspace/TradingAgents/backend/.venv/bin:$PATH \
+python -m app.analysis.cli real-runner-smoke \
+  --symbol SPY \
   --analysis-date 2026-06-18 \
   --asset-type etf \
   --require-option-chain-context
@@ -122,16 +140,17 @@ No matches in the touched tests introduced broker access, live execution, secret
 
 - No QQQ provider-backed report exists yet.
 - No QQQ report review exists yet.
+- No new SPY provider-backed report has been generated after the latest SPY gate recheck.
 - Real-provider output quality for QQQ is unknown until an approved environment runs the guarded smoke.
 - The legacy Ubuntu workspace still contains unrelated local changes and should not be reset or reused as the sync target without a separate cleanup decision.
 
 ## Final State
 
-Phase 13 is ready for an operator-run QQQ provider-backed pilot in an approved environment, but remains blocked inside the current execution environment.
+Phase 13 is ready for an operator-run QQQ provider-backed pilot, or a repeat SPY provider-backed pilot, in an approved environment. Both remain blocked inside the current execution environment.
 
 Next bounded action:
 
 1. Run exactly one guarded `QQQ 2026-06-18 etf require-option-chain-context` provider-backed smoke in an approved environment; or
-2. Sync SPY option-chain snapshots first, then repeat SPY with the same gate.
+2. Run exactly one guarded `SPY 2026-06-18 etf require-option-chain-context` provider-backed smoke in an approved environment.
 
 Do not start additional symbols, retries, scheduled jobs, broker scope, or live execution from this audit.
