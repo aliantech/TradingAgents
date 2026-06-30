@@ -52,6 +52,22 @@ python -m app.analysis.cli real-runner-smoke \
 - No report was generated.
 - No database writeback from a provider-backed report occurred.
 
+## Clean Mirror Verification
+
+After creating the clean Ubuntu mirror at `/home/yasin/workspace/TradingAgents-current`, the same no-provider preflight was rerun from that checkout.
+
+Result:
+
+```json
+{"symbol": "QQQ", "status": "not_ready", "runner_mode": "real-tradingagents", "llm_provider": "openai", "model": "gpt-5.5", "missing": ["--i-understand-this-calls-a-real-llm-provider"], "progress": [], "report_generated": false, "evidence_labels": [], "error_message": "Manual real-runner smoke prerequisites are incomplete."}
+```
+
+Interpretation:
+
+- `/home/yasin/workspace/TradingAgents-current` is a working clean runtime entry for this preflight.
+- `QQQ` still passes the option-chain readiness gate from the current runtime database.
+- The only blocker remains the intentionally omitted real-provider confirmation flag.
+
 ## Operator Handoff
 
 If an operator runs this manually in an approved environment, keep the same gate enabled:
