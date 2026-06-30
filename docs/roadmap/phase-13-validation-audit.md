@@ -65,6 +65,24 @@ python -m app.analysis.cli real-runner-smoke \
 
 Result: `not_ready`, missing only `--i-understand-this-calls-a-real-llm-provider`.
 
+### Latest Clean-Mirror Preflight Refresh
+
+On 2026-07-01, the clean mirror was rechecked at commit `77d4bf6`.
+
+`QQQ 2026-06-18 etf require-option-chain-context` returned:
+
+```json
+{"symbol": "QQQ", "status": "not_ready", "runner_mode": "real-tradingagents", "llm_provider": "openai", "model": "gpt-5.5", "missing": ["--i-understand-this-calls-a-real-llm-provider"], "progress": [], "report_generated": false, "evidence_labels": [], "error_message": "Manual real-runner smoke prerequisites are incomplete."}
+```
+
+`SPY 2026-06-18 etf require-option-chain-context` returned:
+
+```json
+{"symbol": "SPY", "status": "not_ready", "runner_mode": "real-tradingagents", "llm_provider": "openai", "model": "gpt-5.5", "missing": ["--i-understand-this-calls-a-real-llm-provider"], "progress": [], "report_generated": false, "evidence_labels": [], "error_message": "Manual real-runner smoke prerequisites are incomplete."}
+```
+
+Interpretation: both symbols still pass the option-chain readiness gate and remain blocked only by the intentionally omitted real-provider confirmation flag. No provider call was made and no report was generated.
+
 ### Focused Backend Tests
 
 ```bash
