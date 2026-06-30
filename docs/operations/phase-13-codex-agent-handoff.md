@@ -68,6 +68,19 @@ tsc -b && vite build
 built in 476ms
 ```
 
+The mocked Playwright smoke suite also passed from the clean mirror:
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/frontend
+npm run e2e:paper
+```
+
+Result:
+
+```text
+4 passed (9.1s)
+```
+
 ## Research-Runner Agent Assignment
 
 ### Objective
