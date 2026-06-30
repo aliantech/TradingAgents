@@ -93,6 +93,31 @@ Result: `4 passed (9.1s)`.
 - Isolated `test_phase_one_market_and_options_context` from live Finance Data Hub data so the Phase 1 empty-context test uses its intended no-provider semantics.
 - Stabilized `analysis-observability-smoke` by navigating to Runs through the visible sidebar button instead of relying on a secondary hash navigation from the report page.
 
+## Safety Grep Classification
+
+Safety grep covered the current Phase 13 agent-role, handoff, preflight, roadmap, validation-audit, and touched test files:
+
+```bash
+rg -n "broker|live execution|live-trading|place_order|submit_order|order placement|account mutation|paper-to-live|automatic retry|scheduled provider|OPENAI_API_KEY|API key|secret|\\.env|provider-backed|real-provider|LLM/provider|external LLM|trading-scope MCP|MCP trading" \
+  docs/operations/codex-agent-roles.md \
+  docs/operations/phase-13-codex-agent-handoff.md \
+  docs/operations/phase-13-qqq-gated-preflight.md \
+  docs/roadmap/phase-13-validation-audit.md \
+  docs/roadmap/phase-13-roadmap.md \
+  backend/tests/test_phase1_api_flow.py \
+  frontend/e2e/analysis-observability-smoke.spec.ts
+```
+
+Matches were classified as:
+
+- Explicit no-secret, no-`.env`, and no credential-reading boundaries.
+- Explicit no-broker, no-live-execution, no-scheduler, no-automatic-retry, and no-paper-to-live boundaries.
+- Provider-backed execution stop conditions and blocked-state documentation.
+- Operator handoff language requiring an approved environment before any real-provider run.
+- Historical Phase 13 roadmap references to completed SPY provider-backed validation steps.
+
+No matches in the touched tests introduced broker access, live execution, secret reads, provider calls, scheduled jobs, automatic retries, or paper-to-live behavior.
+
 ## Residual Risks
 
 - No QQQ provider-backed report exists yet.
