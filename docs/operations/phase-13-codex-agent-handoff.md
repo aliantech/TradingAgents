@@ -40,6 +40,19 @@ Result:
 25 passed in 0.41s
 ```
 
+The backend full regression also passed after isolating the Phase 1 empty-context test from live Finance Data Hub data:
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
+```
+
+Result:
+
+```text
+225 passed in 8.51s
+```
+
 ## Research-Runner Agent Assignment
 
 ### Objective
