@@ -13,6 +13,8 @@ This handoff is operational only. It does not create a backend service, autonomo
 ## Current State
 
 - Branch: `aquantlens-us`.
+- Current clean Ubuntu mirror: `/home/yasin/workspace/TradingAgents-current` at `c2ba9f2`.
+- Legacy Ubuntu workspace: `/home/yasin/workspace/TradingAgents` is behind `origin/aquantlens-us` and contains unrelated local changes; do not reset, pull, or use it as the current sync target without a separate cleanup decision.
 - Current target: `QQQ 2026-06-18 etf require-option-chain-context`.
 - Readiness state: QQQ passed the option-chain gate in no-provider preflight.
 - Blocking state: the current execution environment blocked the real provider-backed run because it would send runtime context and research input to an external LLM/provider.
@@ -32,6 +34,7 @@ Run exactly one guarded QQQ provider-backed smoke only in an approved environmen
 - Gate: `require-option-chain-context`.
 - Runtime mode: `real-tradingagents`.
 - Runtime database: the approved TradingAgents runtime database for this branch.
+- Working directory: use `/home/yasin/workspace/TradingAgents-current` unless an operator explicitly chooses another clean checkout.
 
 ### Command Template
 
