@@ -53,6 +53,21 @@ Result:
 225 passed in 8.51s
 ```
 
+The frontend production build also passed from the clean mirror after installing dependencies with `npm ci`:
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/frontend
+npm run build
+```
+
+Result:
+
+```text
+tsc -b && vite build
+1928 modules transformed
+built in 476ms
+```
+
 ## Research-Runner Agent Assignment
 
 ### Objective
