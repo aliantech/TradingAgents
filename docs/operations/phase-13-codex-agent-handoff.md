@@ -13,12 +13,32 @@ This handoff is operational only. It does not create a backend service, autonomo
 ## Current State
 
 - Branch: `aquantlens-us`.
-- Current clean Ubuntu mirror: `/home/yasin/workspace/TradingAgents-current` at `c2ba9f2`.
+- Current clean Ubuntu mirror: `/home/yasin/workspace/TradingAgents-current`, kept fast-forwarded to `origin/aquantlens-us`.
 - Legacy Ubuntu workspace: `/home/yasin/workspace/TradingAgents` is behind `origin/aquantlens-us` and contains unrelated local changes; do not reset, pull, or use it as the current sync target without a separate cleanup decision.
 - Current target: `QQQ 2026-06-18 etf require-option-chain-context`.
 - Readiness state: QQQ passed the option-chain gate in no-provider preflight.
 - Blocking state: the current execution environment blocked the real provider-backed run because it would send runtime context and research input to an external LLM/provider.
 - Evidence: `docs/operations/phase-13-qqq-gated-preflight.md`.
+
+## Clean Mirror Regression
+
+The Phase 13 focused regression slice passed from `/home/yasin/workspace/TradingAgents-current`:
+
+```bash
+PYTHONPATH=backend /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest \
+  backend/tests/test_analysis_cli_real_runner_smoke.py \
+  backend/tests/test_phase8_real_runner_smoke_script.py \
+  backend/tests/test_analysis_option_chain_context.py \
+  backend/tests/test_tradingagents_runner.py \
+  backend/tests/test_report_quality.py \
+  -q
+```
+
+Result:
+
+```text
+25 passed in 0.41s
+```
 
 ## Research-Runner Agent Assignment
 
