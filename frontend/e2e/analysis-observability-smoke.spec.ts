@@ -17,7 +17,7 @@ test("analysis observability shows completed reports and failed no-report detail
   await page.getByRole("button", { name: /Open Report|打开报告/ }).first().click();
   await expect(page.getByText("SPY 中文 AI 投研摘要").first()).toBeVisible();
 
-  await page.goto("/#runs");
+  await page.getByRole("button", { name: /任务中心|Runs/ }).click();
   await expect(page.getByText("provider").first()).toBeVisible();
   await expect(page.getByText(/Check provider readiness|检查 Provider/).first()).toBeVisible();
   await page.getByRole("button", { name: /Error Detail|错误详情/ }).click();
