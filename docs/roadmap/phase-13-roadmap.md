@@ -196,6 +196,8 @@ Next action is an operator decision outside this restricted execution context:
 - run the guarded `QQQ` pilot manually in an approved environment with `require-option-chain-context`; or
 - run one guarded repeat `SPY` pilot manually in an approved environment with `require-option-chain-context`.
 
+Use `docs/operations/phase-13-approved-pilot-runbook.md` for the exact one-run command, capture fields, stop rules, and review gate.
+
 Do not proceed to additional symbols or retries automatically from the preflight result.
 
 ## Explicit Non-Goals

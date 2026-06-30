@@ -19,6 +19,7 @@ This handoff is operational only. It does not create a backend service, autonomo
 - Readiness state: QQQ passed the option-chain gate in no-provider preflight. SPY was also rechecked from the clean mirror and now returns the same readiness shape: missing only the intentionally omitted real-provider confirmation flag.
 - Blocking state: the current execution environment blocked the real provider-backed run because it would send runtime context and research input to an external LLM/provider.
 - Evidence: `docs/operations/phase-13-qqq-gated-preflight.md`.
+- One-run operator runbook: `docs/operations/phase-13-approved-pilot-runbook.md`.
 
 ## Clean Mirror Regression
 
@@ -99,12 +100,18 @@ Run exactly one guarded QQQ provider-backed smoke only in an approved environmen
 
 ### Command Template
 
+Use the one-run command in `docs/operations/phase-13-approved-pilot-runbook.md`.
+
+The current preferred `QQQ` command is:
+
 ```bash
 AQUANTLENS_DATABASE_URL=sqlite:////home/yasin/workspace/TradingAgents/backend/aquantlens_us.db \
 AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=real-tradingagents \
 PATH=/home/yasin/workspace/TradingAgents/backend/.venv/bin:$PATH \
 scripts/phase8_real_runner_smoke.sh QQQ 2026-06-18 etf require-option-chain-context
 ```
+
+Do not run both QQQ and SPY from the same operator decision.
 
 ### Required Capture
 
