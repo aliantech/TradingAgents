@@ -1,6 +1,20 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.market_data import router as market_data_router
+from app.market_data.finance_data_hub import FinanceDataHubError
+from app.options import router as options_router
+
+
+class UnavailableFinanceDataHubClient:
+    def __init__(self, base_url: str) -> None:
+        self.base_url = base_url
+
+    def list_bars(self, **kwargs):
+        raise FinanceDataHubError("FDH disabled for empty-context test.")
+
+    def list_option_latest_quotes(self, **kwargs):
+        raise FinanceDataHubError("FDH disabled for empty-context test.")
 
 
 def _start_spy_analysis(client: TestClient) -> dict:
@@ -39,7 +53,9 @@ def test_phase_one_analysis_flow_does_not_create_mock_report():
     assert report["summary"].startswith("SPY 中文 AI 投研摘要")
 
 
-def test_phase_one_market_and_options_context():
+def test_phase_one_market_and_options_context(monkeypatch):
+    monkeypatch.setattr(market_data_router, "FinanceDataHubClient", UnavailableFinanceDataHubClient)
+    monkeypatch.setattr(options_router, "FinanceDataHubClient", UnavailableFinanceDataHubClient)
     client = TestClient(app)
 
     bars_response = client.get("/api/market-data/bars?symbol=SPY&timeframe=1m")
