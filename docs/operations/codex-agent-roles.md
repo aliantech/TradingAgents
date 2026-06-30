@@ -104,3 +104,4 @@ Boundary: <what was not run or not changed>
 
 - Research-Runner Agent: `QQQ 2026-06-18 etf require-option-chain-context` is readiness-gate ready, but real provider-backed execution is blocked in the current execution environment. Evidence: `docs/operations/phase-13-qqq-gated-preflight.md`.
 - Report-Review Agent: wait for a completed `QQQ` provider-backed report from an approved environment before reviewing expansion readiness.
+- Active handoff: `docs/operations/phase-13-codex-agent-handoff.md`.
