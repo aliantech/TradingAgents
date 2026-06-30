@@ -154,6 +154,7 @@ Initial storage scope:
 - `docs/roadmap/phase-11-roadmap.md`
 - `docs/roadmap/phase-12-roadmap.md`
 - `docs/roadmap/phase-13-roadmap.md`
+- `docs/roadmap/phase-13-validation-audit.md`
 - `docs/operations/phase-9-evaluation-cases.md`
 - `docs/operations/phase-9-manual-provider-pilot.md`
 - `docs/operations/phase-10-first-pilot-checklist.md`

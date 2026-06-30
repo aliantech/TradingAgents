@@ -187,7 +187,7 @@ Result:
 
 `QQQ` is ready for a guarded provider-backed pilot from the readiness-gate perspective: the no-provider preflight returned `not_ready` only because the explicit real-provider confirmation flag was intentionally omitted, and did not report missing persisted option-chain context.
 
-The actual provider-backed `QQQ` smoke remains pending because the current execution environment blocked sending runtime context and research input to an external LLM/provider. Evidence record: `docs/operations/phase-13-qqq-gated-preflight.md`.
+The actual provider-backed `QQQ` smoke remains pending because the current execution environment blocked sending runtime context and research input to an external LLM/provider. Evidence records: `docs/operations/phase-13-qqq-gated-preflight.md` and `docs/roadmap/phase-13-validation-audit.md`.
 
 Next action is an operator decision outside this restricted execution context:
 

@@ -1,0 +1,112 @@
+# Phase 13 Validation Audit
+
+Date: 2026-07-01
+
+## Summary
+
+Phase 13 is validated through the current non-provider and local-runtime scope, but it is not closed as a full provider-backed QQQ pilot.
+
+The branch has a clean Ubuntu mirror at `/home/yasin/workspace/TradingAgents-current`, fast-forwarded to `origin/aquantlens-us`. The legacy Ubuntu workspace at `/home/yasin/workspace/TradingAgents` remains dirty and behind the remote, so it is not the current sync target.
+
+The current validated state is:
+
+- SPY data-grounding, report mapping, outcome-resolution, and option-chain readiness gate work is implemented and documented.
+- QQQ passed the `require-option-chain-context` readiness gate in no-provider preflight.
+- The real QQQ provider-backed smoke remains pending because the current execution environment blocks sending runtime context and research input to an external LLM/provider.
+- Backend focused tests, backend full regression, frontend production build, and mocked Playwright smoke pass from the clean mirror.
+
+This audit does not add live broker execution, broker credentials, broker account mutation, AI-directed live trading, trading-scope MCP tools, live-trading UI controls, scheduled provider-backed research jobs, automatic retry loops, or automatic paper-to-live promotion.
+
+## Validation Evidence
+
+| Requirement | Evidence | Status |
+| --- | --- | --- |
+| QQQ option-chain readiness is checked without provider execution. | `docs/operations/phase-13-qqq-gated-preflight.md` records `missing` only `--i-understand-this-calls-a-real-llm-provider`, with no missing persisted option-chain context. | Complete |
+| A clean Ubuntu runtime entry exists. | `/home/yasin/workspace/TradingAgents-current` was created, fast-forwarded, and used for verification. | Complete |
+| Phase 13 focused backend contracts pass. | `docs/operations/phase-13-codex-agent-handoff.md` records `25 passed`. | Complete |
+| Backend full regression passes. | `docs/operations/phase-13-codex-agent-handoff.md` records `225 passed in 8.51s`. | Complete |
+| Frontend production build passes. | `docs/operations/phase-13-codex-agent-handoff.md` records `npm run build` success. | Complete |
+| Mocked browser smoke passes. | `docs/operations/phase-13-codex-agent-handoff.md` records `4 passed (9.1s)`. | Complete |
+| Real provider-backed QQQ smoke is executed and reviewed. | Blocked by current execution policy; no report was generated. | Blocked |
+
+## Verification Commands
+
+### QQQ No-Provider Preflight
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/backend
+AQUANTLENS_DATABASE_URL=sqlite:////home/yasin/workspace/TradingAgents/backend/aquantlens_us.db \
+AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=real-tradingagents \
+PATH=/home/yasin/workspace/TradingAgents/backend/.venv/bin:$PATH \
+python -m app.analysis.cli real-runner-smoke \
+  --symbol QQQ \
+  --analysis-date 2026-06-18 \
+  --asset-type etf \
+  --require-option-chain-context
+```
+
+Result: `not_ready`, missing only `--i-understand-this-calls-a-real-llm-provider`.
+
+### Focused Backend Tests
+
+```bash
+PYTHONPATH=backend /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest \
+  backend/tests/test_analysis_cli_real_runner_smoke.py \
+  backend/tests/test_phase8_real_runner_smoke_script.py \
+  backend/tests/test_analysis_option_chain_context.py \
+  backend/tests/test_tradingagents_runner.py \
+  backend/tests/test_report_quality.py \
+  -q
+```
+
+Result: `25 passed in 0.41s`.
+
+### Backend Full Regression
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/backend
+PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
+```
+
+Result: `225 passed in 8.51s`.
+
+### Frontend Build
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/frontend
+npm run build
+```
+
+Result: `tsc -b && vite build`, `1928 modules transformed`, `built in 476ms`.
+
+### Playwright Smoke
+
+```bash
+cd /home/yasin/workspace/TradingAgents-current/frontend
+npm run e2e:paper
+```
+
+Result: `4 passed (9.1s)`.
+
+## Fixes Made During Validation
+
+- Isolated `test_phase_one_market_and_options_context` from live Finance Data Hub data so the Phase 1 empty-context test uses its intended no-provider semantics.
+- Stabilized `analysis-observability-smoke` by navigating to Runs through the visible sidebar button instead of relying on a secondary hash navigation from the report page.
+
+## Residual Risks
+
+- No QQQ provider-backed report exists yet.
+- No QQQ report review exists yet.
+- Real-provider output quality for QQQ is unknown until an approved environment runs the guarded smoke.
+- The legacy Ubuntu workspace still contains unrelated local changes and should not be reset or reused as the sync target without a separate cleanup decision.
+
+## Final State
+
+Phase 13 is ready for an operator-run QQQ provider-backed pilot in an approved environment, but remains blocked inside the current execution environment.
+
+Next bounded action:
+
+1. Run exactly one guarded `QQQ 2026-06-18 etf require-option-chain-context` provider-backed smoke in an approved environment; or
+2. Sync SPY option-chain snapshots first, then repeat SPY with the same gate.
+
+Do not start additional symbols, retries, scheduled jobs, broker scope, or live execution from this audit.
