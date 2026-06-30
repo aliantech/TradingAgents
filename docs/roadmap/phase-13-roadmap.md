@@ -185,7 +185,16 @@ Result:
 
 ## Next Action
 
-Choose the next provider-backed validation path: either run a guarded `QQQ` pilot with `require-option-chain-context`, or first sync SPY option-chain snapshots and repeat `SPY` with the same gate. Do not run either provider-backed path automatically without that explicit decision.
+`QQQ` is ready for a guarded provider-backed pilot from the readiness-gate perspective: the no-provider preflight returned `not_ready` only because the explicit real-provider confirmation flag was intentionally omitted, and did not report missing persisted option-chain context.
+
+The actual provider-backed `QQQ` smoke remains pending because the current execution environment blocked sending runtime context and research input to an external LLM/provider. Evidence record: `docs/operations/phase-13-qqq-gated-preflight.md`.
+
+Next action is an operator decision outside this restricted execution context:
+
+- run the guarded `QQQ` pilot manually in an approved environment with `require-option-chain-context`; or
+- sync `SPY` option-chain snapshots first, then repeat `SPY` with the same gate.
+
+Do not proceed to additional symbols or retries automatically from the preflight result.
 
 ## Explicit Non-Goals
 
