@@ -162,7 +162,7 @@ Result:
 - `start_analysis()` now passes option-chain context into the TradingAgents execution request when a repository session is available.
 - Real-runner `options_observation` includes the persisted context when available and states when no per-contract snapshot exists.
 - Tests passed for the context builder, service integration, runner mapping, options repository/API, report quality, and smoke-boundary contracts.
-- Runtime DB check found `QQQ` has persisted option-chain snapshots for `2026-06-26`; `SPY` currently has none.
+- At the Slice 8 runtime DB check, `QQQ` had persisted option-chain snapshots for `2026-06-26`; `SPY` had none.
 - Evidence record: `docs/operations/phase-13-option-chain-context.md`.
 
 ### Slice 9: Option Chain Readiness Gate
@@ -179,8 +179,8 @@ Result:
 
 - `app.analysis.cli real-runner-smoke` now supports `--require-option-chain-context`.
 - `scripts/phase8_real_runner_smoke.sh` now supports optional fourth argument `require-option-chain-context`.
-- With the gate enabled, `SPY` returned `not_ready` before runner/provider execution because no persisted SPY option-chain context exists.
-- Runtime DB context check from the isolated backend directory found `SPY_CONTEXT False` and `QQQ_CONTEXT True`.
+- In the Slice 9 isolated backend check, `SPY` returned `not_ready` before runner/provider execution because no persisted SPY option-chain context existed.
+- That historical runtime DB context check found `SPY_CONTEXT False` and `QQQ_CONTEXT True`.
 - Evidence record: `docs/operations/phase-13-option-chain-readiness-gate.md`.
 
 ## Next Action

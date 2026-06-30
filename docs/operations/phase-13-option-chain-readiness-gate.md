@@ -73,6 +73,10 @@ Interpretation:
 - `SPY` was blocked before real-runner/provider execution because no persisted SPY option-chain context exists.
 - `QQQ` has option-chain context available in the runtime DB, but no QQQ provider-backed run was started in this slice.
 
+## Superseded Status
+
+This SPY readiness result is historical. A later clean-mirror recheck recorded in `docs/roadmap/phase-13-validation-audit.md` found that `SPY 2026-06-18 etf require-option-chain-context` now returns `not_ready` only because the real-provider confirmation flag is intentionally omitted; it no longer reports missing option-chain context from the current runtime path.
+
 ## Verification
 
 Commands:
@@ -97,6 +101,8 @@ Next decision:
 
 - use `require-option-chain-context` for a guarded QQQ pilot, because QQQ currently has persisted option-chain context; or
 - sync SPY option-chain snapshots first, then repeat SPY with the gate enabled.
+
+This decision is superseded by the later SPY gate recheck. The current bounded operator decision is to run exactly one guarded QQQ pilot or exactly one guarded repeat SPY pilot in an approved environment.
 
 ## Boundary
 

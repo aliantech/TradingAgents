@@ -43,6 +43,10 @@ Interpretation:
 - `QQQ` currently has persisted option-chain snapshots that can feed the new context.
 - `SPY` currently has no persisted option-chain snapshots in the runtime DB, so another `SPY` provider-backed run would still state that no per-contract snapshot is available unless SPY option-chain sync runs first.
 
+## Superseded Status
+
+This runtime DB interpretation is historical. A later clean-mirror recheck recorded in `docs/roadmap/phase-13-validation-audit.md` found that `SPY 2026-06-18 etf require-option-chain-context` now returns `not_ready` only because the real-provider confirmation flag is intentionally omitted; it no longer reports missing option-chain context from the current runtime path.
+
 ## Verification
 
 Ubuntu isolated copy:
@@ -79,6 +83,8 @@ Do not automatically run `QQQ` yet. The next explicit decision is:
 
 - run a guarded `QQQ` provider-backed pilot using the existing QQQ option-chain snapshots; or
 - first sync SPY option-chain snapshots, then repeat `SPY` to verify the same symbol with contract-level options context.
+
+This decision is superseded by the later SPY gate recheck. The current bounded operator decision is to run exactly one guarded QQQ pilot or exactly one guarded repeat SPY pilot in an approved environment.
 
 ## Boundary
 
