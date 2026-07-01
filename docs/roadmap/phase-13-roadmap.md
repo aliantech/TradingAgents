@@ -200,6 +200,8 @@ Use `docs/operations/phase-13-approved-pilot-runbook.md` for the exact one-run c
 
 Do not proceed to additional symbols or retries automatically from the preflight result.
 
+If the operator does not want to configure a large-model API yet, defer the provider pilot and use `docs/operations/phase-13-local-deterministic-analysis.md` for local Codex-agent analysis smoke runs. That path validates the API, adapter, report mapping, and persistence with `deterministic-tradingagents-fixture`; it is not a real LLM/provider research report.
+
 ## Explicit Non-Goals
 
 - QQQ execution before SPY produces reviewable provider-backed output or a new explicit decision.

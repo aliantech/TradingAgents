@@ -183,6 +183,7 @@ Initial storage scope:
 - `docs/operations/codex-agent-roles.md`
 - `docs/operations/phase-13-codex-agent-handoff.md`
 - `docs/operations/phase-13-approved-pilot-runbook.md`
+- `docs/operations/phase-13-local-deterministic-analysis.md`
 - `docs/superpowers/specs/2026-06-20-aquantlens-us-phase-5-paper-only-design.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-2-paper-contracts.md`
 - `docs/superpowers/plans/2026-06-20-aquantlens-us-phase-5-slice-3-riskguard.md`
