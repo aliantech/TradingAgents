@@ -59,8 +59,8 @@ Do not read or print secrets, `.env` values, credential stores, browser sessions
 
 ## Execution Boundary
 
-- Mac local work is for reading, editing, documentation, and lightweight static checks.
-- Project services, dependency installation, Docker, tests, builds, and runtime verification should default to `ssh yasin-ubuntu` unless the user explicitly asks for Mac-local execution.
+- The current MacBook Pro may install project dependencies, run local services and Docker, and execute tests, builds, browser checks, and isolated test-database verification. These results may be used for code and functional acceptance.
+- Use `ssh yasin-ubuntu` for deployment state, persistent services, Linux-specific behavior, production databases, and production-current facts.
 - If sandbox restrictions block an operation, treat it as an execution-environment issue first and use the approval flow.
 
 ## Branch and Upstream Policy
