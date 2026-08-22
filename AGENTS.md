@@ -1,5 +1,11 @@
 # AQuantLens US Options Branch Workspace
 
+## Yasin Brain Governance
+
+- 本项目受 Yasin Brain 统领；本文件是下级项目执行层，只保存本分支工作区的专属规则。
+- 新建对话、接手项目或开始任何任务前，使用当前设备 `~/.codex/AGENTS.md` 中声明的 Yasin Brain 路径，读取 Yasin Brain 根 `AGENTS.md` 和 `00-Core/Device-Roles-And-Safety-Gates.md`，再读取本文件。
+- 安全同步导致 Yasin Brain 或本文件更新后，重新读取最新规则再继续；本项目规则可以更严格，但不能覆盖、绕过或削弱 Yasin Brain。
+
 1. Think Before Coding
 Don't assume. Don't hide confusion. Surface tradeoffs.
 Before implementing:
@@ -48,7 +54,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Before important work, read:
 
-1. `/Users/yasin/Workspace/Yasin AI OS/AGENTS.md`
+1. 当前设备 Host Profile 所声明路径中的 Yasin Brain 根 `AGENTS.md` 和 `00-Core/Device-Roles-And-Safety-Gates.md`
 2. `/Users/yasin/Workspace/Yasin AI OS/04-Projects/aquantlens/PROJECT.md`
 3. `/Users/yasin/Workspace/Yasin AI OS/04-Projects/aquantlens/LOG.md` recent entries only
 4. This file
