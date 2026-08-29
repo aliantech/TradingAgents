@@ -40,7 +40,7 @@ Do not set provider API keys for this local deterministic path.
 Run the backend from the clean mirror or local checkout:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/backend
+cd /home/yasin/workspace/TradingAgents/backend
 
 AQUANTLENS_DATABASE_URL=sqlite:////tmp/aquantlens-local-analysis.db \
 AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=deterministic \
@@ -80,7 +80,7 @@ deterministic-tradingagents-fixture
 For a non-server smoke, a Codex agent can use FastAPI `TestClient` against a temporary SQLite database:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/backend
+cd /home/yasin/workspace/TradingAgents/backend
 TMP_DB=/tmp/aquantlens-local-analysis-smoke.sqlite
 rm -f "$TMP_DB"
 
@@ -134,7 +134,7 @@ Expected result:
 
 ## Verified Result
 
-On 2026-07-01, the Codex-agent smoke passed from `/home/yasin/workspace/TradingAgents-current/backend` with a temporary SQLite database:
+On 2026-07-01, the Codex-agent smoke passed from the then-current `/home/yasin/workspace/TradingAgents-current/backend` checkout with a temporary SQLite database:
 
 ```text
 POST_STATUS 202

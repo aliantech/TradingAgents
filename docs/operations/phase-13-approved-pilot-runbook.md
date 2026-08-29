@@ -13,7 +13,7 @@ This runbook is for an approved environment only. It does not authorize Codex to
 ## Assumptions
 
 - The operator has explicitly approved one real provider-backed research smoke.
-- The clean checkout is `/home/yasin/workspace/TradingAgents-current`.
+- The clean checkout is `/home/yasin/workspace/TradingAgents`.
 - The runtime database remains the approved TradingAgents runtime database for this branch.
 - Provider secrets are already configured in the approved runtime and are not printed, copied, or recorded.
 - Exactly one symbol is selected before execution.
@@ -32,7 +32,7 @@ Do not run both from the same decision. Do not change the date or add another sy
 Run from the clean mirror:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current
+cd /home/yasin/workspace/TradingAgents
 ```
 
 For the preferred `QQQ` pilot:

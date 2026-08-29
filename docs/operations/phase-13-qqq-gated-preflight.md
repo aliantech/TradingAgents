@@ -54,7 +54,7 @@ python -m app.analysis.cli real-runner-smoke \
 
 ## Clean Mirror Verification
 
-After creating the clean Ubuntu mirror at `/home/yasin/workspace/TradingAgents-current`, the same no-provider preflight was rerun from that checkout.
+After creating the clean Ubuntu mirror at `/home/yasin/workspace/TradingAgents-current`, the same no-provider preflight was rerun from that checkout. That checkout was later renamed to the canonical `/home/yasin/workspace/TradingAgents` path.
 
 Result:
 
@@ -64,7 +64,7 @@ Result:
 
 Interpretation:
 
-- `/home/yasin/workspace/TradingAgents-current` is a working clean runtime entry for this preflight.
+- `/home/yasin/workspace/TradingAgents` is a working clean runtime entry for this preflight.
 - `QQQ` still passes the option-chain readiness gate from the current runtime database.
 - The only blocker remains the intentionally omitted real-provider confirmation flag.
 

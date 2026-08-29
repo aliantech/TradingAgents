@@ -13,8 +13,7 @@ This handoff is operational only. It does not create a backend service, autonomo
 ## Current State
 
 - Branch: `aquantlens-us`.
-- Current clean Ubuntu mirror: `/home/yasin/workspace/TradingAgents-current`, kept fast-forwarded to `origin/aquantlens-us`.
-- Legacy Ubuntu workspace: `/home/yasin/workspace/TradingAgents` is behind `origin/aquantlens-us` and contains unrelated local changes; do not reset, pull, or use it as the current sync target without a separate cleanup decision.
+- Canonical clean Ubuntu workspace: `/home/yasin/workspace/TradingAgents`, kept fast-forwarded to `origin/aquantlens-us`.
 - Current target: `QQQ 2026-06-18 etf require-option-chain-context`.
 - Readiness state: QQQ passed the option-chain gate in no-provider preflight. SPY was also rechecked from the clean mirror and now returns the same readiness shape: missing only the intentionally omitted real-provider confirmation flag.
 - Blocking state: the current execution environment blocked the real provider-backed run because it would send runtime context and research input to an external LLM/provider.
@@ -23,7 +22,7 @@ This handoff is operational only. It does not create a backend service, autonomo
 
 ## Clean Mirror Regression
 
-The Phase 13 focused regression slice passed from `/home/yasin/workspace/TradingAgents-current`:
+The Phase 13 focused regression slice originally passed from the then-clean mirror at `/home/yasin/workspace/TradingAgents-current`:
 
 ```bash
 PYTHONPATH=backend /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest \
@@ -44,7 +43,7 @@ Result:
 The backend full regression also passed after isolating the Phase 1 empty-context test from live Finance Data Hub data:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/backend
+cd /home/yasin/workspace/TradingAgents/backend
 PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
 ```
 
@@ -57,7 +56,7 @@ Result:
 The frontend production build also passed from the clean mirror after installing dependencies with `npm ci`:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/frontend
+cd /home/yasin/workspace/TradingAgents/frontend
 npm run build
 ```
 
@@ -72,7 +71,7 @@ built in 476ms
 The mocked Playwright smoke suite also passed from the clean mirror:
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/frontend
+cd /home/yasin/workspace/TradingAgents/frontend
 npm run e2e:paper
 ```
 
@@ -96,7 +95,7 @@ Run exactly one guarded QQQ provider-backed smoke only in an approved environmen
 - Gate: `require-option-chain-context`.
 - Runtime mode: `real-tradingagents`.
 - Runtime database: the approved TradingAgents runtime database for this branch.
-- Working directory: use `/home/yasin/workspace/TradingAgents-current` unless an operator explicitly chooses another clean checkout.
+- Working directory: use `/home/yasin/workspace/TradingAgents` unless an operator explicitly chooses another clean checkout.
 
 ### Command Template
 

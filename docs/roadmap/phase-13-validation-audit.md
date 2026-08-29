@@ -6,7 +6,7 @@ Date: 2026-07-01
 
 Phase 13 is validated through the current non-provider and local-runtime scope, but it is not closed as a full provider-backed QQQ pilot.
 
-The branch has a clean Ubuntu mirror at `/home/yasin/workspace/TradingAgents-current`, fast-forwarded to `origin/aquantlens-us`. The legacy Ubuntu workspace at `/home/yasin/workspace/TradingAgents` remains dirty and behind the remote, so it is not the current sync target.
+The canonical Ubuntu workspace is `/home/yasin/workspace/TradingAgents`, fast-forwarded to `origin/aquantlens-us`. The former dirty legacy checkout was reconciled and removed during the 2026-08-30 workspace consolidation.
 
 The current validated state is:
 
@@ -24,7 +24,7 @@ This audit does not add live broker execution, broker credentials, broker accoun
 | --- | --- | --- |
 | QQQ option-chain readiness is checked without provider execution. | `docs/operations/phase-13-qqq-gated-preflight.md` records `missing` only `--i-understand-this-calls-a-real-llm-provider`, with no missing persisted option-chain context. | Complete |
 | SPY option-chain readiness is rechecked without provider execution. | Clean mirror preflight returned `missing` only `--i-understand-this-calls-a-real-llm-provider`, with no missing persisted option-chain context. | Complete |
-| A clean Ubuntu runtime entry exists. | `/home/yasin/workspace/TradingAgents-current` was created, fast-forwarded, and used for verification. | Complete |
+| A clean Ubuntu runtime entry exists. | The checkout was created at `/home/yasin/workspace/TradingAgents-current`, fast-forwarded, used for verification, and later renamed to `/home/yasin/workspace/TradingAgents`. | Complete |
 | Phase 13 focused backend contracts pass. | `docs/operations/phase-13-codex-agent-handoff.md` records `25 passed`. | Complete |
 | Backend full regression passes. | `docs/operations/phase-13-codex-agent-handoff.md` records `225 passed in 8.51s`. | Complete |
 | Frontend production build passes. | `docs/operations/phase-13-codex-agent-handoff.md` records `npm run build` success. | Complete |
@@ -36,7 +36,7 @@ This audit does not add live broker execution, broker credentials, broker accoun
 ### QQQ No-Provider Preflight
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/backend
+cd /home/yasin/workspace/TradingAgents/backend
 AQUANTLENS_DATABASE_URL=sqlite:////home/yasin/workspace/TradingAgents/backend/aquantlens_us.db \
 AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=real-tradingagents \
 PATH=/home/yasin/workspace/TradingAgents/backend/.venv/bin:$PATH \
@@ -52,7 +52,7 @@ Result: `not_ready`, missing only `--i-understand-this-calls-a-real-llm-provider
 ### SPY No-Provider Preflight
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/backend
+cd /home/yasin/workspace/TradingAgents/backend
 AQUANTLENS_DATABASE_URL=sqlite:////home/yasin/workspace/TradingAgents/backend/aquantlens_us.db \
 AQUANTLENS_TRADINGAGENTS_RUNNER_MODE=real-tradingagents \
 PATH=/home/yasin/workspace/TradingAgents/backend/.venv/bin:$PATH \
@@ -100,7 +100,7 @@ Result: `25 passed in 0.41s`.
 ### Backend Full Regression
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/backend
+cd /home/yasin/workspace/TradingAgents/backend
 PYTHONPATH=. /home/yasin/workspace/TradingAgents/backend/.venv/bin/python -m pytest -q --tb=short
 ```
 
@@ -109,7 +109,7 @@ Result: `225 passed in 8.51s`.
 ### Frontend Build
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/frontend
+cd /home/yasin/workspace/TradingAgents/frontend
 npm run build
 ```
 
@@ -118,7 +118,7 @@ Result: `tsc -b && vite build`, `1928 modules transformed`, `built in 476ms`.
 ### Playwright Smoke
 
 ```bash
-cd /home/yasin/workspace/TradingAgents-current/frontend
+cd /home/yasin/workspace/TradingAgents/frontend
 npm run e2e:paper
 ```
 
@@ -160,7 +160,7 @@ No matches in the touched tests introduced broker access, live execution, secret
 - No QQQ report review exists yet.
 - No new SPY provider-backed report has been generated after the latest SPY gate recheck.
 - Real-provider output quality for QQQ is unknown until an approved environment runs the guarded smoke.
-- The legacy Ubuntu workspace still contains unrelated local changes and should not be reset or reused as the sync target without a separate cleanup decision.
+- The former legacy Ubuntu workspace was removed after its recoverable state was reconciled into the canonical checkout.
 
 ## Final State
 
