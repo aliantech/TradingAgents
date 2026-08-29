@@ -6,6 +6,13 @@
 - 新建对话、接手项目或开始任何任务前，使用当前设备 `~/.codex/AGENTS.md` 中声明的 Yasin Brain 路径，读取 Yasin Brain 根 `AGENTS.md` 和 `00-Core/Device-Roles-And-Safety-Gates.md`，再读取本文件。
 - 安全同步导致 Yasin Brain 或本文件更新后，重新读取最新规则再继续；本项目规则可以更严格，但不能覆盖、绕过或削弱 Yasin Brain。
 
+<!-- BEGIN YASIN BRAIN EXPERIENCE REVIEW -->
+## End-of-Task Experience Gate
+
+- substantial engineering task 完成前必须执行 Yasin Brain 根 `AGENTS.md` 的 End-of-Task Protocol；触发条件只由根协议维护，本文件不复制。
+- 项目专属经验优先更新本仓库现有 known issues、decision、runbook、test 或 schema guardrail；跨项目候选才进入 Yasin Brain。没有新知识时报告 `no_op`，不得为了完成 gate 创建 Markdown。
+<!-- END YASIN BRAIN EXPERIENCE REVIEW -->
+
 1. Think Before Coding
 Don't assume. Don't hide confusion. Surface tradeoffs.
 Before implementing:
